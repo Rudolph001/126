@@ -295,6 +295,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     </style>
     """, unsafe_allow_html=True)
 
+    # Prepare email data with attachment status first
+    df['has_attachments_bool'] = df['attachments'].notna() & (df['attachments'] != '') & (df['attachments'].astype(str) != '0')
+    df['has_last_working_day'] = df['last_working_day'].notna()
+
     # Calculate metrics
     total_emails = len(df)
     high_risk = len(df[df['risk_level'] == 'High Risk'])
@@ -410,10 +414,6 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     </div>
     """, unsafe_allow_html=True)
 
-    # Prepare email data with attachment status
-    df['has_attachments_bool'] = df['attachments'].notna() & (df['attachments'] != '') & (df['attachments'].astype(str) != '0')
-    df['has_last_working_day'] = df['last_working_day'].notna()
-    
     # Create word list match scores (simplified scoring based on content)
     def get_word_match_score(word_match):
         if pd.isna(word_match) or word_match == '':
