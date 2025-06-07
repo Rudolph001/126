@@ -122,6 +122,115 @@ class DomainClassifier:
             '.co.uk', '.co.jp', '.co.au', '.co.nz', '.co.za',
             '.com.au', '.com.br', '.com.cn', '.com.de', '.com.fr'
         }
+        
+        # Industry-specific domain patterns
+        self.banking_domains = {
+            # Major Banks
+            'chase.com', 'bankofamerica.com', 'wellsfargo.com', 'citibank.com', 'citi.com',
+            'jpmorgan.com', 'jpmorganchase.com', 'usbank.com', 'truist.com', 'pnc.com',
+            'capitalone.com', 'tdbank.com', 'regions.com', 'fifththird.com', 'huntington.com',
+            'keybank.com', 'comerica.com', 'zions.com', 'firstrepublic.com', 'svb.com',
+            
+            # International Banks
+            'hsbc.com', 'hsbc.co.uk', 'santander.com', 'santander.co.uk', 'barclays.com',
+            'barclays.co.uk', 'lloyds.com', 'rbs.com', 'natwest.com', 'standardchartered.com',
+            'db.com', 'deutschebank.com', 'commerzbank.com', 'bnpparibas.com', 'societegenerale.com',
+            'credit-agricole.com', 'ing.com', 'abn-amro.com', 'rabobank.com', 'ubs.com',
+            'credit-suisse.com', 'swissbank.com', 'unicredit.com', 'intesasanpaolo.com',
+            'mitsubishiufj.com', 'mizuho.com', 'smbc.co.jp', 'bmo.com', 'rbc.com',
+            'td.com', 'scotiabank.com', 'cibc.com', 'anz.com', 'westpac.com.au',
+            'nab.com.au', 'cba.com.au', 'icbc.com', 'boc.com', 'ccb.com',
+            
+            # Investment Banks & Financial Services
+            'goldmansachs.com', 'gs.com', 'morganstanley.com', 'merrilllynch.com',
+            'ml.com', 'blackrock.com', 'vanguard.com', 'fidelity.com', 'schwab.com',
+            'ameritrade.com', 'etrade.com', 'robinhood.com', 'interactivebrokers.com',
+            
+            # Credit Unions & Regional Banks
+            'navyfederal.org', 'penfed.org', 'secu.org', 'becu.org', 'alliantcu.org',
+            'dccu.org', 'suncoastcu.org', 'schoolsfirst.org', 'golden1.com',
+            
+            # Financial Technology
+            'paypal.com', 'square.com', 'stripe.com', 'affirm.com', 'klarna.com',
+            'sofi.com', 'chime.com', 'ally.com', 'marcus.com', 'discover.com',
+            
+            # Generic banking patterns
+            'bank', 'credit', 'financial', 'trust', 'savings', 'federal',
+            'mutual', 'community', 'first', 'national', 'state', 'peoples',
+            'citizens', 'republic', 'union', 'central', 'security'
+        }
+        
+        self.education_domains = {
+            # Major Universities
+            'harvard.edu', 'mit.edu', 'stanford.edu', 'berkeley.edu', 'ucla.edu',
+            'yale.edu', 'princeton.edu', 'columbia.edu', 'upenn.edu', 'brown.edu',
+            'dartmouth.edu', 'cornell.edu', 'chicago.edu', 'northwestern.edu',
+            'duke.edu', 'johns-hopkins.edu', 'jhu.edu', 'georgetown.edu', 'nyu.edu',
+            'usc.edu', 'vanderbilt.edu', 'rice.edu', 'emory.edu', 'carnegiemellon.edu',
+            'cmu.edu', 'gatech.edu', 'umich.edu', 'uva.edu', 'unc.edu',
+            
+            # State Universities
+            'psu.edu', 'osu.edu', 'msu.edu', 'asu.edu', 'fsu.edu', 'uf.edu',
+            'ufl.edu', 'ucf.edu', 'usf.edu', 'fiu.edu', 'tamu.edu', 'utexas.edu',
+            'ou.edu', 'ku.edu', 'ksu.edu', 'unl.edu', 'iastate.edu', 'uiowa.edu',
+            'wisc.edu', 'umn.edu', 'purdue.edu', 'indiana.edu', 'illinois.edu',
+            
+            # Community Colleges
+            'valenciacollege.edu', 'broward.edu', 'mdc.edu', 'hccs.edu', 'cpcc.edu',
+            'nhti.edu', 'ccm.edu', 'ocean.edu', 'brookdalecc.edu', 'middlesexcc.edu',
+            
+            # International Universities
+            'ox.ac.uk', 'cam.ac.uk', 'imperial.ac.uk', 'ucl.ac.uk', 'kcl.ac.uk',
+            'lse.ac.uk', 'ed.ac.uk', 'manchester.ac.uk', 'bristol.ac.uk', 'warwick.ac.uk',
+            'utoronto.ca', 'ubc.ca', 'mcgill.ca', 'queensu.ca', 'uwaterloo.ca',
+            'anu.edu.au', 'sydney.edu.au', 'unsw.edu.au', 'monash.edu', 'unimelb.edu.au',
+            'ethz.ch', 'epfl.ch', 'tum.de', 'uni-heidelberg.de', 'lmu.de',
+            'sorbonne-universite.fr', 'ens.fr', 'polytechnique.edu', 'u-tokyo.ac.jp',
+            'kyoto-u.ac.jp', 'nus.edu.sg', 'ntu.edu.sg', 'hku.hk', 'cuhk.edu.hk',
+            
+            # K-12 Schools
+            'k12.', 'schooldistrict', 'schools.', 'isd.', 'usd.', 'csd.',
+            
+            # Generic education patterns
+            'university', 'college', 'school', 'academy', 'institute',
+            'education', 'learning', 'campus', 'student'
+        }
+        
+        self.healthcare_domains = {
+            # Major Hospital Systems
+            'mayoclinic.org', 'clevelandclinic.org', 'johnshopkins.org', 'mgh.harvard.edu',
+            'mountsinai.org', 'nyp.org', 'cedars-sinai.org', 'kp.org', 'kaiserpermanente.org',
+            'intermountainhealth.org', 'sutterhealth.org', 'adventhealth.com',
+            'commonspirit.org', 'ascension.org', 'hca.com', 'tenethealth.com',
+            
+            # Medical Centers
+            'ucsf.edu', 'ucla.edu', 'med.', 'health.', 'hospital.', 'clinic.',
+            'medical', 'healthcare', 'mercy', 'baptist', 'methodist', 'presbyterian'
+        }
+        
+        self.government_domains = {
+            # Federal Government
+            'irs.gov', 'treasury.gov', 'sec.gov', 'fdic.gov', 'occ.gov',
+            'federalreserve.gov', 'fed.', 'state.gov', 'defense.gov', 'dhs.gov',
+            'fbi.gov', 'cia.gov', 'nsa.gov', 'doe.gov', 'epa.gov',
+            
+            # State & Local
+            '.gov', '.state.', 'county.', 'city.', 'municipal',
+            'government', 'agency', 'department'
+        }
+        
+        self.technology_domains = {
+            # Major Tech Companies
+            'google.com', 'microsoft.com', 'apple.com', 'amazon.com', 'meta.com',
+            'facebook.com', 'netflix.com', 'tesla.com', 'salesforce.com', 'oracle.com',
+            'ibm.com', 'intel.com', 'cisco.com', 'adobe.com', 'vmware.com',
+            'dell.com', 'hp.com', 'nvidia.com', 'amd.com', 'qualcomm.com',
+            'uber.com', 'lyft.com', 'airbnb.com', 'spotify.com', 'zoom.us',
+            'slack.com', 'dropbox.com', 'atlassian.com', 'github.com', 'gitlab.com',
+            
+            # Generic tech patterns
+            'tech', 'software', 'systems', 'solutions', 'digital', 'cyber'
+        }
     
     def classify_domains(self, df):
         """Classify domains in the email dataframe using email_domain consistently"""
@@ -137,6 +246,10 @@ class DomainClassifier:
         # Classify email domains
         df_copy['email_domain_type'] = df_copy['email_domain'].apply(self._classify_single_domain)
         df_copy['sender_domain_type'] = df_copy['email_domain_type']  # For compatibility
+        
+        # Add industry classification for business domains
+        df_copy['email_domain_industry'] = df_copy['email_domain'].apply(self.classify_business_industry)
+        df_copy['sender_domain_industry'] = df_copy['email_domain_industry']  # For compatibility
         
         # Classify recipient domains (if recipient_domains column exists)
         if 'recipient_domains' in df_copy.columns:
@@ -189,6 +302,54 @@ class DomainClassifier:
             return 'business'
         
         return 'public'
+    
+    def classify_business_industry(self, domain):
+        """Classify business domains by industry sector"""
+        if not domain:
+            return 'unknown'
+        
+        domain = domain.lower().strip()
+        
+        # Only classify if it's a business domain
+        domain_type = self._classify_single_domain(domain)
+        if domain_type not in ['business', 'internal']:
+            return 'not_business'
+        
+        # Check for banking/financial
+        if self._is_industry_domain(domain, self.banking_domains):
+            return 'banking'
+        
+        # Check for education
+        if self._is_industry_domain(domain, self.education_domains):
+            return 'education'
+        
+        # Check for healthcare
+        if self._is_industry_domain(domain, self.healthcare_domains):
+            return 'healthcare'
+        
+        # Check for government
+        if self._is_industry_domain(domain, self.government_domains):
+            return 'government'
+        
+        # Check for technology
+        if self._is_industry_domain(domain, self.technology_domains):
+            return 'technology'
+        
+        return 'business_other'
+    
+    def _is_industry_domain(self, domain, industry_domains):
+        """Check if domain belongs to specific industry"""
+        # Direct match
+        if domain in industry_domains:
+            return True
+        
+        # Pattern matching for partial matches
+        for pattern in industry_domains:
+            if isinstance(pattern, str):
+                if len(pattern) > 3 and pattern in domain:
+                    return True
+        
+        return False
     
     def _classify_domain_list(self, domain_list):
         """Classify a list of domains"""

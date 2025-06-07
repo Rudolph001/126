@@ -1565,6 +1565,154 @@ def analytics_page(visualizer, anomaly_detector):
                     delta=f"{free_pct:.1f}% of total"
                 )
 
+        # Industry Analysis for Business Domains
+        st.subheader("🏛️ Business Domain Industry Analysis")
+        
+        if 'email_domain_industry' in df.columns:
+            # Filter for business domains only
+            business_domain_df = df[df['email_domain_type'].isin(['business', 'internal'])]
+            
+            if not business_domain_df.empty:
+                industry_counts = business_domain_df['email_domain_industry'].value_counts()
+                
+                # Display industry metrics
+                st.write("**Industry Distribution of Business Domains:**")
+                
+                industry_col1, industry_col2, industry_col3 = st.columns(3)
+                
+                with industry_col1:
+                    banking_count = industry_counts.get('banking', 0)
+                    banking_pct = (banking_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    st.metric("🏦 Banking/Financial", f"{banking_count:,}", f"{banking_pct:.1f}%")
+                
+                with industry_col2:
+                    education_count = industry_counts.get('education', 0)
+                    education_pct = (education_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    st.metric("🎓 Education", f"{education_count:,}", f"{education_pct:.1f}%")
+                
+                with industry_col3:
+                    healthcare_count = industry_counts.get('healthcare', 0)
+                    healthcare_pct = (healthcare_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    st.metric("🏥 Healthcare", f"{healthcare_count:,}", f"{healthcare_pct:.1f}%")
+                
+                # Additional industries in a second row
+                industry_col4, industry_col5, industry_col6 = st.columns(3)
+                
+                with industry_col4:
+                    tech_count = industry_counts.get('technology', 0)
+                    tech_pct = (tech_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    st.metric("💻 Technology", f"{tech_count:,}", f"{tech_pct:.1f}%")
+                
+                with industry_col5:
+                    gov_count = industry_counts.get('government', 0)
+                    gov_pct = (gov_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    st.metric("🏛️ Government", f"{gov_count:,}", f"{gov_pct:.1f}%")
+                
+                with industry_col6:
+                    other_count = industry_counts.get('business_other', 0)
+                    other_pct = (other_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    st.metric("🏢 Other Business", f"{other_count:,}", f"{other_pct:.1f}%")
+                
+                # Detailed industry breakdown table
+                st.subheader("📋 Detailed Industry Breakdown")
+                
+                # Create detailed breakdown by industry
+                industry_details = []
+                for industry, count in industry_counts.items():
+                    if count > 0:
+                        industry_data = business_domain_df[business_domain_df['email_domain_industry'] == industry]
+                        unique_domains = industry_data['email_domain'].nunique()
+                        unique_senders = industry_data['sender'].nunique()
+                        
+                        # Get top 3 domains for this industry
+                        top_domains = industry_data['email_domain'].value_counts().head(3)
+                        top_domains_str = ', '.join([f"{domain} ({count})" for domain, count in top_domains.items()])
+                        
+                        industry_display_name = {
+                            'banking': '🏦 Banking/Financial',
+                            'education': '🎓 Education',
+                            'healthcare': '🏥 Healthcare',
+                            'technology': '💻 Technology',
+                            'government': '🏛️ Government',
+                            'business_other': '🏢 Other Business'
+                        }.get(industry, industry.title())
+                        
+                        industry_details.append({
+                            'Industry': industry_display_name,
+                            'Email Count': f"{count:,}",
+                            'Percentage': f"{(count/len(business_domain_df)*100):.1f}%",
+                            'Unique Domains': unique_domains,
+                            'Unique Senders': unique_senders,
+                            'Top Domains (Count)': top_domains_str[:80] + ('...' if len(top_domains_str) > 80 else '')
+                        })
+                
+                if industry_details:
+                    industry_df = pd.DataFrame(industry_details)
+                    
+                    # Style the industry table
+                    def highlight_industry(row):
+                        styles = [''] * len(row)
+                        industry = str(row['Industry'])
+                        if '🏦' in industry:  # Banking
+                            styles[0] = 'background-color: #e8f5e8; color: #2e7d32; font-weight: bold'
+                        elif '🎓' in industry:  # Education
+                            styles[0] = 'background-color: #e3f2fd; color: #1565c0; font-weight: bold'
+                        elif '🏥' in industry:  # Healthcare
+                            styles[0] = 'background-color: #fce4ec; color: #ad1457; font-weight: bold'
+                        elif '💻' in industry:  # Technology
+                            styles[0] = 'background-color: #f3e5f5; color: #7b1fa2; font-weight: bold'
+                        elif '🏛️' in industry:  # Government
+                            styles[0] = 'background-color: #fff3e0; color: #ef6c00; font-weight: bold'
+                        return styles
+                    
+                    styled_industry_df = industry_df.style.apply(highlight_industry, axis=1)
+                    st.dataframe(styled_industry_df, use_container_width=True, height=300)
+                    
+                    # Industry insights
+                    st.subheader("💡 Industry Analysis Insights")
+                    
+                    # Banking analysis
+                    if banking_count > 0:
+                        banking_data = business_domain_df[business_domain_df['email_domain_industry'] == 'banking']
+                        banking_domains = banking_data['email_domain'].value_counts()
+                        st.write(f"**🏦 Banking/Financial Sector:**")
+                        st.write(f"• {banking_count:,} emails from {banking_domains.nunique()} banking institutions")
+                        if not banking_domains.empty:
+                            st.write(f"• Top banking domain: {banking_domains.index[0]} ({banking_domains.iloc[0]} emails)")
+                        
+                        # Check for potential compliance concerns
+                        if 'word_list_match' in banking_data.columns:
+                            banking_word_matches = len(banking_data[
+                                (banking_data['word_list_match'].notna()) & 
+                                (banking_data['word_list_match'] != '') & 
+                                (banking_data['word_list_match'].astype(str) != '0')
+                            ])
+                            if banking_word_matches > 0:
+                                st.warning(f"⚠️ {banking_word_matches} banking emails contain sensitive keywords")
+                    
+                    # Education analysis
+                    if education_count > 0:
+                        education_data = business_domain_df[business_domain_df['email_domain_industry'] == 'education']
+                        education_domains = education_data['email_domain'].value_counts()
+                        st.write(f"**🎓 Education Sector:**")
+                        st.write(f"• {education_count:,} emails from {education_domains.nunique()} educational institutions")
+                        if not education_domains.empty:
+                            st.write(f"• Top education domain: {education_domains.index[0]} ({education_domains.iloc[0]} emails)")
+                    
+                    # Technology analysis
+                    if tech_count > 0:
+                        tech_data = business_domain_df[business_domain_df['email_domain_industry'] == 'technology']
+                        tech_domains = tech_data['email_domain'].value_counts()
+                        st.write(f"**💻 Technology Sector:**")
+                        st.write(f"• {tech_count:,} emails from {tech_domains.nunique()} technology companies")
+                        if not tech_domains.empty:
+                            st.write(f"• Top tech domain: {tech_domains.index[0]} ({tech_domains.iloc[0]} emails)")
+                
+            else:
+                st.info("No business domains found for industry analysis")
+        else:
+            st.info("Industry classification not available. Please reprocess the data to include industry analysis.")
+
     elif analysis_type == "Security Tool Coverage":
         st.subheader("🛡️ Security Tool Coverage Analysis")
         st.write("**Complete Dataset Analysis** - Analysis of Tessian Policy and Mimecast security tool coverage across ALL email events in the dataset")
