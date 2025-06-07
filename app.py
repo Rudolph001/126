@@ -363,17 +363,29 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         """, unsafe_allow_html=True)
 
     with col4:
-        medium_risk_pct = (medium_risk/total_emails*100) if total_emails > 0 else 0
+        # Calculate medium risk based on new criteria
+        medium_risk_count = len(df[
+            (df['has_attachments_bool']) &  # Has attachments
+            (df['word_list_match'].notna()) &  # Has word_list_match value
+            (df['word_list_match'] != '') &    # word_list_match is not empty
+            (~df['has_last_working_day']) &    # No last working day
+            (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Not free email domains
+        ])
+        medium_risk_pct = (medium_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #ffc107; background-color: #fffbf0;">
             <p class="metric-label">Medium</p>
-            <p class="metric-value" style="color: #856404;">{medium_risk}</p>
+            <p class="metric-value" style="color: #856404;">{medium_risk_count}</p>
             <p class="metric-delta" style="color: #856404;">⚠️ {medium_risk_pct:.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
 
     with col5:
-        low_risk_count = len(df[df['risk_level'] == 'Normal'])
+        # Calculate low risk based on new criteria
+        low_risk_count = len(df[
+            (~df['has_attachments_bool']) &  # No attachments
+            (~df['has_last_working_day'])    # No last working day
+        ])
         low_risk_pct = (low_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #28a745; background-color: #f0fff4;">
@@ -562,12 +574,13 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     # View 3: Medium-Risk Emails
     medium_risk_emails = df[
-        (df['has_attachments_bool']) & 
-        (
-            (df['has_last_working_day']) |  # Has last working day
-            (df['word_match_score'] == 2)   # Medium word match score
-        ) &
-        (~df.index.isin(high_risk_emails.index))  # Exclude already classified as high risk
+        (df['has_attachments_bool']) &  # Has attachments
+        (df['word_list_match'].notna()) &  # Has word_list_match value
+        (df['word_list_match'] != '') &    # word_list_match is not empty
+        (~df['has_last_working_day']) &    # No last working day
+        (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False)) &  # Not free email domains
+        (~df.index.isin(high_risk_emails.index)) &  # Exclude critical alerts
+        (~df.index.isin(high_security_emails.index))  # Exclude high security alerts
     ].sort_values(['risk_score', 'time'], ascending=[False, False])
     
     st.markdown(f"""
@@ -578,7 +591,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #fff3cd; color: #856404;">{len(medium_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            Potentially suspicious activity that warrants monitoring and review
+            Emails with attachments and sensitive keywords, sent to non-free domains (no leaver status)
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -612,9 +625,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     # View 4: Low-Risk Emails
     low_risk_emails = df[
-        (df['has_attachments_bool']) & 
-        (df['risk_score'] <= 30) &  # Low risk score
-        (~df.index.isin(high_risk_emails.index)) &  # Exclude high risk
+        (~df['has_attachments_bool']) &  # No attachments
+        (~df['has_last_working_day']) &  # No last working day
+        (~df.index.isin(high_risk_emails.index)) &  # Exclude critical alerts
+        (~df.index.isin(high_security_emails.index)) &  # Exclude high security alerts
         (~df.index.isin(medium_risk_emails.index))  # Exclude medium risk
     ].sort_values(['risk_score', 'time'], ascending=[True, False])
     
@@ -626,7 +640,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #d4edda; color: #155724;">{len(low_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            Emails with attachments showing normal communication patterns
+            Standard email communications without attachments or leaver status
         </p>
     </div>
     """, unsafe_allow_html=True)
