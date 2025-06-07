@@ -395,14 +395,14 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             (df['word_list_match'] != '') &
             (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
-        
+
         high_security_alerts = len(df[
             (df['last_working_day'].notna()) &
             (df['attachments'].notna()) &
             (df['attachments'] != '') &
             (df['attachments'].astype(str) != '0')
         ]) - critical_alerts
-        
+
         medium_risk_count = len(df[
             (df['has_attachments_bool']) &
             (df['word_list_match'].notna()) &
@@ -410,7 +410,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             (~df['has_last_working_day']) &
             (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
-        
+
         low_risk_count = total_emails - critical_alerts - high_security_alerts - medium_risk_count
         low_risk_pct = (low_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
@@ -449,7 +449,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         elif word_match_str.strip():
             return 1  # Low score
         return 0
-    
+
     df['word_match_score'] = df['word_list_match'].apply(get_word_match_score)
 
     # Custom CSS for professional section cards
@@ -509,12 +509,12 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Sort to show emails with last_working_day values at top
     high_risk_emails['has_last_working_day_sort'] = high_risk_emails['last_working_day'].notna()
     high_risk_emails = high_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
-    
+
     st.markdown(f"""
     <div class="analysis-card" style="background: #fff5f5; border: 2px solid #dc3545;">
         <div class="analysis-header">
             <span class="analysis-icon">🚨</span>
-            <h3 class="analysis-title" style="color: #dc3545;">Critical Security Alerts</h3>
+            <h3 class="analysis-title" style="color: #dc3545;">Critical Risk Indicators</h3>
             <span class="count-badge" style="background: #f8d7da; color: #721c24;">{len(high_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
@@ -522,12 +522,12 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     if len(high_risk_emails) > 0:
         # Display with highlighting - include email_domain to show free email detection
         display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
         available_cols = [col for col in display_cols if col in high_risk_emails.columns]
-        
+
         def highlight_high_risk(row):
             styles = [''] * len(row)
             # Highlight last_working_day (critical indicator)
@@ -547,7 +547,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                 attachments_idx = row.index.get_loc('attachments')
                 styles[attachments_idx] = 'background-color: #f8d7da; color: #721c24; font-weight: bold'
             return styles
-        
+
         styled_high_risk = high_risk_emails[available_cols].style.apply(highlight_high_risk, axis=1)
         st.dataframe(styled_high_risk, use_container_width=True, height=400)
     else:
@@ -564,25 +564,25 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Sort to show emails with last_working_day values at top
     high_security_emails['has_last_working_day_sort'] = high_security_emails['last_working_day'].notna()
     high_security_emails = high_security_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
-    
+
     st.markdown(f"""
     <div class="analysis-card" style="background: #fff8f0; border: 2px solid #ff8c00;">
         <div class="analysis-header">
             <span class="analysis-icon">🟠</span>
-            <h3 class="analysis-title" style="color: #cc5500;">High Security Alerts</h3>
+            <h3 class="analysis-title" style="color: #cc5500;">High Risk Indicators</h3>
             <span class="count-badge" style="background: #ffe4cc; color: #cc5500;">{len(high_security_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            High security alerts: Emails with attachments, leaver to free email domains
+            High risk indicators: Emails with attachments, leaver to free email domains
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     if len(high_security_emails) > 0:
         # Display with highlighting
         display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
         available_cols = [col for col in display_cols if col in high_security_emails.columns]
-        
+
         def highlight_high_security(row):
             styles = [''] * len(row)
             # Highlight last_working_day (key indicator)
@@ -594,7 +594,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                 attachments_idx = row.index.get_loc('attachments')
                 styles[attachments_idx] = 'background-color: #fed7d7; color: #c53030; font-weight: bold'
             return styles
-        
+
         styled_high_security = high_security_emails[available_cols].style.apply(highlight_high_security, axis=1)
         st.dataframe(styled_high_security, use_container_width=True, height=400)
     else:
@@ -613,7 +613,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Sort to show emails with last_working_day values at top
     medium_risk_emails['has_last_working_day_sort'] = medium_risk_emails['last_working_day'].notna()
     medium_risk_emails = medium_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
-    
+
     st.markdown(f"""
     <div class="analysis-card" style="background: #fffbf0; border: 2px solid #ffc107;">
         <div class="analysis-header">
@@ -626,12 +626,12 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     if len(medium_risk_emails) > 0:
         # Display with highlighting
         display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
         available_cols = [col for col in display_cols if col in medium_risk_emails.columns]
-        
+
         def highlight_medium_risk(row):
             styles = [''] * len(row)
             # Highlight last_working_day if present (red)
@@ -648,7 +648,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                         if score == 2:
                             styles[word_match_idx] = 'background-color: #ffff99; color: #000000; font-weight: bold'
             return styles
-        
+
         styled_medium_risk = medium_risk_emails[available_cols].style.apply(highlight_medium_risk, axis=1)
         st.dataframe(styled_medium_risk, use_container_width=True, height=400)
     else:
@@ -663,7 +663,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Sort to show emails with last_working_day values at top
     low_risk_emails['has_last_working_day_sort'] = low_risk_emails['last_working_day'].notna()
     low_risk_emails = low_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, True, False])
-    
+
     st.markdown(f"""
     <div class="analysis-card" style="background: #f0fff4; border: 2px solid #28a745;">
         <div class="analysis-header">
@@ -676,12 +676,12 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     if len(low_risk_emails) > 0:
         # Display with minimal highlighting
         display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'attachments', 'last_working_day', 'word_list_match']
         available_cols = [col for col in display_cols if col in low_risk_emails.columns]
-        
+
         def highlight_low_risk(row):
             styles = [''] * len(row)
             # Light green highlighting for low risk scores
@@ -693,13 +693,13 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                 last_working_idx = row.index.get_loc('last_working_day')
                 styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
             return styles
-        
+
         styled_low_risk = low_risk_emails[available_cols].style.apply(highlight_low_risk, axis=1)
         st.dataframe(styled_low_risk, use_container_width=True, height=400)
     else:
         st.info("No low-risk emails found.")
 
-    
+
 
 def analytics_page(visualizer, anomaly_detector):
     st.header("📈 Advanced Analytics")
@@ -721,7 +721,7 @@ def analytics_page(visualizer, anomaly_detector):
         "Select Analysis Type",
         ["Overview", "Anomaly Detection", "Risk Analysis", "Domain Analysis", "Advanced Analytics - Low Risk BAU"]
     )
-    
+
     if analysis_type == "Overview":
         # Anomaly detection
         st.subheader("🔍 Anomaly Detection")
@@ -758,25 +758,25 @@ def analytics_page(visualizer, anomaly_detector):
         if 'risk_score' in df.columns:
             risk_factors_fig = visualizer.create_risk_factors_chart(df)
             st.plotly_chart(risk_factors_fig, use_container_width=True)
-    
+
     elif analysis_type == "Anomaly Detection":
         st.subheader("Anomaly Detection Results")
-        
+
         # Detect anomalies
         anomalies = anomaly_detector.detect_anomalies(df)
-        
+
         if anomalies is not None and len(anomalies) > 0:
             st.write(f"**Found {len(anomalies)} anomalous emails**")
-            
+
             # Anomaly chart
             anomaly_chart = visualizer.create_anomaly_chart(df, anomalies)
             st.plotly_chart(anomaly_chart, use_container_width=True)
-            
+
             # Anomaly details
             st.subheader("Anomaly Details")
             anomaly_emails = df[anomalies].copy()
             anomaly_emails['anomaly_score'] = anomaly_detector.get_anomaly_score(df)[anomalies]
-            
+
             # Display top anomalies
             top_anomalies = anomaly_emails.nlargest(10, 'anomaly_score')
             display_cols = ['time', 'sender', 'subject', 'anomaly_score']
@@ -784,15 +784,15 @@ def analytics_page(visualizer, anomaly_detector):
             st.dataframe(top_anomalies[available_cols])
         else:
             st.info("No significant anomalies detected in the data.")
-    
+
     elif analysis_type == "Risk Analysis":
         st.subheader("Risk Factor Analysis")
-        
+
         if 'risk_score' in df.columns:
             # Risk factors chart
             risk_factors_chart = visualizer.create_risk_factors_chart(df)
             st.plotly_chart(risk_factors_chart, use_container_width=True)
-            
+
             # High risk emails
             st.subheader("High Risk Emails")
             high_risk = df[df.get('risk_level', '') == 'High']
@@ -804,69 +804,69 @@ def analytics_page(visualizer, anomaly_detector):
                 st.info("No high-risk emails found.")
         else:
             st.warning("Risk analysis not available. Please ensure risk scores are calculated.")
-    
+
     elif analysis_type == "Domain Analysis":
         st.subheader("Domain Communication Analysis")
-        
+
         # Domain analysis chart
         domain_chart = visualizer.create_domain_analysis_chart(df)
         st.plotly_chart(domain_chart, use_container_width=True)
-        
+
         # Domain statistics
         if 'recipient_domains' in df.columns:
             st.subheader("Domain Statistics")
-            
+
             # Extract all domains
             all_domains = []
             for domains_str in df['recipient_domains'].dropna():
                 if isinstance(domains_str, str):
                     all_domains.extend([d.strip() for d in domains_str.split(',')])
-            
+
             if all_domains:
                 from collections import Counter
                 domain_counts = Counter(all_domains)
-                
+
                 col1, col2 = st.columns(2)
                 with col1:
                     st.metric("Unique Domains", len(domain_counts))
                 with col2:
                     st.metric("Most Common Domain", domain_counts.most_common(1)[0][0])
-                
+
                 # Top domains table
                 st.subheader("Top Domains")
                 top_domains = pd.DataFrame(domain_counts.most_common(20), 
                                          columns=['Domain', 'Email Count'])
                 st.dataframe(top_domains)
-    
+
     elif analysis_type == "Advanced Analytics - Low Risk BAU":
         from utils.bau_analyzer import BAUAnalyzer
-        
+
         st.subheader("🔍 Advanced Analytics Dashboard")
         st.info("Comprehensive email analysis with threat detection and pattern recognition across all risk levels")
-        
+
         # Alert Type Selector
         col1, col2 = st.columns([1, 3])
-        
+
         with col1:
             alert_type_filter = st.selectbox(
                 "Select Alert Type",
                 ["All Emails", "Critical", "High", "Medium", "Low"],
                 help="Choose which alert type to analyze for patterns"
             )
-        
+
         with col2:
             st.write("")  # Spacer
-        
+
         # Dataset Overview KPIs
         st.subheader("📊 Dataset Overview")
-        
+
         # Calculate email counts by alert type using the new classification
         total_emails = len(df)
-        
+
         # Define alert classifications based on same logic as dashboard
         df['has_attachments_bool'] = df['attachments'].notna() & (df['attachments'] != '') & (df['attachments'].astype(str) != '0')
         df['has_last_working_day'] = df['last_working_day'].notna()
-        
+
         # Critical alerts
         critical_alerts = len(df[
             (df['last_working_day'].notna()) &
@@ -877,7 +877,7 @@ def analytics_page(visualizer, anomaly_detector):
             (df['word_list_match'] != '') &
             (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
-        
+
         # High alerts
         high_alerts = len(df[
             (df['last_working_day'].notna()) &
@@ -885,7 +885,7 @@ def analytics_page(visualizer, anomaly_detector):
             (df['attachments'] != '') &
             (df['attachments'].astype(str) != '0')
         ]) - critical_alerts
-        
+
         # Medium alerts
         medium_alerts = len(df[
             (df['has_attachments_bool']) &
@@ -894,20 +894,20 @@ def analytics_page(visualizer, anomaly_detector):
             (~df['has_last_working_day']) &
             (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
-        
+
         # Low alerts (all others)
         low_alerts = total_emails - critical_alerts - high_alerts - medium_alerts
-        
+
         # Create KPI metrics
         col1, col2, col3, col4, col5 = st.columns(5)
-        
+
         with col1:
             st.metric(
                 label="Total Emails",
                 value=f"{total_emails:,}",
                 help="Total number of emails in the dataset"
             )
-        
+
         with col2:
             critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
             st.metric(
@@ -916,7 +916,7 @@ def analytics_page(visualizer, anomaly_detector):
                 delta=f"{critical_pct:.1f}% of total",
                 help="Critical security alerts requiring immediate attention"
             )
-        
+
         with col3:
             high_pct = (high_alerts/total_emails*100) if total_emails > 0 else 0
             st.metric(
@@ -925,7 +925,7 @@ def analytics_page(visualizer, anomaly_detector):
                 delta=f"{high_pct:.1f}% of total",
                 help="High priority security alerts"
             )
-        
+
         with col4:
             medium_pct = (medium_alerts/total_emails*100) if total_emails > 0 else 0
             st.metric(
@@ -934,7 +934,7 @@ def analytics_page(visualizer, anomaly_detector):
                 delta=f"{medium_pct:.1f}% of total",
                 help="Medium priority security indicators"
             )
-        
+
         with col5:
             low_pct = (low_alerts/total_emails*100) if total_emails > 0 else 0
             st.metric(
@@ -943,7 +943,7 @@ def analytics_page(visualizer, anomaly_detector):
                 delta=f"{low_pct:.1f}% of total",
                 help="Low priority or normal email activity"
             )
-        
+
         # Filter data based on selected alert type
         if alert_type_filter == "All Emails":
             filtered_df = df.copy()
@@ -1017,49 +1017,49 @@ def analytics_page(visualizer, anomaly_detector):
             )
             filtered_df = df[~(critical_mask | high_mask | medium_mask)].copy()
             filter_label = "low alerts"
-        
+
         # Show warning if no emails found
         if len(filtered_df) == 0:
             st.warning(f"⚠️ No {filter_label} found in dataset. Please select a different alert type.")
             return
-        
+
         # Initialize BAU analyzer
         bau_analyzer = BAUAnalyzer()
-        
+
         # Perform analysis on filtered data
         with st.spinner(f"Analyzing {filter_label} patterns..."):
             analysis_results = bau_analyzer.analyze_low_risk_patterns(filtered_df)
-        
+
         # Advanced Analytics KPIs - Show email counts used for each analysis
         st.subheader("📈 Analysis Coverage")
-        
+
         # Calculate specific metrics for BAU analysis
         analysis_df = filtered_df
-        
+
         # Banking emails in selected dataset
         banking_emails = 0
         business_hours_emails = 0
         attachment_emails = 0
-        
+
         if not analysis_df.empty:
             # Banking email detection
             banking_keywords = [
                 'financial', 'banking', 'credit', 'loan', 'investment', 'portfolio',
                 'transaction', 'account', 'balance', 'statement', 'audit', 'compliance'
             ]
-            
+
             banking_mask = pd.Series([False] * len(analysis_df), index=analysis_df.index)
             text_columns = ['subject']
             if 'body' in analysis_df.columns:
                 text_columns.append('body')
-            
+
             for col in text_columns:
                 if col in analysis_df.columns:
                     for keyword in banking_keywords:
                         banking_mask |= analysis_df[col].str.contains(keyword, case=False, na=False)
-            
+
             banking_emails = banking_mask.sum()
-            
+
             # Business hours emails
             if 'time' in analysis_df.columns:
                 time_df = pd.to_datetime(analysis_df['time'], errors='coerce')
@@ -1068,7 +1068,7 @@ def analytics_page(visualizer, anomaly_detector):
                 business_hours_emails = len(analysis_df[
                     (hour >= 9) & (hour <= 17) & (day_of_week.isin([0, 1, 2, 3, 4]))
                 ])
-            
+
             # Emails with attachments
             if 'attachments' in analysis_df.columns:
                 attachment_emails = len(analysis_df[
@@ -1076,17 +1076,17 @@ def analytics_page(visualizer, anomaly_detector):
                     (analysis_df['attachments'] != '') & 
                     (analysis_df['attachments'].astype(str) != '0')
                 ])
-        
+
         # Display KPI metrics for analysis coverage
         col1, col2, col3, col4, col5 = st.columns(5)
-        
+
         with col1:
             st.metric(
                 label=f"Analysis Dataset",
                 value=f"{len(analysis_df):,}",
                 help=f"Total {filter_label} analyzed for patterns and threats"
             )
-        
+
         with col2:
             banking_pct = (banking_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
             st.metric(
@@ -1095,7 +1095,7 @@ def analytics_page(visualizer, anomaly_detector):
                 delta=f"{banking_pct:.1f}% of dataset",
                 help=f"{filter_label.capitalize()} containing banking/financial keywords"
             )
-        
+
         with col3:
             bh_pct = (business_hours_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
             st.metric(
@@ -1104,7 +1104,7 @@ def analytics_page(visualizer, anomaly_detector):
                 delta=f"{bh_pct:.1f}% of dataset",
                 help=f"{filter_label.capitalize()} sent during business hours (9AM-5PM, Mon-Fri)"
             )
-        
+
         with col4:
             att_pct = (attachment_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
             st.metric(
@@ -1113,7 +1113,7 @@ def analytics_page(visualizer, anomaly_detector):
                 delta=f"{att_pct:.1f}% of dataset",
                 help=f"{filter_label.capitalize()} containing file attachments"
             )
-        
+
         with col5:
             unique_senders_filtered = analysis_df['sender'].nunique() if 'sender' in analysis_df.columns else 0
             st.metric(
@@ -1121,7 +1121,7 @@ def analytics_page(visualizer, anomaly_detector):
                 value=f"{unique_senders_filtered:,}",
                 help=f"Number of unique senders in {filter_label}"
             )
-        
+
         # Display results in tabs
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
             "Pattern Overview", 
@@ -1130,16 +1130,16 @@ def analytics_page(visualizer, anomaly_detector):
             "Anomalies", 
             "Recommendations"
         ])
-        
+
         with tab1:
             st.subheader(f"Communication Patterns - {filter_label.capitalize()}")
-            
+
             bau_patterns = analysis_results.get('bau_patterns', {})
-            
+
             # Alert type count metrics
             alert_count = len(filtered_df)
             total_count = len(df)
-            
+
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric(f"{alert_type_filter} Alert Count", alert_count)
@@ -1148,12 +1148,12 @@ def analytics_page(visualizer, anomaly_detector):
             with col3:
                 if bau_patterns.get('temporal', {}).get('business_hours_percentage'):
                     st.metric("Business Hours %", f"{bau_patterns['temporal']['business_hours_percentage']:.1f}%")
-            
+
             # Temporal patterns
             if bau_patterns.get('temporal'):
                 temporal = bau_patterns['temporal']
                 st.subheader("Temporal Patterns")
-                
+
                 col1, col2 = st.columns(2)
                 with col1:
                     if 'peak_hours' in temporal and temporal['peak_hours'] is not None:
@@ -1162,7 +1162,7 @@ def analytics_page(visualizer, anomaly_detector):
                         st.write(f"**Daily Volume Stats:**")
                         st.write(f"- Average: {temporal['daily_volume'].get('mean', 0):.1f} emails/day")
                         st.write(f"- Max: {temporal['daily_volume'].get('max', 0):.0f} emails/day")
-                
+
                 with col2:
                     if 'weekly_pattern' in temporal:
                         st.write("**Weekly Distribution:**")
@@ -1170,33 +1170,33 @@ def analytics_page(visualizer, anomaly_detector):
                         for i, day in enumerate(days):
                             count = temporal['weekly_pattern'].get(i, 0)
                             st.write(f"- {day}: {count} emails")
-            
+
             # Communication patterns
             if bau_patterns.get('communication'):
                 comm = bau_patterns['communication']
                 st.subheader("Communication Patterns")
-                
+
                 col1, col2 = st.columns(2)
                 with col1:
                     st.write("**Top Regular Senders:**")
                     for sender, count in list(comm.get('regular_senders', {}).items())[:5]:
                         st.write(f"- {sender}: {count} emails")
-                
+
                 with col2:
                     dist = comm.get('sender_distribution', {})
                     st.write("**Sender Statistics:**")
                     st.write(f"- Unique Senders: {dist.get('total_unique_senders', 0)}")
                     st.write(f"- Avg Emails/Sender: {dist.get('avg_emails_per_sender', 0):.1f}")
                     st.write(f"- Top Sender Dominance: {dist.get('top_sender_dominance', 0):.1f}%")
-        
+
         with tab2:
             st.subheader("Banking Sector Context Analysis")
-            
+
             banking_analysis = analysis_results.get('banking_analysis', {})
-            
+
             if banking_analysis.get('overview'):
                 overview = banking_analysis['overview']
-                
+
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric("Banking Emails", overview.get('total_banking_emails', 0))
@@ -1205,7 +1205,7 @@ def analytics_page(visualizer, anomaly_detector):
                 with col3:
                     keywords_found = len(overview.get('banking_keywords_found', []))
                     st.metric("Banking Keywords", keywords_found)
-                
+
                 # Banking keywords found
                 if overview.get('banking_keywords_found'):
                     st.subheader("Banking Keywords Detected")
@@ -1215,12 +1215,12 @@ def analytics_page(visualizer, anomaly_detector):
                     for i, keyword in enumerate(keywords):
                         with cols[i % 3]:
                             st.write(f"• {keyword}")
-                
+
                 # Banking patterns
                 if banking_analysis.get('patterns'):
                     patterns = banking_analysis['patterns']
                     st.subheader("Banking Email Patterns")
-                    
+
                     if patterns.get('temporal'):
                         temp = patterns['temporal']
                         col1, col2 = st.columns(2)
@@ -1229,21 +1229,21 @@ def analytics_page(visualizer, anomaly_detector):
                             st.write(f"**Peak Banking Hour:** {temp.get('peak_banking_hours', 'N/A')}:00")
                         with col2:
                             st.write(f"**Weekend Activity:** {temp.get('weekend_banking_activity', 0)} emails")
-                    
+
                     if patterns.get('senders'):
                         send = patterns['senders']
                         st.write(f"**Unique Banking Senders:** {send.get('unique_banking_senders', 0)}")
             else:
                 st.info("No banking-related content detected in low-risk emails")
-        
+
         with tab3:
             st.subheader(f"Threat Detection - {filter_label.capitalize()}")
-            
+
             ip_risks_df = analysis_results.get('ip_risks', pd.DataFrame())
-            
+
             if not ip_risks_df.empty:
                 st.warning(f"Found {len(ip_risks_df)} potentially sensitive emails in {filter_label}")
-                
+
                 # Risk score distribution
                 risk_scores = ip_risks_df['risk_score']
                 col1, col2, col3 = st.columns(3)
@@ -1253,54 +1253,54 @@ def analytics_page(visualizer, anomaly_detector):
                     st.metric("Max Risk Score", f"{risk_scores.max():.0f}")
                 with col3:
                     st.metric("High Risk (>7)", len(ip_risks_df[ip_risks_df['risk_score'] > 7]))
-                
+
                 # Top risky emails
                 st.subheader("Top Threat Emails")
                 display_cols = ['sender', 'subject', 'risk_score', 'banking_keywords', 'ip_keywords']
                 available_cols = [col for col in display_cols if col in ip_risks_df.columns]
-                
+
                 top_risks = ip_risks_df.nlargest(10, 'risk_score')[available_cols]
                 st.dataframe(top_risks, use_container_width=True)
-                
+
                 # Risk factors analysis
                 st.subheader("Common Threat Indicators")
                 all_factors = []
                 for factors_list in ip_risks_df['risk_factors']:
                     if isinstance(factors_list, list):
                         all_factors.extend(factors_list)
-                
+
                 if all_factors:
                     from collections import Counter
                     factor_counts = Counter(all_factors)
-                    
+
                     for factor, count in factor_counts.most_common(5):
                         st.write(f"• {factor}: {count} occurrences")
             else:
                 st.success(f"No hidden threats detected in {filter_label}")
-        
+
         with tab4:
             st.subheader(f"Anomaly Detection - {filter_label.capitalize()}")
-            
+
             anomalies_df = analysis_results.get('anomalies', pd.DataFrame())
-            
+
             if not anomalies_df.empty:
                 st.write(f"**Found {len(anomalies_df)} anomalies in {filter_label}**")
-                
+
                 # Group by type
                 anomaly_types = anomalies_df['type'].value_counts()
-                
+
                 col1, col2 = st.columns(2)
                 with col1:
                     st.write("**Anomaly Types:**")
                     for anom_type, count in anomaly_types.items():
                         st.write(f"• {anom_type}: {count}")
-                
+
                 with col2:
                     severity_counts = anomalies_df['severity'].value_counts()
                     st.write("**Severity Distribution:**")
                     for severity, count in severity_counts.items():
                         st.write(f"• {severity}: {count}")
-                
+
                 # Anomaly details
                 st.subheader("Anomaly Details")
                 display_cols = ['type', 'description', 'severity']
@@ -1308,12 +1308,12 @@ def analytics_page(visualizer, anomaly_detector):
                 st.dataframe(anomalies_df[available_cols], use_container_width=True)
             else:
                 st.info(f"No anomalies detected in {filter_label}")
-        
+
         with tab5:
             st.subheader("Recommendations & Actions")
-            
+
             recommendations = analysis_results.get('recommendations', [])
-            
+
             if recommendations:
                 for i, rec in enumerate(recommendations):
                     with st.expander(f"{rec.get('category', 'General')} - {rec.get('priority', 'Medium')} Priority"):
@@ -1321,47 +1321,48 @@ def analytics_page(visualizer, anomaly_detector):
                         st.write(f"**Suggested Action:** {rec.get('action', '')}")
             else:
                 st.success("No immediate actions required based on current analysis")
-            
+
             # Additional suggestions
             st.subheader("Additional Enhancement Ideas")
             st.write("""
             **Consider implementing these features:**
-            
+
             1. **Machine Learning Classification**
                - Train models on banking email patterns
                - Implement content-based risk scoring
                - Use natural language processing for IP detection
-            
+
             2. **Advanced Behavioral Analysis**
                - User baseline profiling for banking employees
                - Peer group comparison analysis
                - Seasonal pattern recognition
-            
+
             3. **Real-time Monitoring**
                - Live dashboard for banking sector activity
                - Automated alerts for IP keyword combinations
                - Integration with compliance systems
-            
+
             4. **Content Deep Dive**
                - Attachment content analysis
                - Email thread reconstruction
                - Communication pattern mapping
-            
+
             5. **Compliance Integration**
                - SOX compliance checking
                - Basel III regulatory alignment
-               - GDPR data protection verification
+               -```python
+ GDPR data protection verification
             """)
-        
+
         # Create and display charts
         charts = bau_analyzer.create_bau_dashboard_charts(analysis_results)
-        
+
         if charts:
             st.subheader("📈 Visual Analytics")
-            
+
             chart_cols = st.columns(2)
             chart_idx = 0
-            
+
             for chart_name, chart in charts.items():
                 with chart_cols[chart_idx % 2]:
                     st.plotly_chart(chart, use_container_width=True)
