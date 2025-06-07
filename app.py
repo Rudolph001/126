@@ -323,10 +323,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         ])
         critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #e74c3c;">
+        <div class="metric-card" style="border-left-color: #dc3545; background-color: #fff5f5;">
             <p class="metric-label">Critical Alerts</p>
-            <p class="metric-value" style="color: #e74c3c;">{critical_alerts}</p>
-            <p class="metric-delta" style="color: #e74c3c;">🚨 {critical_pct:.1f}% of total</p>
+            <p class="metric-value" style="color: #dc3545;">{critical_alerts}</p>
+            <p class="metric-delta" style="color: #dc3545;">🚨 {critical_pct:.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -351,10 +351,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         high_security_alerts = high_security_alerts - critical_alerts
         high_security_pct = (high_security_alerts/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #ff6b6b;">
+        <div class="metric-card" style="border-left-color: #ffc107; background-color: #fffbf0;">
             <p class="metric-label">High Security Alerts</p>
-            <p class="metric-value" style="color: #ff6b6b;">{high_security_alerts}</p>
-            <p class="metric-delta" style="color: #ff6b6b;">🔴 {high_security_pct:.1f}% of total</p>
+            <p class="metric-value" style="color: #ffc107;">{high_security_alerts}</p>
+            <p class="metric-delta" style="color: #856404;">🟡 {high_security_pct:.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -470,11 +470,11 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     ].sort_values(['risk_score', 'time'], ascending=[False, False])
     
     st.markdown(f"""
-    <div class="analysis-card high-risk">
+    <div class="analysis-card" style="background: #fff5f5; border: 2px solid #dc3545;">
         <div class="analysis-header">
             <span class="analysis-icon">🚨</span>
-            <h3 class="analysis-title">Critical Security Alerts</h3>
-            <span class="count-badge">{len(high_risk_emails)} emails</span>
+            <h3 class="analysis-title" style="color: #dc3545;">Critical Security Alerts</h3>
+            <span class="count-badge" style="background: #f8d7da; color: #721c24;">{len(high_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
             Critical alerts: Emails with attachments, word matches, sent on last working day to free email domains
@@ -522,11 +522,11 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     ].sort_values(['risk_score', 'time'], ascending=[False, False])
     
     st.markdown(f"""
-    <div class="analysis-card" style="background: #fff5f5; border: 2px solid #fc8181;">
+    <div class="analysis-card" style="background: #fffbf0; border: 2px solid #ffc107;">
         <div class="analysis-header">
-            <span class="analysis-icon">🔴</span>
-            <h3 class="analysis-title">High Security Alerts</h3>
-            <span class="count-badge" style="background: #fed7d7; color: #c53030;">{len(high_security_emails)} emails</span>
+            <span class="analysis-icon">🟡</span>
+            <h3 class="analysis-title" style="color: #856404;">High Security Alerts</h3>
+            <span class="count-badge" style="background: #fff3cd; color: #856404;">{len(high_security_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
             High security alerts: Emails with attachments sent on last working day requiring attention
