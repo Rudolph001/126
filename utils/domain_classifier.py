@@ -310,13 +310,22 @@ class DomainClassifier:
         sender_domain = row.get('email_domain', '')
         recipient_domains = row.get('recipient_domains', [])
 
+        # First check if it's a known free email domain - these are NEVER internal
+        if sender_domain and sender_domain.lower().strip() in self.free_email_domains:
+            return 'free'
+        
         # Only classify as internal if sender domain ACTUALLY matches recipient domain
+        # AND it's not a free email domain
         if sender_domain and isinstance(recipient_domains, list) and len(recipient_domains) > 0:
             # Check for exact domain match (case-insensitive)
             sender_clean = sender_domain.lower().strip()
             recipient_clean = [rd.lower().strip() for rd in recipient_domains if rd]
             if sender_clean in recipient_clean:
-                return 'internal'
+                # Double-check it's not a free email domain
+                if sender_clean not in self.free_email_domains:
+                    return 'internal'
+                else:
+                    return 'free'
 
         # Fall back to standard classification
         return self._classify_single_domain(sender_domain)
