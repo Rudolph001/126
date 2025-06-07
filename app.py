@@ -481,7 +481,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #f8d7da; color: #721c24;">{len(high_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            Critical alerts: Emails with attachments, word matches, sent on last working day to free email domains
+            Critical alerts: Emails with attachments, word matches, leaver to free email domains
         </p>
     </div>
     """, unsafe_allow_html=True)
