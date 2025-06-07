@@ -66,7 +66,7 @@ def main():
         reports_page()
 
 def network_view_page(visualizer):
-    st.header("🌐 Network View")
+    st.header("🌐 Network View - Business Domain Analysis")
     
     if st.session_state.processed_data is None:
         st.warning("Please upload email data first in the Data Upload page.")
@@ -80,37 +80,300 @@ def network_view_page(visualizer):
             'High' if x >= 61 else 'Medium' if x >= 31 else 'Low'
         )
     
-    st.subheader("Email Communication Network")
+    st.info("🎯 **Purpose:** Identify emails sent to domains that are neither business domains nor free email domains to assess Business-As-Usual (BAU) patterns and detect potential anomalies.")
     
-    # Network graph options
-    col1, col2 = st.columns(2)
+    # Initialize domain classifier
+    from utils.domain_classifier import DomainClassifier
+    domain_classifier = DomainClassifier()
+    
+    # Extract recipient domains if not already present
+    if 'recipient_domains' not in df.columns:
+        # Extract from recipients field
+        def extract_domains_from_recipients(recipients_str):
+            if pd.isna(recipients_str):
+                return []
+            domains = []
+            # Split by common delimiters and extract domains
+            import re
+            emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', str(recipients_str))
+            for email in emails:
+                domain = email.split('@')[-1].lower()
+                domains.append(domain)
+            return list(set(domains))  # Remove duplicates
+        
+        df['recipient_domains'] = df['recipients'].apply(extract_domains_from_recipients)
+    
+    # Classify all unique recipient domains
+    all_recipient_domains = set()
+    for domains_list in df['recipient_domains'].dropna():
+        if isinstance(domains_list, list):
+            all_recipient_domains.update(domains_list)
+        elif isinstance(domains_list, str):
+            # Handle case where it might be a string
+            all_recipient_domains.add(domains_list)
+    
+    # Classify domains
+    domain_classifications = {}
+    for domain in all_recipient_domains:
+        if domain:
+            classification = domain_classifier._classify_single_domain(domain)
+            domain_classifications[domain] = classification
+    
+    # Filter emails with recipient domains that are neither business nor free
+    def has_non_standard_domains(domains_list):
+        if not isinstance(domains_list, list):
+            return False
+        
+        for domain in domains_list:
+            classification = domain_classifications.get(domain, 'unknown')
+            if classification not in ['business', 'free']:
+                return True
+        return False
+    
+    # Get emails with non-standard recipient domains
+    non_standard_emails = df[df['recipient_domains'].apply(has_non_standard_domains)].copy()
+    
+    # Add domain classification details
+    def get_non_standard_domains(domains_list):
+        non_standard = []
+        if isinstance(domains_list, list):
+            for domain in domains_list:
+                classification = domain_classifications.get(domain, 'unknown')
+                if classification not in ['business', 'free']:
+                    non_standard.append(f"{domain} ({classification})")
+        return "; ".join(non_standard)
+    
+    non_standard_emails['non_standard_domains'] = non_standard_emails['recipient_domains'].apply(get_non_standard_domains)
+    
+    # Statistics Overview
+    st.subheader("📊 Domain Classification Overview")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
     with col1:
-        max_nodes = st.slider("Maximum Nodes", 20, 100, 50)
-    with col2:
-        layout_type = st.selectbox("Layout Type", ["spring", "circular", "random"])
-    
-    # Create network graph
-    with st.spinner("Generating network visualization..."):
-        network_fig = visualizer.create_network_graph(df, max_nodes=max_nodes, layout_type=layout_type)
-        st.plotly_chart(network_fig, use_container_width=True)
-    
-    # Network statistics
-    st.subheader("Network Statistics")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        unique_senders = df['sender'].nunique()
-        st.metric("Unique Senders", unique_senders)
-    with col2:
         total_emails = len(df)
-        st.metric("Total Communications", total_emails)
+        st.metric("Total Emails", f"{total_emails:,}")
+    
+    with col2:
+        business_count = sum(1 for d in domain_classifications.values() if d == 'business')
+        st.metric("Business Domains", business_count)
+    
     with col3:
-        if 'recipient_domains' in df.columns:
-            all_domains = set()
-            for domains in df['recipient_domains'].dropna():
-                if isinstance(domains, list):
-                    all_domains.update(domains)
-            st.metric("Unique Recipient Domains", len(all_domains))
+        free_count = sum(1 for d in domain_classifications.values() if d == 'free')
+        st.metric("Free Email Domains", free_count)
+    
+    with col4:
+        non_standard_count = sum(1 for d in domain_classifications.values() if d not in ['business', 'free'])
+        st.metric("Non-Standard Domains", non_standard_count)
+    
+    # Main Analysis Results
+    st.subheader("🔍 Emails to Non-Standard Domains")
+    
+    if len(non_standard_emails) > 0:
+        st.write(f"**Found {len(non_standard_emails)} emails sent to domains that are neither business nor free email domains**")
+        
+        # Summary metrics
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            unique_senders = non_standard_emails['sender'].nunique()
+            st.metric("Unique Senders", unique_senders)
+        
+        with col2:
+            avg_risk = non_standard_emails['risk_score'].mean() if 'risk_score' in non_standard_emails.columns else 0
+            st.metric("Average Risk Score", f"{avg_risk:.1f}")
+        
+        with col3:
+            high_risk_count = len(non_standard_emails[non_standard_emails.get('risk_level', '') == 'High'])
+            st.metric("High Risk Emails", high_risk_count)
+        
+        # Detailed table
+        st.subheader("📋 Detailed Analysis")
+        
+        # Prepare display data
+        display_data = []
+        for idx, (_, row) in enumerate(non_standard_emails.iterrows()):
+            # Format time
+            time_str = str(row.get('time', 'N/A'))
+            if 'T' in time_str:
+                time_str = time_str.split('T')[0] + ' ' + time_str.split('T')[1][:8]
+            
+            display_data.append({
+                '#': idx + 1,
+                'Date/Time': time_str,
+                'Sender': str(row.get('sender', 'Unknown'))[:40] + ('...' if len(str(row.get('sender', ''))) > 40 else ''),
+                'Subject': str(row.get('subject', 'No Subject'))[:50] + ('...' if len(str(row.get('subject', ''))) > 50 else ''),
+                'Non-Standard Domains': str(row.get('non_standard_domains', ''))[:60] + ('...' if len(str(row.get('non_standard_domains', ''))) > 60 else ''),
+                'Risk Score': f"{row.get('risk_score', 0):.1f}/100" if row.get('risk_score') else 'N/A',
+                'Risk Level': str(row.get('risk_level', 'N/A')),
+                'Business Unit': str(row.get('bunit', 'N/A'))[:20] + ('...' if len(str(row.get('bunit', ''))) > 20 else ''),
+                'Department': str(row.get('department', 'N/A'))[:20] + ('...' if len(str(row.get('department', ''))) > 20 else '')
+            })
+        
+        # Create dataframe and apply styling
+        display_df = pd.DataFrame(display_data)
+        
+        # Color coding based on risk level
+        def highlight_risk(row):
+            styles = [''] * len(row)
+            risk_level = str(row.get('Risk Level', ''))
+            if 'High' in risk_level:
+                # Highlight risk level column in red
+                risk_idx = row.index.get_loc('Risk Level') if 'Risk Level' in row.index else -1
+                if risk_idx >= 0:
+                    styles[risk_idx] = 'background-color: #ffebee; color: #c62828; font-weight: bold'
+                # Highlight risk score in red
+                score_idx = row.index.get_loc('Risk Score') if 'Risk Score' in row.index else -1
+                if score_idx >= 0:
+                    styles[score_idx] = 'background-color: #ffebee; color: #c62828; font-weight: bold'
+            elif 'Medium' in risk_level:
+                risk_idx = row.index.get_loc('Risk Level') if 'Risk Level' in row.index else -1
+                if risk_idx >= 0:
+                    styles[risk_idx] = 'background-color: #fff3e0; color: #ef6c00; font-weight: bold'
+            
+            # Highlight non-standard domains column
+            domain_idx = row.index.get_loc('Non-Standard Domains') if 'Non-Standard Domains' in row.index else -1
+            if domain_idx >= 0:
+                styles[domain_idx] = 'background-color: #e3f2fd; color: #1565c0; font-weight: bold'
+            
+            return styles
+        
+        styled_df = display_df.style.apply(highlight_risk, axis=1)
+        st.dataframe(styled_df, use_container_width=True, height=500)
+        
+        # Domain Analysis
+        st.subheader("🌐 Non-Standard Domain Analysis")
+        
+        # Count occurrences of each non-standard domain
+        domain_counts = {}
+        for domains_str in non_standard_emails['non_standard_domains']:
+            if pd.notna(domains_str) and str(domains_str).strip():
+                domains = str(domains_str).split(';')
+                for domain_info in domains:
+                    domain_info = domain_info.strip()
+                    if domain_info:
+                        # Extract domain name (before parentheses)
+                        domain_name = domain_info.split('(')[0].strip()
+                        domain_counts[domain_name] = domain_counts.get(domain_name, 0) + 1
+        
+        if domain_counts:
+            # Sort by frequency
+            sorted_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Top Non-Standard Domains by Frequency:**")
+                domain_freq_data = []
+                for rank, (domain, count) in enumerate(sorted_domains[:15], 1):
+                    classification = domain_classifications.get(domain, 'unknown')
+                    percentage = (count / len(non_standard_emails) * 100)
+                    
+                    domain_freq_data.append({
+                        'Rank': f"#{rank}",
+                        'Domain': domain,
+                        'Classification': classification.title(),
+                        'Email Count': count,
+                        'Percentage': f"{percentage:.1f}%"
+                    })
+                
+                freq_df = pd.DataFrame(domain_freq_data)
+                st.dataframe(freq_df, use_container_width=True, height=400)
+            
+            with col2:
+                st.write("**Domain Classification Breakdown:**")
+                classification_counts = {}
+                for domain in domain_counts.keys():
+                    classification = domain_classifications.get(domain, 'unknown')
+                    classification_counts[classification] = classification_counts.get(classification, 0) + 1
+                
+                for classification, count in sorted(classification_counts.items(), key=lambda x: x[1], reverse=True):
+                    percentage = (count / len(domain_counts) * 100)
+                    st.write(f"• **{classification.title()}**: {count} domains ({percentage:.1f}%)")
+                
+                st.write("**Business Assessment:**")
+                if 'internal' in classification_counts:
+                    st.success(f"✅ {classification_counts['internal']} internal domains detected - likely BAU")
+                if 'public' in classification_counts:
+                    st.warning(f"⚠️ {classification_counts['public']} public domains - review for legitimacy")
+                if 'unknown' in classification_counts:
+                    st.error(f"❗ {classification_counts['unknown']} unknown domains - requires investigation")
+        
+        # BAU Assessment
+        st.subheader("📈 Business-As-Usual Assessment")
+        
+        # Analyze patterns to determine if this is normal business activity
+        assessment_points = []
+        
+        # Check sender patterns
+        sender_counts = non_standard_emails['sender'].value_counts()
+        if len(sender_counts) > 0:
+            most_active_sender = sender_counts.iloc[0]
+            if most_active_sender > len(non_standard_emails) * 0.5:
+                assessment_points.append(f"⚠️ Single sender ({sender_counts.index[0]}) responsible for {most_active_sender} emails ({most_active_sender/len(non_standard_emails)*100:.1f}%)")
+            else:
+                assessment_points.append(f"✅ Distributed sender pattern - {len(sender_counts)} unique senders")
+        
+        # Check business unit distribution
+        if 'bunit' in non_standard_emails.columns:
+            bunit_counts = non_standard_emails['bunit'].value_counts()
+            if len(bunit_counts) > 0:
+                assessment_points.append(f"📊 Activity across {len(bunit_counts)} business units")
+                if len(bunit_counts) >= 3:
+                    assessment_points.append("✅ Multi-unit activity suggests legitimate business operations")
+        
+        # Check time patterns
+        if 'time' in non_standard_emails.columns:
+            time_analysis = non_standard_emails.copy()
+            time_analysis['hour'] = pd.to_datetime(time_analysis['time'], errors='coerce').dt.hour
+            business_hours = len(time_analysis[(time_analysis['hour'] >= 9) & (time_analysis['hour'] <= 17)])
+            business_hours_pct = (business_hours / len(time_analysis) * 100) if len(time_analysis) > 0 else 0
+            
+            if business_hours_pct >= 70:
+                assessment_points.append(f"✅ {business_hours_pct:.1f}% during business hours - normal pattern")
+            else:
+                assessment_points.append(f"⚠️ Only {business_hours_pct:.1f}% during business hours - investigate timing")
+        
+        # Display assessment
+        st.write("**Assessment Results:**")
+        for point in assessment_points:
+            st.write(point)
+        
+        # Overall recommendation
+        if len(assessment_points) > 0:
+            warning_count = sum(1 for point in assessment_points if '⚠️' in point or '❗' in point)
+            if warning_count == 0:
+                st.success("🎯 **Assessment: Likely Business-As-Usual** - Patterns indicate normal business operations")
+            elif warning_count <= len(assessment_points) / 2:
+                st.warning("🔍 **Assessment: Mixed Indicators** - Some patterns warrant closer review")
+            else:
+                st.error("🚨 **Assessment: Potential Anomaly** - Multiple risk indicators detected")
+    
+    else:
+        st.success("✅ **All emails are sent to either business domains or free email domains**")
+        st.info("This indicates that all communications follow standard business patterns to recognized domain types.")
+        
+        # Show breakdown of standard domains
+        st.subheader("📊 Standard Domain Distribution")
+        
+        business_emails = 0
+        free_emails = 0
+        
+        for _, row in df.iterrows():
+            domains_list = row.get('recipient_domains', [])
+            if isinstance(domains_list, list):
+                for domain in domains_list:
+                    classification = domain_classifications.get(domain, 'unknown')
+                    if classification == 'business':
+                        business_emails += 1
+                    elif classification == 'free':
+                        free_emails += 1
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Business Domain Communications", business_emails)
+        with col2:
+            st.metric("Free Email Communications", free_emails)
 
 def reports_page():
     st.header("📋 Reports")
