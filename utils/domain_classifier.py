@@ -337,7 +337,7 @@ class DomainClassifier:
 
         sender_clean = sender_domain.lower().strip()
         
-        # First check if it's a known free email domain - these are NEVER internal
+        # CRITICAL: Check if sender domain is a free email domain - these are NEVER internal
         if sender_clean in self.free_email_domains:
             return 'free'
         
@@ -345,7 +345,11 @@ class DomainClassifier:
         if recipient_domain and pd.notna(recipient_domain) and str(recipient_domain).strip() != '':
             recipient_clean = str(recipient_domain).lower().strip()
             
-            # If sender domain matches recipient domain, it's internal communication
+            # CRITICAL: If recipient domain is also a free email domain, this is NOT internal
+            if recipient_clean in self.free_email_domains:
+                return 'free'
+            
+            # Only classify as internal if both domains are non-free and match
             if sender_clean == recipient_clean:
                 return 'internal'
         
