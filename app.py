@@ -308,7 +308,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     with col1:
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #3498db;">
-            <p class="metric-label">Total Emails Analyzed</p>
+            <p class="metric-label">Total Emails</p>
             <p class="metric-value" style="color: #3498db;">{total_emails:,}</p>
             <p class="metric-delta" style="color: #666;">📊 Dataset Overview</p>
         </div>
@@ -328,7 +328,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #dc3545; background-color: #fff5f5;">
-            <p class="metric-label">Critical Alerts</p>
+            <p class="metric-label">Critical</p>
             <p class="metric-value" style="color: #dc3545;">{critical_alerts}</p>
             <p class="metric-delta" style="color: #dc3545;">🚨 {critical_pct:.1f}% of total</p>
         </div>
@@ -356,7 +356,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         high_security_pct = (high_security_alerts/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #ff8c00; background-color: #fff8f0;">
-            <p class="metric-label">High Security Alerts</p>
+            <p class="metric-label">High</p>
             <p class="metric-value" style="color: #ff8c00;">{high_security_alerts}</p>
             <p class="metric-delta" style="color: #cc5500;">🟠 {high_security_pct:.1f}% of total</p>
         </div>
@@ -366,7 +366,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         medium_risk_pct = (medium_risk/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #f39c12;">
-            <p class="metric-label">Medium Risk</p>
+            <p class="metric-label">Medium</p>
             <p class="metric-value" style="color: #f39c12;">{medium_risk}</p>
             <p class="metric-delta" style="color: #f39c12;">⚠️ {medium_risk_pct:.1f}% of total</p>
         </div>
@@ -377,7 +377,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         low_risk_pct = (low_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #27ae60;">
-            <p class="metric-label">Low Risk Score</p>
+            <p class="metric-label">Low</p>
             <p class="metric-value" style="color: #27ae60;">{low_risk_count}</p>
             <p class="metric-delta" style="color: #27ae60;">✅ {low_risk_pct:.1f}% of total</p>
         </div>
