@@ -1508,4 +1508,5 @@ def analytics_page(visualizer, anomaly_detector):
             5. **Compliance Integration**
                - SOX compliance checking
                - Basel III regulatory alignment
-               -
+               - GDPR data protection compliance
+            """)
