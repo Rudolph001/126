@@ -298,8 +298,8 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     low_risk = len(df[df['risk_level'] == 'Normal'])
     avg_risk = df['risk_score'].mean()
 
-    # KPI Cards
-    col1, col2, col3, col4 = st.columns(4)
+    # KPI Cards - now with 5 columns
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
         st.markdown(f"""
@@ -331,6 +331,34 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         """, unsafe_allow_html=True)
 
     with col3:
+        # Calculate high security alerts based on new criteria
+        high_security_alerts = len(df[
+            (df['last_working_day'].notna()) &
+            (df['attachments'].notna()) &
+            (df['attachments'] != '') &
+            (df['attachments'].astype(str) != '0')
+        ])
+        # Exclude critical alerts to avoid double counting
+        critical_emails_mask = (
+            (df['last_working_day'].notna()) &
+            (df['attachments'].notna()) &
+            (df['attachments'] != '') &
+            (df['attachments'].astype(str) != '0') &
+            (df['word_list_match'].notna()) &
+            (df['word_list_match'] != '') &
+            (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+        )
+        high_security_alerts = high_security_alerts - critical_alerts
+        high_security_pct = (high_security_alerts/total_emails*100) if total_emails > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #ff6b6b;">
+            <p class="metric-label">High Security Alerts</p>
+            <p class="metric-value" style="color: #ff6b6b;">{high_security_alerts}</p>
+            <p class="metric-delta" style="color: #ff6b6b;">🔴 {high_security_pct:.1f}% of total</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col4:
         medium_risk_pct = (medium_risk/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #f39c12;">
@@ -340,7 +368,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         </div>
         """, unsafe_allow_html=True)
 
-    with col4:
+    with col5:
         low_risk_count = len(df[df['risk_level'] == 'Normal'])
         low_risk_pct = (low_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
@@ -483,6 +511,50 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         st.dataframe(styled_high_risk, use_container_width=True, height=400)
     else:
         st.success("✅ No critical security threats detected.")
+
+    # View 2: High Security Alerts - Require both last_working_day and attachments
+    high_security_emails = df[
+        (df['last_working_day'].notna()) &  # Must have last_working_day value
+        (df['attachments'].notna()) &       # Must have attachments value
+        (df['attachments'] != '') &         # Attachments must not be empty
+        (df['attachments'].astype(str) != '0') &  # Attachments must not be '0'
+        (~df.index.isin(high_risk_emails.index))  # Exclude already classified as critical
+    ].sort_values(['risk_score', 'time'], ascending=[False, False])
+    
+    st.markdown(f"""
+    <div class="analysis-card" style="background: #fff5f5; border: 2px solid #fc8181;">
+        <div class="analysis-header">
+            <span class="analysis-icon">🔴</span>
+            <h3 class="analysis-title">High Security Alerts</h3>
+            <span class="count-badge" style="background: #fed7d7; color: #c53030;">{len(high_security_emails)} emails</span>
+        </div>
+        <p style="color: #6c757d; margin-bottom: 1rem;">
+            High security alerts: Emails with attachments sent on last working day requiring attention
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if len(high_security_emails) > 0:
+        # Display with highlighting
+        display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
+        available_cols = [col for col in display_cols if col in high_security_emails.columns]
+        
+        def highlight_high_security(row):
+            styles = [''] * len(row)
+            # Highlight last_working_day (key indicator)
+            if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
+                last_working_idx = row.index.get_loc('last_working_day')
+                styles[last_working_idx] = 'background-color: #fed7d7; color: #c53030; font-weight: bold'
+            # Highlight attachments (data exfiltration vector)
+            if 'attachments' in row.index and pd.notna(row['attachments']) and str(row['attachments']).strip():
+                attachments_idx = row.index.get_loc('attachments')
+                styles[attachments_idx] = 'background-color: #fed7d7; color: #c53030; font-weight: bold'
+            return styles
+        
+        styled_high_security = high_security_emails[available_cols].style.apply(highlight_high_security, axis=1)
+        st.dataframe(styled_high_security, use_container_width=True, height=400)
+    else:
+        st.success("✅ No high security alerts detected.")
 
     # View 3: Medium-Risk Emails
     medium_risk_emails = df[
