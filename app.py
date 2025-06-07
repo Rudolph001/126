@@ -420,13 +420,15 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     </style>
     """, unsafe_allow_html=True)
 
-    # View 1: High-Risk Emails
+    # View 1: Critical Security Alerts - Must have all four conditions
     high_risk_emails = df[
-        (df['has_attachments_bool']) & 
-        (
-            (df['has_last_working_day']) |  # Has last working day
-            (df['word_match_score'] >= 3)   # High word match score
-        )
+        (df['last_working_day'].notna()) &  # Must have last_working_day value
+        (df['attachments'].notna()) &       # Must have attachments value
+        (df['attachments'] != '') &         # Attachments must not be empty
+        (df['attachments'].astype(str) != '0') &  # Attachments must not be '0'
+        (df['word_list_match'].notna()) &   # Must have word_list_match value
+        (df['word_list_match'] != '') &     # word_list_match must not be empty
+        (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Must be free email domain
     ].sort_values(['risk_score', 'time'], ascending=[False, False])
     
     st.markdown(f"""
@@ -437,31 +439,34 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge">{len(high_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            High-risk emails with attachments showing suspicious patterns requiring immediate attention
+            Critical alerts: Emails with attachments, word matches, sent on last working day to free email domains
         </p>
     </div>
     """, unsafe_allow_html=True)
     
     if len(high_risk_emails) > 0:
-        # Display with highlighting
-        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
+        # Display with highlighting - include email_domain to show free email detection
+        display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
         available_cols = [col for col in display_cols if col in high_risk_emails.columns]
         
         def highlight_high_risk(row):
             styles = [''] * len(row)
-            # Highlight last_working_day if present
+            # Highlight last_working_day (critical indicator)
             if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
                 last_working_idx = row.index.get_loc('last_working_day')
                 styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
-            # Highlight word_list_match if high score
-            if 'word_list_match' in row.index:
+            # Highlight word_list_match (sensitive content indicator)
+            if 'word_list_match' in row.index and pd.notna(row['word_list_match']) and str(row['word_list_match']).strip():
                 word_match_idx = row.index.get_loc('word_list_match')
-                if pd.notna(row['word_list_match']) and str(row['word_list_match']).strip():
-                    original_idx = row.name
-                    if original_idx in df.index:
-                        score = df.loc[original_idx, 'word_match_score']
-                        if score >= 3:
-                            styles[word_match_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+                styles[word_match_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+            # Highlight email_domain (free email indicator)
+            if 'email_domain' in row.index:
+                domain_idx = row.index.get_loc('email_domain')
+                styles[domain_idx] = 'background-color: #fff3cd; color: #856404; font-weight: bold'
+            # Highlight attachments (data exfiltration vector)
+            if 'attachments' in row.index and pd.notna(row['attachments']) and str(row['attachments']).strip():
+                attachments_idx = row.index.get_loc('attachments')
+                styles[attachments_idx] = 'background-color: #f8d7da; color: #721c24; font-weight: bold'
             return styles
         
         styled_high_risk = high_risk_emails[available_cols].style.apply(highlight_high_risk, axis=1)
