@@ -401,10 +401,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Risk breakdown section
     st.subheader("📊 Risk Factor Analysis")
 
-    if len(filtered_df) > 0:
+    if len(df) > 0:
         # Select an email to analyze
         email_options = []
-        for idx, row in filtered_df.iterrows():
+        for idx, row in df.iterrows():
             sender = row.get('sender', 'Unknown')
             subject = str(row.get('subject', 'No Subject'))[:50]
             risk_score = row.get('risk_score', 0)
@@ -418,7 +418,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
         if selected_email_idx is not None:
             # Get the actual dataframe index
-            email_row_idx = filtered_df.iloc[selected_email_idx].name
+            email_row_idx = df.iloc[selected_email_idx].name
             email_row = st.session_state.processed_data.loc[email_row_idx]
 
             # Get risk breakdown
