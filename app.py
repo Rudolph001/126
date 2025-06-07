@@ -676,6 +676,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             if 'risk_score' in row.index:
                 risk_score_idx = row.index.get_loc('risk_score')
                 styles[risk_score_idx] = 'background-color: #e8f5e8; color: #2e7d32; font-weight: bold'
+            # Highlight last_working_day in red if present
+            if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
+                last_working_idx = row.index.get_loc('last_working_day')
+                styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
             return styles
         
         styled_low_risk = low_risk_emails[available_cols].style.apply(highlight_low_risk, axis=1)
