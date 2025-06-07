@@ -1034,9 +1034,10 @@ def follow_up_actions_page(email_generator):
                         
                         # Display generated emails
                         for i, email in enumerate(generated_emails):
-                            with st.expander(f"Email {i+1}: {email['recipient']}"):
-                                st.text_area("Subject", value=email['subject'], height=50)
-                                st.text_area("Body", value=email['body'], height=200)
+                            recipient = email.get('recipient', email.get('to', 'Unknown Recipient'))
+                            with st.expander(f"Email {i+1}: {recipient}"):
+                                st.text_area("Subject", value=email.get('subject', ''), height=50)
+                                st.text_area("Body", value=email.get('body', ''), height=200)
                         
                         # Export option
                         if st.button("Export Emails to CSV"):

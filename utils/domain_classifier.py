@@ -310,9 +310,12 @@ class DomainClassifier:
         sender_domain = row.get('email_domain', '')
         recipient_domains = row.get('recipient_domains', [])
 
-        # Check if sender domain matches any recipient domain (internal communication)
-        if sender_domain and isinstance(recipient_domains, list):
-            if sender_domain in recipient_domains:
+        # Only classify as internal if sender domain ACTUALLY matches recipient domain
+        if sender_domain and isinstance(recipient_domains, list) and len(recipient_domains) > 0:
+            # Check for exact domain match (case-insensitive)
+            sender_clean = sender_domain.lower().strip()
+            recipient_clean = [rd.lower().strip() for rd in recipient_domains if rd]
+            if sender_clean in recipient_clean:
                 return 'internal'
 
         # Fall back to standard classification
@@ -351,8 +354,10 @@ class DomainClassifier:
         if not sender_domain or not isinstance(recipient_domains, list):
             return False
 
-        # Check if sender domain matches any recipient domain
-        return sender_domain in recipient_domains
+        # Check for exact domain match (case-insensitive)
+        sender_clean = sender_domain.lower().strip()
+        recipient_clean = [rd.lower().strip() for rd in recipient_domains if rd]
+        return sender_clean in recipient_clean
 
     def _analyze_sender_recipient_match(self, row):
         """Analyze sender-recipient domain matching details"""
@@ -362,7 +367,10 @@ class DomainClassifier:
         if not sender_domain or not isinstance(recipient_domains, list):
             return 'no_match_data'
 
-        if sender_domain in recipient_domains:
+        # Check for exact domain match (case-insensitive)
+        sender_clean = sender_domain.lower().strip()
+        recipient_clean = [rd.lower().strip() for rd in recipient_domains if rd]
+        if sender_clean in recipient_clean:
             return f'internal_match_{sender_domain}'
         elif len(recipient_domains) > 0:
             return f'external_to_{",".join(recipient_domains[:3])}'  # Show up to 3 domains
