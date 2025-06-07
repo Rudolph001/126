@@ -213,15 +213,34 @@ def whitelist_management_page():
                 st.rerun()
 
 def dashboard_page(risk_engine, anomaly_detector, visualizer):
-    st.header("📊 Security Dashboard")
+    # Professional header with custom styling
+    st.markdown("""
+    <div style="background: linear-gradient(90deg, #1f4e79 0%, #2c5aa0 100%); padding: 2rem; border-radius: 10px; margin-bottom: 2rem;">
+        <h1 style="color: white; margin: 0; font-size: 2.5rem; font-weight: 600;">
+            🔐 Security Dashboard
+        </h1>
+        <p style="color: #e8f4fd; margin: 0.5rem 0 0 0; font-size: 1.1rem;">
+            Real-time Email Security Monitoring & Risk Analysis
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     if st.session_state.processed_data is None:
-        st.warning("Please upload email data first in the Data Upload page.")
+        st.markdown("""
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+            <div style="color: #856404; font-weight: 500;">
+                ⚠️ Data Required
+            </div>
+            <div style="color: #856404; margin-top: 0.5rem;">
+                Please upload email data first in the Data Upload page to view security analytics.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         return
 
     # Calculate risk scores
     if st.session_state.risk_scores is None:
-        with st.spinner("Calculating risk scores..."):
+        with st.spinner("🔄 Calculating risk scores..."):
             risk_scores = risk_engine.calculate_risk_scores(
                 st.session_state.processed_data,
                 st.session_state.whitelist_data
@@ -237,29 +256,104 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         'High Risk' if x >= 61 else 'Medium Risk' if x >= 31 else 'Normal'
     )
 
-    # Summary metrics
+    # Professional KPI Cards
+    st.markdown("""
+    <style>
+    .metric-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-left: 4px solid;
+        margin-bottom: 1rem;
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .metric-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .metric-label {
+        font-size: 0.9rem;
+        color: #666;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .metric-delta {
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        font-weight: 500;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Calculate metrics
+    total_emails = len(df)
+    high_risk = len(df[df['risk_level'] == 'High Risk'])
+    medium_risk = len(df[df['risk_level'] == 'Medium Risk'])
+    low_risk = len(df[df['risk_level'] == 'Normal'])
+    avg_risk = df['risk_score'].mean()
+
+    # KPI Cards
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        total_emails = len(df)
-        st.metric("Total Emails", total_emails)
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #3498db;">
+            <p class="metric-label">Total Emails Analyzed</p>
+            <p class="metric-value" style="color: #3498db;">{total_emails:,}</p>
+            <p class="metric-delta" style="color: #666;">📊 Dataset Overview</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     with col2:
-        high_risk = len(df[df['risk_level'] == 'High Risk'])
-        st.metric("High Risk", high_risk, delta=f"{high_risk/total_emails*100:.1f}%")
+        high_risk_pct = (high_risk/total_emails*100) if total_emails > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #e74c3c;">
+            <p class="metric-label">High Risk Alerts</p>
+            <p class="metric-value" style="color: #e74c3c;">{high_risk}</p>
+            <p class="metric-delta" style="color: #e74c3c;">🚨 {high_risk_pct:.1f}% of total</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     with col3:
-        medium_risk = len(df[df['risk_level'] == 'Medium Risk'])
-        st.metric("Medium Risk", medium_risk, delta=f"{medium_risk/total_emails*100:.1f}%")
+        medium_risk_pct = (medium_risk/total_emails*100) if total_emails > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #f39c12;">
+            <p class="metric-label">Medium Risk</p>
+            <p class="metric-value" style="color: #f39c12;">{medium_risk}</p>
+            <p class="metric-delta" style="color: #f39c12;">⚠️ {medium_risk_pct:.1f}% of total</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     with col4:
-        avg_risk = df['risk_score'].mean()
-        st.metric("Avg Risk Score", f"{avg_risk:.1f}")
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #27ae60;">
+            <p class="metric-label">Average Risk Score</p>
+            <p class="metric-value" style="color: #27ae60;">{avg_risk:.1f}</p>
+            <p class="metric-delta" style="color: #27ae60;">📈 System Health</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    
+    # Spacing
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # Email Details with Risk Analysis - Suggested Views
-    st.subheader("📧 Email Details with Risk Analysis — Suggested Views")
+    # Professional section header
+    st.markdown("""
+    <div style="background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); padding: 1.5rem; border-radius: 10px; margin: 2rem 0 1rem 0; border-left: 5px solid #495057;">
+        <h2 style="margin: 0; color: #495057; font-size: 1.8rem; font-weight: 600;">
+            📧 Email Security Analysis Overview
+        </h2>
+        <p style="margin: 0.5rem 0 0 0; color: #6c757d; font-size: 1rem;">
+            Categorized threat intelligence and risk assessment results
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Prepare email data with attachment status
     df['has_attachments_bool'] = df['attachments'].notna() & (df['attachments'] != '') & (df['attachments'].astype(str) != '0')
@@ -281,30 +375,77 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     
     df['word_match_score'] = df['word_list_match'].apply(get_word_match_score)
 
+    # Custom CSS for professional section cards
+    st.markdown("""
+    <style>
+    .analysis-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        border: 1px solid #e9ecef;
+    }
+    .analysis-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #f8f9fa;
+    }
+    .analysis-icon {
+        font-size: 1.5rem;
+        margin-right: 0.75rem;
+    }
+    .analysis-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+    }
+    .count-badge {
+        background: #e9ecef;
+        color: #495057;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-left: auto;
+    }
+    .high-risk .count-badge { background: #fee; color: #dc3545; }
+    .medium-risk .count-badge { background: #fff3cd; color: #856404; }
+    .low-risk .count-badge { background: #d4edda; color: #155724; }
+    .normal .count-badge { background: #d1ecf1; color: #0c5460; }
+    </style>
+    """, unsafe_allow_html=True)
+
     # View 1: Emails Without Attachments
-    st.subheader("📄 1. Emails Without Attachments")
-    
     emails_no_attachments = df[~df['has_attachments_bool']]
     
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.metric("Count", len(emails_no_attachments))
+    st.markdown(f"""
+    <div class="analysis-card normal">
+        <div class="analysis-header">
+            <span class="analysis-icon">📄</span>
+            <h3 class="analysis-title">Standard Email Communications</h3>
+            <span class="count-badge">{len(emails_no_attachments)} emails</span>
+        </div>
+        <p style="color: #6c757d; margin-bottom: 1rem;">
+            Email communications without file attachments - typically lower risk profile
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with col2:
-        if len(emails_no_attachments) > 0:
-            # Show sample data
-            display_cols = ['time', 'sender', 'subject']
-            available_cols = [col for col in display_cols if col in emails_no_attachments.columns]
-            
-            st.write("**Sample emails (showing first 10):**")
-            sample_df = emails_no_attachments[available_cols].head(10)
-            st.dataframe(sample_df, use_container_width=True)
-        else:
-            st.info("No emails without attachments found.")
+    if len(emails_no_attachments) > 0:
+        # Show sample data in a professional way
+        display_cols = ['time', 'sender', 'subject']
+        available_cols = [col for col in display_cols if col in emails_no_attachments.columns]
+        
+        sample_df = emails_no_attachments[available_cols].head(10)
+        st.dataframe(sample_df, use_container_width=True, height=300)
+    else:
+        st.info("✅ No standard email communications found.")
 
-    # View 2: High-Risk Emails (Red)
-    st.subheader("🔴 2. High-Risk Emails")
-    
+    # View 2: High-Risk Emails
     high_risk_emails = df[
         (df['has_attachments_bool']) & 
         (
@@ -313,41 +454,47 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         )
     ].sort_values(['risk_score', 'time'], ascending=[False, False])
     
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.metric("Count", len(high_risk_emails))
+    st.markdown(f"""
+    <div class="analysis-card high-risk">
+        <div class="analysis-header">
+            <span class="analysis-icon">🚨</span>
+            <h3 class="analysis-title">Critical Security Alerts</h3>
+            <span class="count-badge">{len(high_risk_emails)} emails</span>
+        </div>
+        <p style="color: #6c757d; margin-bottom: 1rem;">
+            High-risk emails with attachments showing suspicious patterns requiring immediate attention
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with col2:
-        if len(high_risk_emails) > 0:
-            # Display with highlighting
-            display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
-            available_cols = [col for col in display_cols if col in high_risk_emails.columns]
-            
-            def highlight_high_risk(row):
-                styles = [''] * len(row)
-                # Highlight last_working_day if present
-                if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
-                    last_working_idx = row.index.get_loc('last_working_day')
-                    styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
-                # Highlight word_list_match if high score
-                if 'word_list_match' in row.index:
-                    word_match_idx = row.index.get_loc('word_list_match')
-                    if pd.notna(row['word_list_match']) and str(row['word_list_match']).strip():
-                        original_idx = row.name
-                        if original_idx in df.index:
-                            score = df.loc[original_idx, 'word_match_score']
-                            if score >= 3:
-                                styles[word_match_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
-                return styles
-            
-            styled_high_risk = high_risk_emails[available_cols].style.apply(highlight_high_risk, axis=1)
-            st.dataframe(styled_high_risk, use_container_width=True)
-        else:
-            st.info("No high-risk emails found.")
+    if len(high_risk_emails) > 0:
+        # Display with highlighting
+        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
+        available_cols = [col for col in display_cols if col in high_risk_emails.columns]
+        
+        def highlight_high_risk(row):
+            styles = [''] * len(row)
+            # Highlight last_working_day if present
+            if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
+                last_working_idx = row.index.get_loc('last_working_day')
+                styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+            # Highlight word_list_match if high score
+            if 'word_list_match' in row.index:
+                word_match_idx = row.index.get_loc('word_list_match')
+                if pd.notna(row['word_list_match']) and str(row['word_list_match']).strip():
+                    original_idx = row.name
+                    if original_idx in df.index:
+                        score = df.loc[original_idx, 'word_match_score']
+                        if score >= 3:
+                            styles[word_match_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+            return styles
+        
+        styled_high_risk = high_risk_emails[available_cols].style.apply(highlight_high_risk, axis=1)
+        st.dataframe(styled_high_risk, use_container_width=True, height=400)
+    else:
+        st.success("✅ No critical security threats detected.")
 
-    # View 3: Medium-Risk Emails (Yellow)
-    st.subheader("🟡 3. Medium-Risk Emails")
-    
+    # View 3: Medium-Risk Emails
     medium_risk_emails = df[
         (df['has_attachments_bool']) & 
         (
@@ -357,41 +504,47 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (~df.index.isin(high_risk_emails.index))  # Exclude already classified as high risk
     ].sort_values(['risk_score', 'time'], ascending=[False, False])
     
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.metric("Count", len(medium_risk_emails))
+    st.markdown(f"""
+    <div class="analysis-card medium-risk">
+        <div class="analysis-header">
+            <span class="analysis-icon">⚠️</span>
+            <h3 class="analysis-title">Moderate Risk Indicators</h3>
+            <span class="count-badge">{len(medium_risk_emails)} emails</span>
+        </div>
+        <p style="color: #6c757d; margin-bottom: 1rem;">
+            Potentially suspicious activity that warrants monitoring and review
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with col2:
-        if len(medium_risk_emails) > 0:
-            # Display with highlighting
-            display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
-            available_cols = [col for col in display_cols if col in medium_risk_emails.columns]
-            
-            def highlight_medium_risk(row):
-                styles = [''] * len(row)
-                # Highlight last_working_day if present (red)
-                if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
-                    last_working_idx = row.index.get_loc('last_working_day')
-                    styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
-                # Highlight word_list_match if medium score (yellow)
-                if 'word_list_match' in row.index:
-                    word_match_idx = row.index.get_loc('word_list_match')
-                    if pd.notna(row['word_list_match']) and str(row['word_list_match']).strip():
-                        original_idx = row.name
-                        if original_idx in df.index:
-                            score = df.loc[original_idx, 'word_match_score']
-                            if score == 2:
-                                styles[word_match_idx] = 'background-color: #ffff99; color: #000000; font-weight: bold'
-                return styles
-            
-            styled_medium_risk = medium_risk_emails[available_cols].style.apply(highlight_medium_risk, axis=1)
-            st.dataframe(styled_medium_risk, use_container_width=True)
-        else:
-            st.info("No medium-risk emails found.")
+    if len(medium_risk_emails) > 0:
+        # Display with highlighting
+        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
+        available_cols = [col for col in display_cols if col in medium_risk_emails.columns]
+        
+        def highlight_medium_risk(row):
+            styles = [''] * len(row)
+            # Highlight last_working_day if present (red)
+            if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
+                last_working_idx = row.index.get_loc('last_working_day')
+                styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+            # Highlight word_list_match if medium score (yellow)
+            if 'word_list_match' in row.index:
+                word_match_idx = row.index.get_loc('word_list_match')
+                if pd.notna(row['word_list_match']) and str(row['word_list_match']).strip():
+                    original_idx = row.name
+                    if original_idx in df.index:
+                        score = df.loc[original_idx, 'word_match_score']
+                        if score == 2:
+                            styles[word_match_idx] = 'background-color: #ffff99; color: #000000; font-weight: bold'
+            return styles
+        
+        styled_medium_risk = medium_risk_emails[available_cols].style.apply(highlight_medium_risk, axis=1)
+        st.dataframe(styled_medium_risk, use_container_width=True, height=400)
+    else:
+        st.success("✅ No moderate risk indicators found.")
 
-    # View 4: Low-Risk Emails (Green)
-    st.subheader("🟢 4. Low-Risk Emails")
-    
+    # View 4: Low-Risk Emails
     low_risk_emails = df[
         (df['has_attachments_bool']) & 
         (df['risk_score'] <= 30) &  # Low risk score
@@ -399,45 +552,79 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (~df.index.isin(medium_risk_emails.index))  # Exclude medium risk
     ].sort_values(['risk_score', 'time'], ascending=[True, False])
     
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.metric("Count", len(low_risk_emails))
+    st.markdown(f"""
+    <div class="analysis-card low-risk">
+        <div class="analysis-header">
+            <span class="analysis-icon">✅</span>
+            <h3 class="analysis-title">Low Risk Communications</h3>
+            <span class="count-badge">{len(low_risk_emails)} emails</span>
+        </div>
+        <p style="color: #6c757d; margin-bottom: 1rem;">
+            Emails with attachments showing normal communication patterns
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with col2:
-        if len(low_risk_emails) > 0:
-            # Display with minimal highlighting
-            display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'attachments']
-            available_cols = [col for col in display_cols if col in low_risk_emails.columns]
-            
-            def highlight_low_risk(row):
-                styles = [''] * len(row)
-                # Light green highlighting for low risk scores
-                if 'risk_score' in row.index:
-                    risk_score_idx = row.index.get_loc('risk_score')
-                    styles[risk_score_idx] = 'background-color: #e8f5e8; color: #2e7d32; font-weight: bold'
-                return styles
-            
-            styled_low_risk = low_risk_emails[available_cols].style.apply(highlight_low_risk, axis=1)
-            st.dataframe(styled_low_risk, use_container_width=True)
-        else:
-            st.info("No low-risk emails with attachments found.")
+    if len(low_risk_emails) > 0:
+        # Display with minimal highlighting
+        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'attachments']
+        available_cols = [col for col in display_cols if col in low_risk_emails.columns]
+        
+        def highlight_low_risk(row):
+            styles = [''] * len(row)
+            # Light green highlighting for low risk scores
+            if 'risk_score' in row.index:
+                risk_score_idx = row.index.get_loc('risk_score')
+                styles[risk_score_idx] = 'background-color: #e8f5e8; color: #2e7d32; font-weight: bold'
+            return styles
+        
+        styled_low_risk = low_risk_emails[available_cols].style.apply(highlight_low_risk, axis=1)
+        st.dataframe(styled_low_risk, use_container_width=True, height=400)
+    else:
+        st.info("No low-risk emails with attachments found.")
 
-    # Risk breakdown section
-    st.subheader("📊 Risk Factor Analysis")
+    # Risk Factor Analysis section with professional styling
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 12px; margin: 2rem 0 1rem 0;">
+        <h2 style="margin: 0; color: white; font-size: 1.8rem; font-weight: 600;">
+            🔍 Advanced Risk Factor Analysis
+        </h2>
+        <p style="margin: 0.5rem 0 0 0; color: #e8f4fd; font-size: 1rem;">
+            Deep-dive analysis of individual email threats and risk components
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     if len(df) > 0:
+        st.markdown("""
+        <div style="background: white; padding: 1.5rem; border-radius: 10px; margin: 1rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h4 style="color: #495057; margin-bottom: 1rem;">📧 Select Email for Analysis</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        
         # Select an email to analyze
         email_options = []
         for idx, row in df.iterrows():
             sender = row.get('sender', 'Unknown')
             subject = str(row.get('subject', 'No Subject'))[:50]
             risk_score = row.get('risk_score', 0)
-            email_options.append(f"{sender} - {subject}... (Score: {risk_score:.1f})")
+            risk_level = row.get('risk_level', 'Normal')
+            
+            # Add risk level indicator
+            if risk_level == 'High Risk':
+                indicator = "🚨"
+            elif risk_level == 'Medium Risk':
+                indicator = "⚠️"
+            else:
+                indicator = "✅"
+                
+            email_options.append(f"{indicator} {sender} - {subject}... (Score: {risk_score:.1f})")
 
         selected_email_idx = st.selectbox(
-            "Select an email to see detailed risk breakdown:",
+            "Choose an email to analyze:",
             range(len(email_options)),
-            format_func=lambda x: email_options[x]
+            format_func=lambda x: email_options[x],
+            help="Select any email to view detailed risk factor breakdown and scoring analysis"
         )
 
         if selected_email_idx is not None:
@@ -452,51 +639,136 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                 st.session_state.whitelist_data
             )
 
-            # Display risk breakdown
-            col1, col2 = st.columns([1, 2])
+            # Email details card
+            selected_email = df.iloc[selected_email_idx]
+            st.markdown(f"""
+            <div style="background: white; padding: 1.5rem; border-radius: 10px; margin: 1rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #495057;">
+                <h4 style="color: #495057; margin-bottom: 1rem;">📧 Email Details</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div><strong>From:</strong> {selected_email.get('sender', 'Unknown')}</div>
+                    <div><strong>To:</strong> {selected_email.get('recipients', 'Unknown')}</div>
+                    <div><strong>Time:</strong> {selected_email.get('time', 'Unknown')}</div>
+                    <div><strong>Attachments:</strong> {selected_email.get('attachments', 'None')}</div>
+                </div>
+                <div><strong>Subject:</strong> {selected_email.get('subject', 'No Subject')}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-            with col1:
-                st.metric("Total Risk Score", f"{risk_breakdown['total_score']:.1f}")
+            # Risk Score Dashboard
+            risk_level = risk_engine.get_risk_level(risk_breakdown['total_score'])
+            
+            # Color coding for risk levels
+            if risk_level == 'High Risk':
+                risk_color = "#dc3545"
+                risk_bg = "#f8d7da"
+                risk_icon = "🚨"
+                risk_explanation = "This email exhibits multiple high-risk patterns that may indicate potential data exfiltration."
+            elif risk_level == 'Medium Risk':
+                risk_color = "#fd7e14"
+                risk_bg = "#fff3cd"
+                risk_icon = "⚠️"
+                risk_explanation = "This email shows some concerning patterns that warrant monitoring and review."
+            else:
+                risk_color = "#28a745"
+                risk_bg = "#d4edda"
+                risk_icon = "✅"
+                risk_explanation = "This email appears to follow normal communication patterns with minimal risk indicators."
 
-                risk_level = risk_engine.get_risk_level(risk_breakdown['total_score'])
-                if risk_level == 'High Risk':
-                    st.error(f"🔴 **{risk_level}**")
-                    st.write("**Explanation:** This email exhibits multiple high-risk patterns that may indicate potential data exfiltration.")
-                elif risk_level == 'Medium Risk':
-                    st.warning(f"🟡 **{risk_level}**")
-                    st.write("**Explanation:** This email shows some concerning patterns that warrant monitoring and review.")
-                else:
-                    st.success(f"🟢 **{risk_level}**")
-                    st.write("**Explanation:** This email appears to follow normal communication patterns with minimal risk indicators.")
+            st.markdown(f"""
+            <div style="background: {risk_bg}; padding: 2rem; border-radius: 12px; margin: 1rem 0; border-left: 5px solid {risk_color};">
+                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                    <span style="font-size: 2rem; margin-right: 1rem;">{risk_icon}</span>
+                    <div>
+                        <h3 style="margin: 0; color: {risk_color}; font-size: 1.8rem;">Risk Score: {risk_breakdown['total_score']:.1f}</h3>
+                        <h4 style="margin: 0; color: {risk_color};">{risk_level}</h4>
+                    </div>
+                </div>
+                <p style="color: {risk_color}; margin: 0; font-size: 1rem; font-weight: 500;">
+                    {risk_explanation}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
 
-            with col2:
-                st.write("**Risk Factors Detected:**")
+            # Risk Factors Analysis
+            st.markdown("""
+            <div style="background: white; padding: 1.5rem; border-radius: 10px; margin: 1rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h4 style="color: #495057; margin-bottom: 1rem;">🔍 Risk Factor Breakdown</h4>
+            </div>
+            """, unsafe_allow_html=True)
 
-                if not risk_breakdown['factors']:
-                    st.info("No specific risk factors detected for this email.")
-                else:
-                    for factor in risk_breakdown['factors']:
-                        if factor['score'] > 0:
-                            # Color code based on factor score
-                            if factor['score'] >= 20:
-                                st.error(f"🔴 **{factor['factor']}** (+{factor['score']} points)")
-                            elif factor['score'] >= 10:
-                                st.warning(f"🟡 **{factor['factor']}** (+{factor['score']} points)")
-                            else:
-                                st.info(f"🔵 **{factor['factor']}** (+{factor['score']} points)")
-
-                            st.write(f"   ↳ {factor['description']}")
+            if not risk_breakdown['factors']:
+                st.info("✅ No specific risk factors detected for this email.")
+            else:
+                for i, factor in enumerate(risk_breakdown['factors']):
+                    if factor['score'] > 0:
+                        # Color code based on factor score
+                        if factor['score'] >= 20:
+                            factor_color = "#dc3545"
+                            factor_bg = "#f8d7da"
+                            factor_icon = "🔴"
+                            impact_level = "High Impact"
+                        elif factor['score'] >= 10:
+                            factor_color = "#fd7e14"
+                            factor_bg = "#fff3cd"
+                            factor_icon = "🟡"
+                            impact_level = "Medium Impact"
                         else:
-                            st.success(f"✅ **{factor['factor']}**")
-                            st.write(f"   ↳ {factor['description']}")
+                            factor_color = "#17a2b8"
+                            factor_bg = "#d1ecf1"
+                            factor_icon = "🔵"
+                            impact_level = "Low Impact"
+                    else:
+                        factor_color = "#28a745"
+                        factor_bg = "#d4edda"
+                        factor_icon = "✅"
+                        impact_level = "Protective Factor"
 
-                # Risk factor legend
-                st.write("---")
-                st.write("**Risk Factor Legend:**")
-                st.write("🔴 High Impact (20+ points) - Significant risk indicators")
-                st.write("🟡 Medium Impact (10-19 points) - Moderate risk indicators") 
-                st.write("🔵 Low Impact (1-9 points) - Minor risk indicators")
-                st.write("✅ Protective Factor - Reduces or negates risk")
+                    st.markdown(f"""
+                    <div style="background: {factor_bg}; padding: 1rem; border-radius: 8px; margin: 0.5rem 0; border-left: 3px solid {factor_color};">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <div style="display: flex; align-items: center;">
+                                <span style="margin-right: 0.5rem;">{factor_icon}</span>
+                                <strong style="color: {factor_color};">{factor['factor']}</strong>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <span style="background: {factor_color}; color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.8rem; font-weight: bold;">
+                                    {'+' if factor['score'] > 0 else ''}{factor['score']} pts
+                                </span>
+                                <span style="margin-left: 0.5rem; font-size: 0.8rem; color: {factor_color}; font-weight: 500;">
+                                    {impact_level}
+                                </span>
+                            </div>
+                        </div>
+                        <p style="margin: 0; color: #495057; font-size: 0.9rem;">
+                            {factor['description']}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            # Professional legend
+            st.markdown("""
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin: 1rem 0; border: 1px solid #dee2e6;">
+                <h5 style="color: #495057; margin-bottom: 1rem;">📊 Risk Assessment Guide</h5>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div style="display: flex; align-items: center;">
+                        <span style="margin-right: 0.5rem;">🔴</span>
+                        <span style="font-size: 0.9rem;"><strong>High Impact (20+ pts)</strong> - Critical threats</span>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <span style="margin-right: 0.5rem;">🟡</span>
+                        <span style="font-size: 0.9rem;"><strong>Medium Impact (10-19 pts)</strong> - Moderate risks</span>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <span style="margin-right: 0.5rem;">🔵</span>
+                        <span style="font-size: 0.9rem;"><strong>Low Impact (1-9 pts)</strong> - Minor indicators</span>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <span style="margin-right: 0.5rem;">✅</span>
+                        <span style="font-size: 0.9rem;"><strong>Protective</strong> - Risk mitigation</span>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
     else:
         st.info("No emails match the current filters. Adjust filters to see risk analysis.")
 
