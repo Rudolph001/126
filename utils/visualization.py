@@ -358,6 +358,133 @@ class Visualizer:
 
         # Analyze risk factors based on available columns
         risk_factors = []
+        
+        # Free email domains analysis
+        free_domains = {'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 
+                       'icloud.com', 'protonmail.com', 'mail.com', 'yandex.com', 'zoho.com'}
+        
+        if 'email_domain' in df.columns:
+            free_email_count = df[df['email_domain'].str.lower().isin(free_domains)]['risk_score'].count()
+            if free_email_count > 0:
+                free_email_avg_risk = df[df['email_domain'].str.lower().isin(free_domains)]['risk_score'].mean()
+                risk_factors.append({
+                    'factor': 'Free Email Domains',
+                    'count': free_email_count,
+                    'avg_risk_score': free_email_avg_risk
+                })
+        
+        # Business email domains analysis
+        if 'domain_type' in df.columns:
+            business_emails = df[df['domain_type'] == 'business']
+            if len(business_emails) > 0:
+                business_avg_risk = business_emails['risk_score'].mean()
+                risk_factors.append({
+                    'factor': 'Business Email Domains',
+                    'count': len(business_emails),
+                    'avg_risk_score': business_avg_risk
+                })
+        
+        # Attachments analysis
+        if 'attachments' in df.columns:
+            has_attachments = df[(df['attachments'].notna()) & (df['attachments'] != '') & (df['attachments'].astype(str) != '0')]
+            if len(has_attachments) > 0:
+                attachments_avg_risk = has_attachments['risk_score'].mean()
+                risk_factors.append({
+                    'factor': 'Emails with Attachments',
+                    'count': len(has_attachments),
+                    'avg_risk_score': attachments_avg_risk
+                })
+        
+        # Leaver activity analysis
+        if 'last_working_day' in df.columns:
+            leaver_emails = df[df['last_working_day'].notna()]
+            if len(leaver_emails) > 0:
+                leaver_avg_risk = leaver_emails['risk_score'].mean()
+                risk_factors.append({
+                    'factor': 'Leaver Activity',
+                    'count': len(leaver_emails),
+                    'avg_risk_score': leaver_avg_risk
+                })
+        
+        # Word list matches analysis
+        if 'word_list_match' in df.columns:
+            word_matches = df[(df['word_list_match'].notna()) & (df['word_list_match'] != '')]
+            if len(word_matches) > 0:
+                word_match_avg_risk = word_matches['risk_score'].mean()
+                risk_factors.append({
+                    'factor': 'Sensitive Keywords',
+                    'count': len(word_matches),
+                    'avg_risk_score': word_match_avg_risk
+                })
+        
+        # After hours analysis (if time data available)
+        if 'time' in df.columns:
+            df_copy = df.copy()
+            df_copy['hour'] = pd.to_datetime(df_copy['time'], errors='coerce').dt.hour
+            after_hours = df_copy[(df_copy['hour'] < 9) | (df_copy['hour'] > 17)]
+            if len(after_hours) > 0:
+                after_hours_avg_risk = after_hours['risk_score'].mean()
+                risk_factors.append({
+                    'factor': 'After Hours Activity',
+                    'count': len(after_hours),
+                    'avg_risk_score': after_hours_avg_risk
+                })
+        
+        if not risk_factors:
+            fig = go.Figure()
+            fig.add_annotation(
+                text="No risk factor data available for analysis",
+                xref="paper", yref="paper",
+                x=0.5, y=0.5, xanchor='center', yanchor='middle',
+                showarrow=False, font=dict(size=16)
+            )
+            fig.update_layout(title="Risk Factors Analysis")
+            return fig
+        
+        # Sort by average risk score
+        risk_factors.sort(key=lambda x: x['avg_risk_score'], reverse=True)
+        
+        # Create chart
+        factors = [rf['factor'] for rf in risk_factors]
+        avg_scores = [rf['avg_risk_score'] for rf in risk_factors]
+        counts = [rf['count'] for rf in risk_factors]
+        
+        # Color coding based on risk level
+        colors = []
+        for score in avg_scores:
+            if score >= 61:
+                colors.append('#dc3545')  # Red for high risk
+            elif score >= 31:
+                colors.append('#ffc107')  # Yellow for medium risk
+            else:
+                colors.append('#28a745')  # Green for low risk
+        
+        fig = go.Figure([
+            go.Bar(
+                x=factors,
+                y=avg_scores,
+                marker_color=colors,
+                text=[f'{score:.1f}<br>({count} emails)' for score, count in zip(avg_scores, counts)],
+                textposition='auto'
+            )
+        ])
+        
+        fig.update_layout(
+            title="Average Risk Score by Factor",
+            xaxis_title="Risk Factors",
+            yaxis_title="Average Risk Score",
+            height=500,
+            showlegend=False,
+            xaxis={'tickangle': -45}
+        )
+        
+        # Add risk level lines
+        fig.add_hline(y=30, line_dash="dash", line_color="green", 
+                     annotation_text="Low Risk Threshold")
+        fig.add_hline(y=60, line_dash="dash", line_color="orange", 
+                     annotation_text="Medium Risk Threshold")
+        
+        return fig
 
         if 'is_after_hours' in df.columns:
             after_hours_risk = df[df['is_after_hours']]['risk_score'].mean()
