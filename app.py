@@ -47,7 +47,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🌐 Network View", "🏢 Enhanced Domain Analysis", "📧 Follow-up Actions", "🔄 App Flow Dashboard"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🏢 Enhanced Domain Analysis", "📧 Follow-up Actions", "🔄 App Flow Dashboard"]
     )
 
     if page == "📁 Data Upload":
@@ -56,8 +56,7 @@ def main():
         dashboard_page(risk_engine, anomaly_detector, visualizer)
     elif page == "📈 Analytics":
         analytics_page(visualizer, anomaly_detector)
-    elif page == "🌐 Network View":
-        network_view_page(visualizer)
+
     elif page == "🏢 Enhanced Domain Analysis":
         enhanced_domain_analysis_page(domain_classifier)
     elif page == "🔄 App Flow Dashboard":
