@@ -622,7 +622,10 @@ def network_view_page(visualizer):
             st.metric("Average Risk Score", f"{avg_risk:.1f}")
         
         with col3:
-            high_risk_count = len(non_standard_emails[non_standard_emails.get('risk_level', '') == 'High'])
+            if 'risk_level' in non_standard_emails.columns:
+                high_risk_count = len(non_standard_emails[non_standard_emails['risk_level'] == 'High'])
+            else:
+                high_risk_count = 0
             st.metric("High Risk Emails", high_risk_count)
         
         # Detailed table
@@ -835,7 +838,7 @@ def reports_page():
             st.subheader("Executive Summary Report")
             
             total_emails = len(df)
-            high_risk = len(df[df.get('risk_level', '') == 'High']) if 'risk_level' in df.columns else 0
+            high_risk = len(df[df['risk_level'] == 'High']) if 'risk_level' in df.columns else 0
             
             st.write(f"**Total Emails Analyzed:** {total_emails:,}")
             st.write(f"**High Risk Emails:** {high_risk:,}")
@@ -1969,7 +1972,7 @@ def analytics_page(visualizer, anomaly_detector):
 
             # High risk emails
             st.subheader("High Risk Emails")
-            high_risk = df[df.get('risk_level', '') == 'High']
+            high_risk = df[df['risk_level'] == 'High'] if 'risk_level' in df.columns else pd.DataFrame()
             
             if not high_risk.empty:
                 st.write(f"**{len(high_risk)} High-Risk Emails Detected**")
@@ -1992,7 +1995,8 @@ def analytics_page(visualizer, anomaly_detector):
                         risk_factors.append("Free Email Domain")
                     if row.get('attachments') and str(row.get('attachments')) not in ['0', '']:
                         risk_factors.append("Has Attachments")
-                    if row.get('recipient_count', 0) > 5:
+                    recipient_count = row.get('recipient_count', 0)
+                    if recipient_count and recipient_count > 5:
                         risk_factors.append("Multiple Recipients")
                     
                     high_risk_display.append({
@@ -2735,7 +2739,10 @@ def analytics_page(visualizer, anomaly_detector):
                         avg_risk = tessian_only['risk_score'].mean() if 'risk_score' in tessian_only.columns else 0
                         st.metric("Avg Risk Score", f"{avg_risk:.1f}/100")
                     with col2:
-                        high_risk_count = len(tessian_only[tessian_only.get('risk_level', '') == 'High'])
+                        if 'risk_level' in tessian_only.columns:
+                            high_risk_count = len(tessian_only[tessian_only['risk_level'] == 'High'])
+                        else:
+                            high_risk_count = 0
                         st.metric("High Risk Emails", high_risk_count)
                     with col3:
                         unique_senders = tessian_only['sender'].nunique()
@@ -2772,7 +2779,10 @@ def analytics_page(visualizer, anomaly_detector):
                         avg_risk = mimecast_only['risk_score'].mean() if 'risk_score' in mimecast_only.columns else 0
                         st.metric("Avg Risk Score", f"{avg_risk:.1f}/100")
                     with col2:
-                        high_risk_count = len(mimecast_only[mimecast_only.get('risk_level', '') == 'High'])
+                        if 'risk_level' in mimecast_only.columns:
+                            high_risk_count = len(mimecast_only[mimecast_only['risk_level'] == 'High'])
+                        else:
+                            high_risk_count = 0
                         st.metric("High Risk Emails", high_risk_count)
                     with col3:
                         unique_senders = mimecast_only['sender'].nunique()
@@ -2819,10 +2829,16 @@ def analytics_page(visualizer, anomaly_detector):
                         avg_risk = no_coverage['risk_score'].mean() if 'risk_score' in no_coverage.columns else 0
                         st.metric("Avg Risk Score", f"{avg_risk:.1f}/100")
                     with col2:
-                        high_risk_count = len(no_coverage[no_coverage.get('risk_level', '') == 'High'])
+                        if 'risk_level' in no_coverage.columns:
+                            high_risk_count = len(no_coverage[no_coverage['risk_level'] == 'High'])
+                        else:
+                            high_risk_count = 0
                         st.metric("High Risk Emails", high_risk_count)
                     with col3:
-                        medium_risk_count = len(no_coverage[no_coverage.get('risk_level', '') == 'Medium'])
+                        if 'risk_level' in no_coverage.columns:
+                            medium_risk_count = len(no_coverage[no_coverage['risk_level'] == 'Medium'])
+                        else:
+                            medium_risk_count = 0
                         st.metric("Medium Risk Emails", medium_risk_count)
                     with col4:
                         unique_senders = no_coverage['sender'].nunique()
