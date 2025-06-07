@@ -3578,17 +3578,24 @@ def find_the_needle_page(domain_classifier, visualizer):
             st.metric("Avg Emails/Dept", f"{avg_emails_per_dept:.1f}")
         
         with col3:
-            high_risk_depts = df[df.get('risk_level', 'Low') == 'High']['department'].nunique()
+            high_risk_mask = df.get('risk_level', pd.Series(['Low'] * len(df))) == 'High'
+            high_risk_depts = df[high_risk_mask]['department'].nunique()
             st.metric("Depts with High Risk", high_risk_depts)
         
         with col4:
-            external_comm_depts = df[df.get('sender_domain_category', '') != 'Internal']['department'].nunique()
+            sender_domain_cat = df.get('sender_domain_category', pd.Series([''] * len(df)))
+            external_comm_mask = sender_domain_cat != 'Internal'
+            external_comm_depts = df[external_comm_mask]['department'].nunique()
             st.metric("Depts with External Comm", external_comm_depts)
         
         # Department risk distribution
         st.subheader("Risk Distribution by Department")
         
-        dept_risk_analysis = df.groupby(['department', df.get('risk_level', 'Low')]).size().unstack(fill_value=0)
+        # Create a safe risk level column
+        risk_levels = df.get('risk_level', pd.Series(['Low'] * len(df)))
+        df_with_risk = df.copy()
+        df_with_risk['risk_level_safe'] = risk_levels
+        dept_risk_analysis = df_with_risk.groupby(['department', 'risk_level_safe']).size().unstack(fill_value=0)
         
         if not dept_risk_analysis.empty:
             import plotly.express as px
@@ -3621,7 +3628,9 @@ def find_the_needle_page(domain_classifier, visualizer):
         # Department external communication patterns
         st.subheader("External Communication Patterns")
         
-        external_df = df[df.get('sender_domain_category', '') != 'Internal'].copy()
+        sender_domain_cat_ext = df.get('sender_domain_category', pd.Series([''] * len(df)))
+        external_mask = sender_domain_cat_ext != 'Internal'
+        external_df = df[external_mask].copy()
         if not external_df.empty:
             dept_external_stats = external_df.groupby('department').agg({
                 'sender': 'count',
@@ -3662,7 +3671,8 @@ def find_the_needle_page(domain_classifier, visualizer):
             st.metric("Avg Emails/BUnit", f"{avg_emails_per_bunit:.1f}")
         
         with col3:
-            high_risk_bunits = df[df.get('risk_level', 'Low') == 'High']['bunit'].nunique()
+            high_risk_mask_bu = df.get('risk_level', pd.Series(['Low'] * len(df))) == 'High'
+            high_risk_bunits = df[high_risk_mask_bu]['bunit'].nunique()
             st.metric("BUnits with High Risk", high_risk_bunits)
         
         with col4:
@@ -3791,15 +3801,18 @@ def find_the_needle_page(domain_classifier, visualizer):
         
         # Department-based recommendations
         if 'department' in df.columns:
-            high_risk_depts = df[df.get('risk_level', 'Low') == 'High']['department'].value_counts()
-            if not high_risk_depts.empty:
-                top_risk_dept = high_risk_depts.index[0]
-                recommendations.append({
-                    'Category': 'Department Monitoring',
-                    'Priority': 'High',
-                    'Recommendation': f'Implement enhanced monitoring for {top_risk_dept} department due to high-risk email activity',
-                    'Rationale': f'{high_risk_depts.iloc[0]} high-risk emails detected'
-                })
+            high_risk_mask_rec = df.get('risk_level', pd.Series(['Low'] * len(df))) == 'High'
+            high_risk_dept_emails = df[high_risk_mask_rec]
+            if not high_risk_dept_emails.empty:
+                high_risk_depts = high_risk_dept_emails['department'].value_counts()
+                if not high_risk_depts.empty:
+                    top_risk_dept = high_risk_depts.index[0]
+                    recommendations.append({
+                        'Category': 'Department Monitoring',
+                        'Priority': 'High',
+                        'Recommendation': f'Implement enhanced monitoring for {top_risk_dept} department due to high-risk email activity',
+                        'Rationale': f'{high_risk_depts.iloc[0]} high-risk emails detected'
+                    })
         
         # Business unit recommendations
         if 'bunit' in df.columns and 'anomaly_score' in df.columns:
@@ -3815,7 +3828,9 @@ def find_the_needle_page(domain_classifier, visualizer):
         
         # Domain-based recommendations
         if 'sender_domain_category' in df.columns:
-            free_email_usage = (df['sender_domain_category'] == 'Free Email').sum()
+            sender_domain_cat_policy = df.get('sender_domain_category', pd.Series([''] * len(df)))
+            free_email_mask = sender_domain_cat_policy == 'Free Email'
+            free_email_usage = free_email_mask.sum()
             if free_email_usage > 0:
                 recommendations.append({
                     'Category': 'Domain Policy',
