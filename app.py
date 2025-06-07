@@ -1296,6 +1296,115 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Spacing
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # Email Domain Classification Section
+    st.markdown("""
+    <div style="background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%); padding: 1.5rem; border-radius: 10px; margin: 2rem 0 1rem 0; border-left: 5px solid #1976d2;">
+        <h2 style="margin: 0; color: #1976d2; font-size: 1.8rem; font-weight: 600;">
+            🌐 Email Domain Classification
+        </h2>
+        <p style="margin: 0.5rem 0 0 0; color: #424242; font-size: 1rem;">
+            Distribution of email traffic by domain type and security classification
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Domain Type Distribution Metrics
+    domain_type_counts = df['email_domain_type'].value_counts()
+    
+    # Create domain metrics row
+    domain_col1, domain_col2, domain_col3, domain_col4, domain_col5 = st.columns(5)
+    
+    with domain_col1:
+        business_count = domain_type_counts.get('business', 0)
+        business_pct = (business_count / total_emails * 100) if total_emails > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #2E8B57; background-color: #f0fff4;">
+            <p class="metric-label">Business Domains</p>
+            <p class="metric-value" style="color: #2E8B57;">{business_count:,}</p>
+            <p class="metric-delta" style="color: #2E8B57;">🏢 {business_pct:.1f}% of total</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with domain_col2:
+        free_count = domain_type_counts.get('free', 0)
+        free_pct = (free_count / total_emails * 100) if total_emails > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #DC143C; background-color: #fff5f5;">
+            <p class="metric-label">Free Email</p>
+            <p class="metric-value" style="color: #DC143C;">{free_count:,}</p>
+            <p class="metric-delta" style="color: #DC143C;">📧 {free_pct:.1f}% of total</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with domain_col3:
+        internal_count = domain_type_counts.get('internal', 0)
+        internal_pct = (internal_count / total_emails * 100) if total_emails > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #4169E1; background-color: #f0f8ff;">
+            <p class="metric-label">Internal</p>
+            <p class="metric-value" style="color: #4169E1;">{internal_count:,}</p>
+            <p class="metric-delta" style="color: #4169E1;">🏠 {internal_pct:.1f}% of total</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with domain_col4:
+        public_count = domain_type_counts.get('public', 0)
+        public_pct = (public_count / total_emails * 100) if total_emails > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #FF8C00; background-color: #fff8f0;">
+            <p class="metric-label">Public</p>
+            <p class="metric-value" style="color: #FF8C00;">{public_count:,}</p>
+            <p class="metric-delta" style="color: #FF8C00;">🌐 {public_pct:.1f}% of total</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with domain_col5:
+        unknown_count = domain_type_counts.get('unknown', 0)
+        unknown_pct = (unknown_count / total_emails * 100) if total_emails > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card" style="border-left-color: #708090; background-color: #f8f8ff;">
+            <p class="metric-label">Unknown</p>
+            <p class="metric-value" style="color: #708090;">{unknown_count:,}</p>
+            <p class="metric-delta" style="color: #708090;">❓ {unknown_pct:.1f}% of total</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Domain Classification Visualization
+    if len(domain_type_counts) > 0:
+        import plotly.graph_objects as go
+        
+        # Prepare data for visualization
+        domain_colors = {
+            'business': '#2E8B57',
+            'free': '#DC143C', 
+            'internal': '#4169E1',
+            'public': '#FF8C00',
+            'unknown': '#708090'
+        }
+        
+        colors = [domain_colors.get(dtype, '#708090') for dtype in domain_type_counts.index]
+        
+        # Create donut chart
+        fig_domain = go.Figure(data=[go.Pie(
+            labels=[f"{dtype.title()}<br>({count:,})" for dtype, count in domain_type_counts.items()],
+            values=domain_type_counts.values,
+            hole=0.4,
+            marker_colors=colors,
+            textinfo='label+percent',
+            textposition='auto',
+            hovertemplate='<b>%{label}</b><br>Percentage: %{percent}<br>Count: %{value}<extra></extra>'
+        )])
+        
+        fig_domain.update_layout(
+            title="Email Distribution by Domain Type",
+            title_x=0.5,
+            height=400,
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+        )
+        
+        st.plotly_chart(fig_domain, use_container_width=True)
+
     # Professional section header
     st.markdown("""
     <div style="background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); padding: 1.5rem; border-radius: 10px; margin: 2rem 0 1rem 0; border-left: 5px solid #495057;">
@@ -1953,26 +2062,331 @@ def analytics_page(visualizer, anomaly_detector):
             st.warning("Risk analysis not available. Please ensure risk scores are calculated.")
 
     elif analysis_type == "Domain Analysis":
-        st.subheader("Domain Communication Analysis")
+        st.subheader("Email Domain Classification & Distribution Analysis")
 
-        # Domain analysis chart
-        domain_chart = visualizer.create_domain_analysis_chart(df)
-        st.plotly_chart(domain_chart, use_container_width=True)
+        # Apply domain classification if not already done
+        from utils.domain_classifier import DomainClassifier
+        domain_classifier = DomainClassifier()
+        if 'email_domain_type' not in df.columns:
+            df = domain_classifier.classify_domains(df)
+
+        # Overall Domain Distribution
+        st.subheader("📊 Domain Type Distribution Overview")
+        
+        domain_type_counts = df['email_domain_type'].value_counts()
+        total_emails = len(df)
+        
+        # Create distribution metrics
+        domain_col1, domain_col2, domain_col3, domain_col4, domain_col5 = st.columns(5)
+        
+        with domain_col1:
+            business_count = domain_type_counts.get('business', 0)
+            business_pct = (business_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("Business Domains", f"{business_count:,}", f"{business_pct:.1f}%")
+        
+        with domain_col2:
+            free_count = domain_type_counts.get('free', 0)
+            free_pct = (free_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("Free Email", f"{free_count:,}", f"{free_pct:.1f}%")
+        
+        with domain_col3:
+            internal_count = domain_type_counts.get('internal', 0)
+            internal_pct = (internal_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("Internal", f"{internal_count:,}", f"{internal_pct:.1f}%")
+        
+        with domain_col4:
+            public_count = domain_type_counts.get('public', 0)
+            public_pct = (public_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("Public", f"{public_count:,}", f"{public_pct:.1f}%")
+        
+        with domain_col5:
+            unknown_count = domain_type_counts.get('unknown', 0)
+            unknown_pct = (unknown_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("Unknown", f"{unknown_count:,}", f"{unknown_pct:.1f}%")
+
+        # Domain Type Analysis Tabs
+        domain_tab1, domain_tab2, domain_tab3, domain_tab4 = st.tabs([
+            "📈 Visual Distribution", 
+            "🏢 Business Domain Analysis", 
+            "📧 Free Email Analysis", 
+            "🔒 Risk by Domain Type"
+        ])
+        
+        with domain_tab1:
+            # Create comprehensive domain visualization
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+            
+            # Domain colors
+            domain_colors = {
+                'business': '#2E8B57',
+                'free': '#DC143C', 
+                'internal': '#4169E1',
+                'public': '#FF8C00',
+                'unknown': '#708090'
+            }
+            
+            # Create subplots for different visualizations
+            fig = make_subplots(
+                rows=2, cols=2,
+                specs=[[{"type": "domain"}, {"type": "xy"}],
+                       [{"type": "xy", "colspan": 2}, None]],
+                subplot_titles=("Distribution by Type", "Email Volume", "Top Domains by Category"),
+                vertical_spacing=0.15
+            )
+            
+            # Pie chart
+            colors = [domain_colors.get(dtype, '#708090') for dtype in domain_type_counts.index]
+            fig.add_trace(
+                go.Pie(
+                    labels=domain_type_counts.index,
+                    values=domain_type_counts.values,
+                    marker_colors=colors,
+                    textinfo='label+percent',
+                    hole=0.3
+                ),
+                row=1, col=1
+            )
+            
+            # Bar chart
+            fig.add_trace(
+                go.Bar(
+                    x=domain_type_counts.index,
+                    y=domain_type_counts.values,
+                    marker_color=colors,
+                    text=[f"{val:,}" for val in domain_type_counts.values],
+                    textposition='auto'
+                ),
+                row=1, col=2
+            )
+            
+            # Top domains by category
+            top_domains_data = []
+            top_domains_labels = []
+            top_domains_colors = []
+            
+            for domain_type in ['business', 'free', 'internal', 'public']:
+                if domain_type in domain_type_counts.index and domain_type_counts[domain_type] > 0:
+                    type_data = df[df['email_domain_type'] == domain_type]
+                    top_domain_counts = type_data['email_domain'].value_counts().head(3)
+                    
+                    for domain, count in top_domain_counts.items():
+                        top_domains_data.append(count)
+                        top_domains_labels.append(f"{domain_type.title()}: {domain}")
+                        top_domains_colors.append(domain_colors.get(domain_type, '#708090'))
+            
+            if top_domains_data:
+                fig.add_trace(
+                    go.Bar(
+                        x=top_domains_labels[:10],  # Limit to top 10
+                        y=top_domains_data[:10],
+                        marker_color=top_domains_colors[:10],
+                        text=[f"{val:,}" for val in top_domains_data[:10]],
+                        textposition='auto'
+                    ),
+                    row=2, col=1
+                )
+            
+            fig.update_layout(
+                title="Comprehensive Domain Analysis",
+                height=800,
+                showlegend=False
+            )
+            
+            # Update axes
+            fig.update_xaxes(title_text="Domain Type", row=1, col=2)
+            fig.update_yaxes(title_text="Email Count", row=1, col=2)
+            fig.update_xaxes(title_text="Top Domains", row=2, col=1, tickangle=45)
+            fig.update_yaxes(title_text="Email Count", row=2, col=1)
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with domain_tab2:
+            # Business Domain Analysis
+            business_domains_df = df[df['email_domain_type'] == 'business']
+            
+            if not business_domains_df.empty:
+                st.write(f"**{len(business_domains_df):,} emails from business domains**")
+                
+                # Industry breakdown if available
+                if 'email_domain_industry' in business_domains_df.columns:
+                    industry_counts = business_domains_df['email_domain_industry'].value_counts()
+                    
+                    st.subheader("Industry Distribution")
+                    industry_col1, industry_col2, industry_col3 = st.columns(3)
+                    
+                    with industry_col1:
+                        banking_count = industry_counts.get('banking', 0)
+                        st.metric("Banking/Financial", banking_count)
+                        education_count = industry_counts.get('education', 0)
+                        st.metric("Education", education_count)
+                    
+                    with industry_col2:
+                        healthcare_count = industry_counts.get('healthcare', 0)
+                        st.metric("Healthcare", healthcare_count)
+                        tech_count = industry_counts.get('technology', 0)
+                        st.metric("Technology", tech_count)
+                    
+                    with industry_col3:
+                        gov_count = industry_counts.get('government', 0)
+                        st.metric("Government", gov_count)
+                        other_count = industry_counts.get('business_other', 0)
+                        st.metric("Other Business", other_count)
+                
+                # Top business domains
+                top_business_domains = business_domains_df['email_domain'].value_counts().head(15)
+                
+                st.subheader("Top Business Domains")
+                business_display = []
+                for rank, (domain, count) in enumerate(top_business_domains.items(), 1):
+                    percentage = (count / len(business_domains_df) * 100)
+                    industry = business_domains_df[business_domains_df['email_domain'] == domain]['email_domain_industry'].iloc[0] if 'email_domain_industry' in business_domains_df.columns else 'Unknown'
+                    
+                    business_display.append({
+                        'Rank': f"#{rank}",
+                        'Domain': domain,
+                        'Email Count': f"{count:,}",
+                        'Percentage': f"{percentage:.1f}%",
+                        'Industry': industry.replace('_', ' ').title()
+                    })
+                
+                if business_display:
+                    business_df = pd.DataFrame(business_display)
+                    st.dataframe(business_df, use_container_width=True, height=400)
+            else:
+                st.info("No business domains found in the dataset")
+        
+        with domain_tab3:
+            # Free Email Analysis
+            free_domains_df = df[df['email_domain_type'] == 'free']
+            
+            if not free_domains_df.empty:
+                st.write(f"**{len(free_domains_df):,} emails from free email providers**")
+                
+                # Security analysis for free domains
+                if 'risk_score' in free_domains_df.columns:
+                    avg_risk = free_domains_df['risk_score'].mean()
+                    high_risk_count = len(free_domains_df[free_domains_df['risk_score'] >= 61])
+                    
+                    risk_col1, risk_col2, risk_col3 = st.columns(3)
+                    with risk_col1:
+                        st.metric("Average Risk Score", f"{avg_risk:.1f}/100")
+                    with risk_col2:
+                        st.metric("High Risk Emails", high_risk_count)
+                    with risk_col3:
+                        risk_pct = (high_risk_count / len(free_domains_df) * 100) if len(free_domains_df) > 0 else 0
+                        st.metric("High Risk %", f"{risk_pct:.1f}%")
+                
+                # Top free email providers
+                top_free_domains = free_domains_df['email_domain'].value_counts().head(10)
+                
+                st.subheader("Top Free Email Providers")
+                free_display = []
+                for rank, (domain, count) in enumerate(top_free_domains.items(), 1):
+                    percentage = (count / len(free_domains_df) * 100)
+                    domain_data = free_domains_df[free_domains_df['email_domain'] == domain]
+                    avg_risk = domain_data['risk_score'].mean() if 'risk_score' in domain_data.columns else 0
+                    
+                    free_display.append({
+                        'Rank': f"#{rank}",
+                        'Provider': domain,
+                        'Email Count': f"{count:,}",
+                        'Percentage': f"{percentage:.1f}%",
+                        'Avg Risk Score': f"{avg_risk:.1f}/100"
+                    })
+                
+                if free_display:
+                    free_df = pd.DataFrame(free_display)
+                    st.dataframe(free_df, use_container_width=True, height=300)
+            else:
+                st.info("No free email domains found in the dataset")
+        
+        with domain_tab4:
+            # Risk Analysis by Domain Type
+            st.subheader("Security Risk Analysis by Domain Type")
+            
+            if 'risk_score' in df.columns:
+                # Calculate risk statistics by domain type
+                risk_by_domain = df.groupby('email_domain_type')['risk_score'].agg([
+                    'count', 'mean', 'min', 'max'
+                ]).round(1)
+                
+                # Add high risk counts
+                high_risk_by_domain = df[df['risk_score'] >= 61].groupby('email_domain_type').size()
+                risk_by_domain['high_risk_count'] = high_risk_by_domain
+                risk_by_domain['high_risk_count'] = risk_by_domain['high_risk_count'].fillna(0).astype(int)
+                
+                # Calculate high risk percentage
+                risk_by_domain['high_risk_pct'] = (risk_by_domain['high_risk_count'] / risk_by_domain['count'] * 100).round(1)
+                
+                # Display risk metrics
+                st.subheader("Risk Metrics by Domain Type")
+                
+                risk_display = []
+                for domain_type in risk_by_domain.index:
+                    row = risk_by_domain.loc[domain_type]
+                    risk_display.append({
+                        'Domain Type': domain_type.title(),
+                        'Total Emails': f"{int(row['count']):,}",
+                        'Avg Risk Score': f"{row['mean']:.1f}/100",
+                        'Min Risk': f"{row['min']:.1f}",
+                        'Max Risk': f"{row['max']:.1f}",
+                        'High Risk Emails': f"{int(row['high_risk_count']):,}",
+                        'High Risk %': f"{row['high_risk_pct']:.1f}%"
+                    })
+                
+                risk_summary_df = pd.DataFrame(risk_display)
+                
+                # Style the risk table
+                def highlight_high_risk(row):
+                    styles = [''] * len(row)
+                    try:
+                        risk_pct = float(str(row['High Risk %']).replace('%', ''))
+                        if risk_pct >= 20:
+                            styles[6] = 'background-color: #ffebee; color: #c62828; font-weight: bold'
+                        elif risk_pct >= 10:
+                            styles[6] = 'background-color: #fff3e0; color: #ef6c00; font-weight: bold'
+                    except:
+                        pass
+                    return styles
+                
+                styled_risk_df = risk_summary_df.style.apply(highlight_high_risk, axis=1)
+                st.dataframe(styled_risk_df, use_container_width=True)
+                
+                # Risk distribution visualization
+                st.subheader("Risk Score Distribution by Domain Type")
+                
+                import plotly.express as px
+                
+                # Create box plot for risk distribution
+                fig_risk = px.box(
+                    df, 
+                    x='email_domain_type', 
+                    y='risk_score',
+                    color='email_domain_type',
+                    title="Risk Score Distribution by Domain Type",
+                    labels={'email_domain_type': 'Domain Type', 'risk_score': 'Risk Score'}
+                )
+                
+                fig_risk.update_layout(
+                    height=400,
+                    showlegend=False
+                )
+                
+                st.plotly_chart(fig_risk, use_container_width=True)
+            else:
+                st.warning("Risk analysis not available. Please ensure risk scores are calculated in the Dashboard page first.")
 
         # Domain statistics with business and free email classification
-        st.subheader("Domain Statistics")
+        st.subheader("Detailed Domain Statistics")
 
-        # Initialize domain classifier
-        domain_classifier = DomainClassifier()
-
-        # Extract sender domains and classify them
+        # Get domain counts for backward compatibility
         if 'sender_domain' not in df.columns:
             df['sender_domain'] = df['sender'].apply(lambda x: str(x).split('@')[-1].lower().strip() if pd.notna(x) and '@' in str(x) else '')
 
-        # Get domain counts
         domain_counts = df['sender_domain'].value_counts()
 
-        # Classify domains
+        # Classify domains for legacy display
         business_domains = []
         free_domains = []
 
