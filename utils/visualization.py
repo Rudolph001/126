@@ -128,7 +128,10 @@ class Visualizer:
         df_temp['time'] = pd.to_datetime(df_temp['time'], errors='coerce')
 
         # Use risk score if available, otherwise use index
-        y_values = df_temp.get('risk_score', range(len(df_temp)))
+        if 'risk_score' in df_temp.columns:
+            y_values = df_temp['risk_score']
+        else:
+            y_values = list(range(len(df_temp)))
 
         normal_data = df_temp[~df_temp['is_anomaly']]
         anomaly_data = df_temp[df_temp['is_anomaly']]
@@ -137,9 +140,10 @@ class Visualizer:
 
         # Normal emails
         if len(normal_data) > 0:
+            normal_y = normal_data['risk_score'] if 'risk_score' in normal_data.columns else list(range(len(normal_data)))
             fig.add_trace(go.Scatter(
                 x=normal_data['time'],
-                y=y_values[~df_temp['is_anomaly']],
+                y=normal_y,
                 mode='markers',
                 name='Normal',
                 marker=dict(color='lightblue', size=6),
@@ -148,9 +152,10 @@ class Visualizer:
 
         # Anomalous emails
         if len(anomaly_data) > 0:
+            anomaly_y = anomaly_data['risk_score'] if 'risk_score' in anomaly_data.columns else list(range(len(anomaly_data)))
             fig.add_trace(go.Scatter(
                 x=anomaly_data['time'],
-                y=y_values[df_temp['is_anomaly']],
+                y=anomaly_y,
                 mode='markers',
                 name='Anomaly',
                 marker=dict(color='red', size=10, symbol='diamond'),
