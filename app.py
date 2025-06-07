@@ -47,7 +47,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🔒 Security Coverage", "🏢 Enhanced Domain Analysis", "📧 Follow-up Actions", "🔄 App Flow Dashboard"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📊 Email Volume Metrics: Mimecast vs Tessian", "🏢 Enhanced Domain Analysis", "📧 Follow-up Actions", "🔄 App Flow Dashboard"]
     )
 
     if page == "📁 Data Upload":
@@ -56,7 +56,7 @@ def main():
         dashboard_page(risk_engine, anomaly_detector, visualizer)
     elif page == "📈 Analytics":
         analytics_page(visualizer, anomaly_detector)
-    elif page == "🔒 Security Coverage":
+    elif page == "📊 Email Volume Metrics: Mimecast vs Tessian":
         security_coverage_page()
     elif page == "🏢 Enhanced Domain Analysis":
         enhanced_domain_analysis_page(domain_classifier)
@@ -66,7 +66,7 @@ def main():
         follow_up_actions_page(email_generator)
 
 def security_coverage_page():
-    st.header("🔒 Security Tool Coverage Analysis")
+    st.header("📊 Email Volume Metrics: Mimecast vs Tessian")
     
     if st.session_state.processed_data is None:
         st.warning("Please upload email data first in the Data Upload page.")
