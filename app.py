@@ -4659,7 +4659,7 @@ def enhanced_domain_analysis_page(domain_classifier):
         st.metric("External Communications", domain_analysis['risk_summary']['total_external_communications'])
     
     # Classification Legend
-    st.info("**Classification Legend:** 🔵 Internal (blue) = Same domain as recipient | 🟢 Business (green) = Corporate domains | 🟡 Free (yellow) = Public email providers")
+    st.info("**Classification Legend:** 🔵 Internal | 🟢 Business | 🟡 Free")
     
     # Sender Domain Analysis
     st.subheader("📤 Sender Domain Analysis")
