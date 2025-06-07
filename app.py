@@ -46,7 +46,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📧 Email Monitoring Sources", "🏢 Enhanced Domain Analysis", "🔄 App Workflow Overview"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📧 Email Monitoring Sources", "🔄 App Workflow Overview"]
     )
 
     if page == "📁 Data Upload":
@@ -57,8 +57,6 @@ def main():
         analytics_page(visualizer, anomaly_detector)
     elif page == "📧 Email Monitoring Sources":
         security_coverage_page()
-    elif page == "🏢 Enhanced Domain Analysis":
-        enhanced_domain_analysis_page(domain_classifier)
     elif page == "🔄 App Workflow Overview":
         app_workflow_overview_page()
 
@@ -1080,7 +1078,7 @@ def analytics_page(visualizer, anomaly_detector):
     # Analytics options
     analysis_type = st.selectbox(
         "Select Analysis Type",
-        ["Overview", "Anomaly Detection", "Risk Analysis", "Advanced Analytics - Low Risk BAU"]
+        ["Overview", "Anomaly Detection", "Risk Analysis", "Domain Analysis", "Advanced Analytics - Low Risk BAU"]
     )
 
     if analysis_type == "Overview":
@@ -1395,6 +1393,176 @@ def analytics_page(visualizer, anomaly_detector):
                 st.info("No high-risk emails found in the current dataset.")
         else:
             st.warning("Risk analysis not available. Please ensure risk scores are calculated.")
+
+    elif analysis_type == "Domain Analysis":
+        st.subheader("🏢 Domain Analysis")
+        st.write("Advanced domain extraction and categorization with strict internal detection and industry classification")
+        
+        # Perform comprehensive domain analysis
+        with st.spinner("Analyzing domains with enhanced categorization..."):
+            domain_analysis = domain_classifier.extract_and_classify_all_domains(df)
+        
+        # Display summary metrics
+        st.subheader("📊 Domain Analysis Summary")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Unique Sender Domains", domain_analysis['risk_summary']['unique_sender_domains'])
+        with col2:
+            st.metric("Unique Recipient Domains", domain_analysis['risk_summary']['unique_recipient_domains'])
+        with col3:
+            st.metric("Internal Communications", domain_analysis['risk_summary']['total_internal_communications'])
+        with col4:
+            st.metric("External Communications", domain_analysis['risk_summary']['total_external_communications'])
+        
+        # Classification Legend
+        st.info("**Classification Legend:** 🔵 Internal | 🟢 Business | 🟡 Free")
+        
+        # Sender Domain Analysis
+        st.subheader("📤 Sender Domain Analysis")
+        sender_data = []
+        for domain, info in domain_analysis['sender_domains'].items():
+            sender_data.append({
+                'Domain': domain,
+                'Email Count': info['count'],
+                'Classification': info['classification'],
+                'Category': info['category'],
+                'Industry': info['industry'],
+                'Is Business': info['is_business']
+            })
+        
+        if sender_data:
+            sender_df = pd.DataFrame(sender_data)
+            sender_df = sender_df.sort_values('Email Count', ascending=False)
+            
+            # Apply styling to highlight different classifications
+            def highlight_classification(row):
+                if row['Classification'] == 'internal':
+                    return ['background-color: #cce5ff; font-weight: bold; color: #0056b3'] * len(row)
+                elif row['Classification'] == 'business':
+                    return ['background-color: #e8f5e8'] * len(row)
+                elif row['Classification'] == 'free':
+                    return ['background-color: #fff3cd'] * len(row)
+                else:
+                    return [''] * len(row)
+            
+            st.dataframe(
+                sender_df.style.apply(highlight_classification, axis=1),
+                use_container_width=True
+            )
+        
+        # Recipient Domain Analysis
+        st.subheader("📥 Recipient Domain Analysis")
+        recipient_data = []
+        for domain, info in domain_analysis['recipient_domains'].items():
+            recipient_data.append({
+                'Domain': domain,
+                'Email Count': info['count'],
+                'Classification': info['classification'],
+                'Category': info['category'],
+                'Industry': info['industry'],
+                'Is Business': info['is_business'],
+                'Sender Count': len(info['senders'])
+            })
+        
+        if recipient_data:
+            recipient_df = pd.DataFrame(recipient_data)
+            recipient_df = recipient_df.sort_values('Email Count', ascending=False)
+            
+            st.dataframe(
+                recipient_df.style.apply(highlight_classification, axis=1),
+                use_container_width=True
+            )
+        
+        # Industry Breakdown
+        st.subheader("🏭 Industry Classification Breakdown")
+        if domain_analysis['industry_breakdown']:
+            industry_df = pd.DataFrame(
+                list(domain_analysis['industry_breakdown'].items()),
+                columns=['Industry', 'Domain Count']
+            )
+            industry_df = industry_df.sort_values('Domain Count', ascending=False)
+            
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                st.dataframe(industry_df, use_container_width=True)
+            with col2:
+                import plotly.express as px
+                fig = px.pie(
+                    industry_df, 
+                    values='Domain Count', 
+                    names='Industry',
+                    title='Domain Distribution by Industry'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # Internal vs External Communications
+        st.subheader("🔄 Communication Type Analysis")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**Internal Communications**")
+            if domain_analysis['internal_communications']:
+                internal_df = pd.DataFrame(domain_analysis['internal_communications'])
+                st.dataframe(internal_df.head(10), use_container_width=True)
+            else:
+                st.info("No internal communications detected")
+        
+        with col2:
+            st.write("**External Communications (High Risk)**")
+            if domain_analysis['external_communications']:
+                external_df = pd.DataFrame(domain_analysis['external_communications'])
+                high_risk_external = external_df[external_df['risk_level'] == 'high']
+                if not high_risk_external.empty:
+                    st.dataframe(high_risk_external.head(10), use_container_width=True)
+                else:
+                    st.info("No high-risk external communications detected")
+            else:
+                st.info("No external communications detected")
+        
+        # Enhanced Internal Detection Results
+        st.subheader("🔍 Enhanced Internal Detection Results")
+        
+        # Show detailed analysis of internal communications
+        if domain_analysis['internal_communications']:
+            st.success(f"Detected {len(domain_analysis['internal_communications'])} internal communications using enhanced detection:")
+            st.write("**Detection Criteria:**")
+            st.write("- Exact domain matching between sender and recipient")
+            st.write("- Verification that both domains are legitimate business domains")
+            st.write("- Exclusion of free email providers")
+            st.write("- Support for subdomain relationships within same organization")
+            
+            # Show sample internal communications
+            internal_sample = pd.DataFrame(domain_analysis['internal_communications'][:5])
+            if not internal_sample.empty:
+                st.dataframe(internal_sample, use_container_width=True)
+        else:
+            st.info("No internal communications detected with current dataset")
+        
+        # Export functionality
+        st.subheader("📊 Export Analysis")
+        if st.button("Export Domain Analysis to CSV"):
+            # Prepare comprehensive export data
+            export_data = {
+                'sender_domains': pd.DataFrame(sender_data) if sender_data else pd.DataFrame(),
+                'recipient_domains': pd.DataFrame(recipient_data) if recipient_data else pd.DataFrame(),
+                'industry_breakdown': pd.DataFrame(list(domain_analysis['industry_breakdown'].items()), 
+                                                 columns=['Industry', 'Count']) if domain_analysis['industry_breakdown'] else pd.DataFrame(),
+                'internal_communications': pd.DataFrame(domain_analysis['internal_communications']) if domain_analysis['internal_communications'] else pd.DataFrame(),
+                'external_communications': pd.DataFrame(domain_analysis['external_communications']) if domain_analysis['external_communications'] else pd.DataFrame()
+            }
+            
+            # Create download buttons for each dataset
+            for name, data in export_data.items():
+                if not data.empty:
+                    csv = data.to_csv(index=False)
+                    st.download_button(
+                        label=f"Download {name.replace('_', ' ').title()}",
+                        data=csv,
+                        file_name=f"domain_analysis_{name}.csv",
+                        mime="text/csv"
+                    )
 
     elif analysis_type == "Advanced Analytics - Low Risk BAU":
         from utils.bau_analyzer import BAUAnalyzer
@@ -3361,182 +3529,6 @@ def app_workflow_overview_page():
 
 
         
-
-def enhanced_domain_analysis_page(domain_classifier):
-    st.header("🏢 Enhanced Domain Analysis")
-    st.write("Advanced domain extraction and categorization with strict internal detection and industry classification")
-    
-    if st.session_state.processed_data is None:
-        st.warning("Please upload email data first in the Data Upload page.")
-        return
-    
-    df = st.session_state.processed_data
-    
-    # Perform comprehensive domain analysis
-    with st.spinner("Analyzing domains with enhanced categorization..."):
-        domain_analysis = domain_classifier.extract_and_classify_all_domains(df)
-    
-    # Display summary metrics
-    st.subheader("📊 Domain Analysis Summary")
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Unique Sender Domains", domain_analysis['risk_summary']['unique_sender_domains'])
-    with col2:
-        st.metric("Unique Recipient Domains", domain_analysis['risk_summary']['unique_recipient_domains'])
-    with col3:
-        st.metric("Internal Communications", domain_analysis['risk_summary']['total_internal_communications'])
-    with col4:
-        st.metric("External Communications", domain_analysis['risk_summary']['total_external_communications'])
-    
-    # Classification Legend
-    st.info("**Classification Legend:** 🔵 Internal | 🟢 Business | 🟡 Free")
-    
-    # Sender Domain Analysis
-    st.subheader("📤 Sender Domain Analysis")
-    sender_data = []
-    for domain, info in domain_analysis['sender_domains'].items():
-        sender_data.append({
-            'Domain': domain,
-            'Email Count': info['count'],
-            'Classification': info['classification'],
-            'Category': info['category'],
-            'Industry': info['industry'],
-            'Is Business': info['is_business']
-        })
-    
-    if sender_data:
-        sender_df = pd.DataFrame(sender_data)
-        sender_df = sender_df.sort_values('Email Count', ascending=False)
-        
-        # Apply styling to highlight different classifications
-        def highlight_classification(row):
-            if row['Classification'] == 'internal':
-                return ['background-color: #cce5ff; font-weight: bold; color: #0056b3'] * len(row)
-            elif row['Classification'] == 'business':
-                return ['background-color: #e8f5e8'] * len(row)
-            elif row['Classification'] == 'free':
-                return ['background-color: #fff3cd'] * len(row)
-            else:
-                return [''] * len(row)
-        
-        st.dataframe(
-            sender_df.style.apply(highlight_classification, axis=1),
-            use_container_width=True
-        )
-    
-    # Recipient Domain Analysis
-    st.subheader("📥 Recipient Domain Analysis")
-    recipient_data = []
-    for domain, info in domain_analysis['recipient_domains'].items():
-        recipient_data.append({
-            'Domain': domain,
-            'Email Count': info['count'],
-            'Classification': info['classification'],
-            'Category': info['category'],
-            'Industry': info['industry'],
-            'Is Business': info['is_business'],
-            'Sender Count': len(info['senders'])
-        })
-    
-    if recipient_data:
-        recipient_df = pd.DataFrame(recipient_data)
-        recipient_df = recipient_df.sort_values('Email Count', ascending=False)
-        
-        st.dataframe(
-            recipient_df.style.apply(highlight_classification, axis=1),
-            use_container_width=True
-        )
-    
-    # Industry Breakdown
-    st.subheader("🏭 Industry Classification Breakdown")
-    if domain_analysis['industry_breakdown']:
-        industry_df = pd.DataFrame(
-            list(domain_analysis['industry_breakdown'].items()),
-            columns=['Industry', 'Domain Count']
-        )
-        industry_df = industry_df.sort_values('Domain Count', ascending=False)
-        
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.dataframe(industry_df, use_container_width=True)
-        with col2:
-            import plotly.express as px
-            fig = px.pie(
-                industry_df, 
-                values='Domain Count', 
-                names='Industry',
-                title='Domain Distribution by Industry'
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
-    # Internal vs External Communications
-    st.subheader("🔄 Communication Type Analysis")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.write("**Internal Communications**")
-        if domain_analysis['internal_communications']:
-            internal_df = pd.DataFrame(domain_analysis['internal_communications'])
-            st.dataframe(internal_df.head(10), use_container_width=True)
-        else:
-            st.info("No internal communications detected")
-    
-    with col2:
-        st.write("**External Communications (High Risk)**")
-        if domain_analysis['external_communications']:
-            external_df = pd.DataFrame(domain_analysis['external_communications'])
-            high_risk_external = external_df[external_df['risk_level'] == 'high']
-            if not high_risk_external.empty:
-                st.dataframe(high_risk_external.head(10), use_container_width=True)
-            else:
-                st.info("No high-risk external communications detected")
-        else:
-            st.info("No external communications detected")
-    
-    # Enhanced Internal Detection Results
-    st.subheader("🔍 Enhanced Internal Detection Results")
-    
-    # Show detailed analysis of internal communications
-    if domain_analysis['internal_communications']:
-        st.success(f"Detected {len(domain_analysis['internal_communications'])} internal communications using enhanced detection:")
-        st.write("**Detection Criteria:**")
-        st.write("- Exact domain matching between sender and recipient")
-        st.write("- Verification that both domains are legitimate business domains")
-        st.write("- Exclusion of free email providers")
-        st.write("- Support for subdomain relationships within same organization")
-        
-        # Show sample internal communications
-        internal_sample = pd.DataFrame(domain_analysis['internal_communications'][:5])
-        if not internal_sample.empty:
-            st.dataframe(internal_sample, use_container_width=True)
-    else:
-        st.info("No internal communications detected with current dataset")
-    
-    # Export functionality
-    st.subheader("📊 Export Analysis")
-    if st.button("Export Domain Analysis to CSV"):
-        # Prepare comprehensive export data
-        export_data = {
-            'sender_domains': pd.DataFrame(sender_data) if sender_data else pd.DataFrame(),
-            'recipient_domains': pd.DataFrame(recipient_data) if recipient_data else pd.DataFrame(),
-            'industry_breakdown': pd.DataFrame(list(domain_analysis['industry_breakdown'].items()), 
-                                             columns=['Industry', 'Count']) if domain_analysis['industry_breakdown'] else pd.DataFrame(),
-            'internal_communications': pd.DataFrame(domain_analysis['internal_communications']) if domain_analysis['internal_communications'] else pd.DataFrame(),
-            'external_communications': pd.DataFrame(domain_analysis['external_communications']) if domain_analysis['external_communications'] else pd.DataFrame()
-        }
-        
-        # Create download buttons for each dataset
-        for name, data in export_data.items():
-            if not data.empty:
-                csv = data.to_csv(index=False)
-                st.download_button(
-                    label=f"Download {name.replace('_', ' ').title()}",
-                    data=csv,
-                    file_name=f"domain_analysis_{name}.csv",
-                    mime="text/csv"
-                )
 
 if __name__ == "__main__":
     main()
