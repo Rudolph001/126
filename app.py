@@ -3748,21 +3748,266 @@ def find_the_needle_page(domain_classifier, visualizer):
             external_domains_by_dept = df.groupby('department')['sender_domain'].nunique().sum() if 'sender_domain' in df.columns else 0
             st.metric("External Domains Used", external_domains_by_dept)
         
-        # Department Communication Matrix
+        # Enhanced Department Communication Analysis
         st.subheader("Department Communication Flow Analysis")
         
-        # Create a communication flow analysis
-        dept_sender_stats = df.groupby('department').agg({
-            'sender': 'nunique',
-            'recipients': lambda x: x.str.split(',').str.len().sum() if x.notna().any() else 0,
-            'attachments': lambda x: (x.notna() & (x != '')).sum() if x.notna().any() else 0
-        }).round(2)
+        # Volume of Communication Between Departments
+        st.write("### 📊 Volume of Communication Between Departments")
         
-        dept_sender_stats.columns = ['Unique Senders', 'Total Recipients', 'Emails with Attachments']
-        dept_sender_stats = dept_sender_stats.sort_values('Unique Senders', ascending=False)
+        # Create department-to-department communication matrix
+        # For this analysis, we'll use sender department and attempt to infer recipient departments
+        dept_comm_matrix = {}
+        dept_volume_data = []
         
-        st.write("**Department Email Activity Summary:**")
-        st.dataframe(dept_sender_stats, use_container_width=True)
+        for sender_dept in df['department'].unique():
+            sender_data = df[df['department'] == sender_dept]
+            
+            # Calculate volumes for this department
+            total_emails = len(sender_data)
+            external_emails = 0
+            if 'sender_domain_category' in df.columns:
+                sender_domain_cat = sender_data.get('sender_domain_category', pd.Series([''] * len(sender_data)))
+                external_emails = (sender_domain_cat != 'Internal').sum()
+            
+            internal_emails = total_emails - external_emails
+            
+            dept_volume_data.append({
+                'Sender Department': sender_dept,
+                'Total Emails Sent': total_emails,
+                'Internal Communications': internal_emails,
+                'External Communications': external_emails,
+                'External Ratio': f"{(external_emails/total_emails*100):.1f}%" if total_emails > 0 else "0%"
+            })
+        
+        dept_volume_df = pd.DataFrame(dept_volume_data)
+        st.dataframe(dept_volume_df, use_container_width=True)
+        
+        # Communication Direction Analysis
+        st.write("### 🔄 Communication Direction Analysis")
+        
+        direction_analysis = []
+        for dept in df['department'].unique():
+            dept_data = df[df['department'] == dept]
+            
+            # Analyze initiation patterns (emails sent by department)
+            emails_sent = len(dept_data)
+            unique_senders = dept_data['sender'].nunique()
+            
+            # Estimate emails received (this would need recipient department mapping in real scenario)
+            # For now, we'll use a simplified approach
+            avg_recipients_per_email = dept_data['recipients'].str.split(',').str.len().mean() if dept_data['recipients'].notna().any() else 0
+            
+            direction_analysis.append({
+                'Department': dept,
+                'Emails Initiated': emails_sent,
+                'Unique Senders': unique_senders,
+                'Avg Recipients/Email': f"{avg_recipients_per_email:.1f}",
+                'Initiation Rate': 'High' if emails_sent > df.groupby('department').size().mean() else 'Normal'
+            })
+        
+        direction_df = pd.DataFrame(direction_analysis)
+        st.dataframe(direction_df, use_container_width=True)
+        
+        # Content Patterns Analysis
+        st.write("### 📋 Content Patterns Analysis")
+        
+        content_patterns = []
+        for dept in df['department'].unique():
+            dept_data = df[df['department'] == dept]
+            
+            # Analyze content patterns
+            has_attachments = (dept_data['attachments'].notna() & (dept_data['attachments'] != '')).sum()
+            
+            # IP keywords analysis
+            ip_keywords = 0
+            if 'ip_keywords_detected' in df.columns:
+                ip_keywords = (dept_data['ip_keywords_detected'] > 0).sum()
+            
+            # Risk level analysis
+            high_risk_emails = 0
+            if 'risk_level' in df.columns:
+                high_risk_mask = dept_data.get('risk_level', pd.Series(['Low'] * len(dept_data))) == 'High'
+                high_risk_emails = high_risk_mask.sum()
+            
+            # Subject analysis (if available)
+            avg_subject_length = 0
+            if 'subject' in dept_data.columns:
+                avg_subject_length = dept_data['subject'].str.len().mean()
+            
+            content_patterns.append({
+                'Department': dept,
+                'Emails with Attachments': has_attachments,
+                'Attachment Rate': f"{(has_attachments/len(dept_data)*100):.1f}%" if len(dept_data) > 0 else "0%",
+                'IP Keywords Detected': ip_keywords,
+                'High Risk Emails': high_risk_emails,
+                'Avg Subject Length': f"{avg_subject_length:.0f}" if avg_subject_length > 0 else "N/A"
+            })
+        
+        content_df = pd.DataFrame(content_patterns)
+        st.dataframe(content_df, use_container_width=True)
+        
+        # Visualize content patterns
+        if len(content_df) > 0:
+            import plotly.express as px
+            import plotly.graph_objects as go
+            
+            # Create attachment rate visualization
+            fig_attachments = px.bar(
+                content_df, 
+                x='Department', 
+                y='Emails with Attachments',
+                title="Emails with Attachments by Department",
+                color='Emails with Attachments',
+                color_continuous_scale='Blues'
+            )
+            fig_attachments.update_layout(height=400)
+            st.plotly_chart(fig_attachments, use_container_width=True)
+        
+        # Anomaly Detection
+        st.write("### 🚨 Communication Anomalies Detection")
+        
+        anomalies_detected = []
+        
+        # Calculate baseline statistics
+        overall_avg_emails = df.groupby('department').size().mean()
+        overall_attachment_rate = (df['attachments'].notna() & (df['attachments'] != '')).sum() / len(df) if len(df) > 0 else 0
+        
+        for dept in df['department'].unique():
+            dept_data = df[df['department'] == dept]
+            dept_email_count = len(dept_data)
+            
+            # Volume anomalies
+            if dept_email_count > (overall_avg_emails * 2):
+                anomalies_detected.append({
+                    'Department': dept,
+                    'Anomaly Type': 'High Volume',
+                    'Details': f'{dept_email_count} emails (>{overall_avg_emails*2:.0f} expected)',
+                    'Severity': 'Medium',
+                    'Risk Factor': 'Volume Spike'
+                })
+            elif dept_email_count < (overall_avg_emails * 0.3):
+                anomalies_detected.append({
+                    'Department': dept,
+                    'Anomaly Type': 'Low Volume',
+                    'Details': f'{dept_email_count} emails (<{overall_avg_emails*0.3:.0f} expected)',
+                    'Severity': 'Low',
+                    'Risk Factor': 'Unusual Quietness'
+                })
+            
+            # Attachment anomalies
+            dept_attachment_rate = (dept_data['attachments'].notna() & (dept_data['attachments'] != '')).sum() / len(dept_data) if len(dept_data) > 0 else 0
+            if dept_attachment_rate > (overall_attachment_rate * 3):
+                anomalies_detected.append({
+                    'Department': dept,
+                    'Anomaly Type': 'High Attachment Usage',
+                    'Details': f'{dept_attachment_rate:.1%} attachment rate (>{overall_attachment_rate*3:.1%} expected)',
+                    'Severity': 'Medium',
+                    'Risk Factor': 'Data Transfer Risk'
+                })
+            
+            # External communication anomalies
+            if 'sender_domain_category' in df.columns:
+                sender_domain_cat = dept_data.get('sender_domain_category', pd.Series([''] * len(dept_data)))
+                external_rate = (sender_domain_cat != 'Internal').sum() / len(dept_data) if len(dept_data) > 0 else 0
+                if external_rate > 0.8:
+                    anomalies_detected.append({
+                        'Department': dept,
+                        'Anomaly Type': 'High External Communication',
+                        'Details': f'{external_rate:.1%} external emails',
+                        'Severity': 'High',
+                        'Risk Factor': 'External Data Flow'
+                    })
+            
+            # Time-based anomalies (if time data available)
+            if 'time' in df.columns:
+                try:
+                    dept_data_time = dept_data.copy()
+                    dept_data_time['time_parsed'] = pd.to_datetime(dept_data_time['time'])
+                    dept_data_time['hour'] = dept_data_time['time_parsed'].dt.hour
+                    
+                    # Check for unusual timing patterns
+                    night_emails = ((dept_data_time['hour'] >= 22) | (dept_data_time['hour'] <= 5)).sum()
+                    night_rate = night_emails / len(dept_data_time) if len(dept_data_time) > 0 else 0
+                    
+                    if night_rate > 0.3:
+                        anomalies_detected.append({
+                            'Department': dept,
+                            'Anomaly Type': 'After-Hours Activity',
+                            'Details': f'{night_rate:.1%} emails sent outside business hours',
+                            'Severity': 'Medium',
+                            'Risk Factor': 'Unusual Timing'
+                        })
+                except:
+                    pass  # Skip time analysis if parsing fails
+        
+        if anomalies_detected:
+            st.write("**Detected Anomalies:**")
+            anomalies_df = pd.DataFrame(anomalies_detected)
+            
+            # Color code by severity
+            def highlight_severity(row):
+                if row['Severity'] == 'High':
+                    return ['background-color: #ffcdd2'] * len(row)
+                elif row['Severity'] == 'Medium':
+                    return ['background-color: #fff3e0'] * len(row)
+                else:
+                    return ['background-color: #e8f5e8'] * len(row)
+            
+            st.dataframe(anomalies_df.style.apply(highlight_severity, axis=1), use_container_width=True)
+            
+            # Anomaly summary metrics
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                high_severity = (anomalies_df['Severity'] == 'High').sum()
+                st.metric("High Severity Anomalies", high_severity)
+            with col2:
+                medium_severity = (anomalies_df['Severity'] == 'Medium').sum()
+                st.metric("Medium Severity Anomalies", medium_severity)
+            with col3:
+                affected_depts = anomalies_df['Department'].nunique()
+                st.metric("Departments Affected", affected_depts)
+        else:
+            st.success("No significant communication anomalies detected across departments.")
+        
+        # Communication Flow Visualization
+        st.write("### 🌐 Department Communication Flow Visualization")
+        
+        if len(df) > 0:
+            # Create a network-style visualization of department communications
+            dept_sizes = df['department'].value_counts()
+            
+            if len(dept_sizes) > 1:
+                fig_flow = go.Figure()
+                
+                # Create a circular layout for departments
+                import math
+                n_depts = len(dept_sizes)
+                angles = [2 * math.pi * i / n_depts for i in range(n_depts)]
+                
+                for i, (dept, size) in enumerate(dept_sizes.items()):
+                    x = math.cos(angles[i])
+                    y = math.sin(angles[i])
+                    
+                    fig_flow.add_trace(go.Scatter(
+                        x=[x],
+                        y=[y],
+                        mode='markers+text',
+                        marker=dict(size=min(size/2, 100), opacity=0.7),
+                        text=[f"{dept}<br>{size} emails"],
+                        textposition="middle center",
+                        name=dept,
+                        showlegend=False
+                    ))
+                
+                fig_flow.update_layout(
+                    title="Department Communication Network",
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    height=500,
+                    showlegend=False
+                )
+                
+                st.plotly_chart(fig_flow, use_container_width=True)
         
         # Cross-departmental risk patterns
         st.subheader("Cross-Departmental Risk Patterns")
