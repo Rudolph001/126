@@ -1430,7 +1430,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #f8d7da; color: #721c24;">{len(high_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            Critical alerts: Emails with attachments, word matches, leaver to free email domains
+            Emails that meet high-risk criteria, including:<br>
+            • Messages with file attachments<br>
+            • Keywords matches indicating sensitive content<br>
+            • Emails sent by departing employees to free/public email domains
         </p>
     </div>
     """, unsafe_allow_html=True)
