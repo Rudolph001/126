@@ -1301,13 +1301,200 @@ def analytics_page(visualizer, anomaly_detector):
                     for severity, count in severity_counts.items():
                         st.write(f"• {severity}: {count}")
 
-                # Anomaly details
-                st.subheader("Anomaly Details")
-                display_cols = ['type', 'description', 'severity']
-                available_cols = [col for col in display_cols if col in anomalies_df.columns]
-                st.dataframe(anomalies_df[available_cols], use_container_width=True)
+                # Anomaly Detection Results with Reasoning
+                st.subheader("📋 Anomaly Detection Results")
+                st.info("Below are the detailed explanations for why each pattern was identified as an anomaly:")
+
+                # Detailed reasoning for each anomaly type
+                for idx, anomaly in anomalies_df.iterrows():
+                    anomaly_type = anomaly.get('type', 'Unknown')
+                    severity = anomaly.get('severity', 'Medium')
+                    description = anomaly.get('description', 'No description available')
+                    
+                    # Color coding based on severity
+                    if severity == 'High':
+                        severity_color = "🔴"
+                        bg_color = "#fff5f5"
+                        border_color = "#dc3545"
+                    elif severity == 'Medium':
+                        severity_color = "🟡"
+                        bg_color = "#fffbf0"
+                        border_color = "#ffc107"
+                    else:
+                        severity_color = "🟢"
+                        bg_color = "#f0fff4"
+                        border_color = "#28a745"
+
+                    # Create reasoning explanation based on anomaly type
+                    reasoning = ""
+                    if anomaly_type == "Volume Spike":
+                        reasoning = """
+                        **Why this is an anomaly:**
+                        - Unusual spike in email volume compared to normal patterns
+                        - Could indicate data exfiltration attempts or compromised accounts
+                        - Sudden increases in activity warrant investigation
+                        
+                        **Risk Indicators:**
+                        • Volume significantly exceeds baseline patterns
+                        • Pattern deviates from sender's normal behavior
+                        • Could suggest automated or bulk data transfer
+                        """
+                    elif anomaly_type == "Off-Hours Activity":
+                        reasoning = """
+                        **Why this is an anomaly:**
+                        - Email activity occurring outside normal business hours
+                        - Unusual timing patterns may indicate unauthorized access
+                        - Late-night or weekend activity requires scrutiny
+                        
+                        **Risk Indicators:**
+                        • Communications sent during non-business hours
+                        • Deviates from typical organizational patterns
+                        • Could indicate compromised accounts or insider threats
+                        """
+                    elif anomaly_type == "Attachment Pattern":
+                        reasoning = """
+                        **Why this is an anomaly:**
+                        - Unusual attachment behavior detected
+                        - Pattern differs significantly from sender's normal habits
+                        - Attachments can be vectors for data exfiltration
+                        
+                        **Risk Indicators:**
+                        • Sender rarely sends attachments but suddenly does
+                        • Attachment types or sizes are unusual
+                        • Could indicate data packaging for exfiltration
+                        """
+                    elif anomaly_type == "Recipient Pattern":
+                        reasoning = """
+                        **Why this is an anomaly:**
+                        - Unusual recipient communication patterns
+                        - Emails sent to new or uncommon domains
+                        - Deviates from normal communication networks
+                        
+                        **Risk Indicators:**
+                        • Communications to previously unused domains
+                        • Sudden changes in recipient patterns
+                        • Could indicate data sharing with unauthorized parties
+                        """
+                    elif anomaly_type == "Content Anomaly":
+                        reasoning = """
+                        **Why this is an anomaly:**
+                        - Email content differs from normal patterns
+                        - Unusual keywords or content structure detected
+                        - Content analysis reveals atypical communication
+                        
+                        **Risk Indicators:**
+                        • Content contains sensitive keywords unexpectedly
+                        • Communication style deviates from normal patterns
+                        • Could indicate sensitive information sharing
+                        """
+                    elif anomaly_type == "Frequency Anomaly":
+                        reasoning = """
+                        **Why this is an anomaly:**
+                        - Communication frequency significantly changed
+                        - Burst patterns or unusual timing intervals
+                        - Deviates from established communication rhythms
+                        
+                        **Risk Indicators:**
+                        • Sudden increase or decrease in email frequency
+                        • Irregular timing patterns
+                        • Could indicate urgent or suspicious activity
+                        """
+                    else:
+                        reasoning = """
+                        **Why this is an anomaly:**
+                        - Pattern deviates significantly from normal behavior
+                        - Statistical analysis identified unusual characteristics
+                        - Requires further investigation to determine risk level
+                        
+                        **Risk Indicators:**
+                        • Behavior outside normal parameters
+                        • Pattern not typically observed in the dataset
+                        • Warrants security team review
+                        """
+
+                    # Display anomaly with reasoning in an expandable section
+                    with st.expander(f"{severity_color} {anomaly_type} - {severity} Severity", expanded=False):
+                        st.markdown(f"""
+                        <div style="background: {bg_color}; border-left: 4px solid {border_color}; padding: 1rem; border-radius: 8px; margin: 0.5rem 0;">
+                            <h4 style="color: {border_color}; margin-top: 0;">Anomaly Details</h4>
+                            <p><strong>Description:</strong> {description}</p>
+                            <p><strong>Severity Level:</strong> {severity}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        st.markdown("#### 🔍 Detailed Analysis")
+                        st.markdown(reasoning)
+                        
+                        # Additional context if available
+                        if hasattr(anomaly, 'value') and anomaly.get('value') is not None:
+                            st.markdown(f"**📊 Metric Value:** {anomaly['value']}")
+                        
+                        if hasattr(anomaly, 'count') and anomaly.get('count') is not None:
+                            st.markdown(f"**📈 Count:** {anomaly['count']}")
+                        
+                        if hasattr(anomaly, 'percentage') and anomaly.get('percentage') is not None:
+                            st.markdown(f"**📋 Percentage:** {anomaly['percentage']:.1f}%")
+
+                        # Recommended actions
+                        st.markdown("#### 🎯 Recommended Actions")
+                        if severity == 'High':
+                            st.markdown("""
+                            - **Immediate Investigation Required**
+                            - Review the sender's recent activities
+                            - Check for signs of account compromise
+                            - Verify if emails contain sensitive information
+                            - Consider temporary access restrictions if needed
+                            """)
+                        elif severity == 'Medium':
+                            st.markdown("""
+                            - **Monitor and Review**
+                            - Document the anomaly for trend analysis
+                            - Review sender's typical patterns
+                            - Consider reaching out to verify legitimate activity
+                            - Track for recurring patterns
+                            """)
+                        else:
+                            st.markdown("""
+                            - **Log and Monitor**
+                            - Record anomaly for baseline adjustment
+                            - Continue monitoring for pattern changes
+                            - No immediate action required unless part of larger trend
+                            """)
+
+                # Summary of anomaly reasoning
+                st.subheader("🎯 Anomaly Detection Summary")
+                st.markdown("""
+                **How anomalies are identified:**
+                
+                1. **Statistical Analysis**: Emails are compared against established baseline patterns using machine learning algorithms
+                2. **Behavioral Profiling**: Individual sender patterns are analyzed for deviations from their normal behavior
+                3. **Temporal Analysis**: Time-based patterns are examined for unusual activity outside normal business hours
+                4. **Volume Analysis**: Email volumes are checked for spikes or unusual distribution patterns
+                5. **Content Analysis**: Email content and attachments are analyzed for unusual characteristics
+                
+                **Risk Assessment Methodology:**
+                - **High Severity**: Anomalies that pose immediate security risks or indicate potential data breaches
+                - **Medium Severity**: Patterns that deviate significantly but may have legitimate explanations
+                - **Low Severity**: Minor deviations that should be monitored but don't require immediate action
+                """)
+
             else:
                 st.info(f"No anomalies detected in {filter_label}")
+                st.success("✅ All email patterns appear normal based on statistical analysis")
+                
+                # Explain what this means
+                st.markdown("""
+                **What this means:**
+                - All emails in this category follow expected patterns
+                - No significant deviations from normal behavior detected
+                - Communication volumes and timing are within normal ranges
+                - No suspicious content or recipient patterns identified
+                
+                **This indicates:**
+                - Normal business operations
+                - No immediate security concerns in this data subset
+                - Established communication patterns are being followed
+                """)
 
         with tab5:
             st.subheader("Recommendations & Actions")
