@@ -4658,6 +4658,9 @@ def enhanced_domain_analysis_page(domain_classifier):
     with col4:
         st.metric("External Communications", domain_analysis['risk_summary']['total_external_communications'])
     
+    # Classification Legend
+    st.info("**Classification Legend:** 🔵 Internal (blue) = Same domain as recipient | 🟢 Business (green) = Corporate domains | 🟡 Free (yellow) = Public email providers")
+    
     # Sender Domain Analysis
     st.subheader("📤 Sender Domain Analysis")
     sender_data = []
@@ -4677,12 +4680,12 @@ def enhanced_domain_analysis_page(domain_classifier):
         
         # Apply styling to highlight different classifications
         def highlight_classification(row):
-            if row['Classification'] == 'business':
+            if row['Classification'] == 'internal':
+                return ['background-color: #cce5ff; font-weight: bold; color: #0056b3'] * len(row)
+            elif row['Classification'] == 'business':
                 return ['background-color: #e8f5e8'] * len(row)
             elif row['Classification'] == 'free':
                 return ['background-color: #fff3cd'] * len(row)
-            elif row['Classification'] == 'internal':
-                return ['background-color: #d1ecf1'] * len(row)
             else:
                 return [''] * len(row)
         

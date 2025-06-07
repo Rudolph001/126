@@ -232,7 +232,7 @@ class DomainClassifier:
         return bool(re.match(domain_pattern, domain))
 
     def _classify_sender_domain(self, row) -> str:
-        """Classify sender domain with internal detection"""
+        """Classify sender domain with enhanced internal detection"""
         sender_domain = row.get('sender_domain', '')
         recipient_domain = row.get('recipient_domain', '')
 
@@ -241,7 +241,7 @@ class DomainClassifier:
 
         sender_clean = sender_domain.lower().strip()
 
-        # Check for internal communication first
+        # Check for internal communication first - if sender and recipient domains match
         if self._is_internal_communication(sender_domain, recipient_domain):
             return 'internal'
 
@@ -665,14 +665,35 @@ class DomainClassifier:
             'risk_summary': {}
         }
         
-        # Extract and classify sender domains
+        # First pass: collect all sender domains and their recipient domains
+        sender_recipient_mapping = {}
         for _, row in df.iterrows():
-            sender_domain = self._extract_domain(row.get('sender', ''))
+            sender_domain = self._extract_domain(str(row.get('sender', '')))
+            recipient_domains = self._extract_all_recipient_domains(str(row.get('recipients', '')))
+            
+            if sender_domain:
+                if sender_domain not in sender_recipient_mapping:
+                    sender_recipient_mapping[sender_domain] = set()
+                sender_recipient_mapping[sender_domain].update(recipient_domains)
+        
+        # Extract and classify sender domains with internal detection
+        for _, row in df.iterrows():
+            sender_domain = self._extract_domain(str(row.get('sender', '')))
+            recipient_domains = self._extract_all_recipient_domains(str(row.get('recipients', '')))
+            
             if sender_domain:
                 if sender_domain not in results['sender_domains']:
+                    # Check if this sender domain communicates internally
+                    is_internal_sender = any(
+                        self._is_internal_communication(sender_domain, rec_domain) 
+                        for rec_domain in sender_recipient_mapping.get(sender_domain, [])
+                    )
+                    
+                    classification = 'internal' if is_internal_sender else self._classify_single_domain_strict(sender_domain)
+                    
                     results['sender_domains'][sender_domain] = {
                         'count': 0,
-                        'classification': self._classify_single_domain_strict(sender_domain),
+                        'classification': classification,
                         'category': self._get_detailed_category(sender_domain),
                         'industry': self._classify_industry(sender_domain),
                         'is_business': self._is_business_domain(sender_domain),
@@ -681,16 +702,21 @@ class DomainClassifier:
                 results['sender_domains'][sender_domain]['count'] += 1
                 results['sender_domains'][sender_domain]['emails'].append(row.get('subject', 'No Subject'))
         
-        # Extract and classify recipient domains
+        # Extract and classify recipient domains with internal detection
         for _, row in df.iterrows():
-            recipient_domains = self._extract_all_recipient_domains(row.get('recipients', ''))
-            sender_domain = self._extract_domain(row.get('sender', ''))
+            recipient_domains = self._extract_all_recipient_domains(str(row.get('recipients', '')))
+            sender_domain = self._extract_domain(str(row.get('sender', '')))
             
             for recipient_domain in recipient_domains:
                 if recipient_domain not in results['recipient_domains']:
+                    # Check if recipient domain is same as any sender domain (internal communication)
+                    is_internal_recipient = self._is_internal_communication(sender_domain, recipient_domain)
+                    
+                    classification = 'internal' if is_internal_recipient else self._classify_single_domain_strict(recipient_domain)
+                    
                     results['recipient_domains'][recipient_domain] = {
                         'count': 0,
-                        'classification': self._classify_single_domain_strict(recipient_domain),
+                        'classification': classification,
                         'category': self._get_detailed_category(recipient_domain),
                         'industry': self._classify_industry(recipient_domain),
                         'is_business': self._is_business_domain(recipient_domain),
