@@ -5,13 +5,109 @@ class DomainClassifier:
     """Classifies email domains as internal, business, or public/free"""
     
     def __init__(self):
-        # Common free email providers
+        # Comprehensive free email providers list
         self.free_email_domains = {
+            # Major providers
             'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com',
             'icloud.com', 'me.com', 'mail.com', 'gmx.com', 'yandex.com',
             'protonmail.com', 'tutanota.com', 'zoho.com', 'fastmail.com',
-            'live.com', 'msn.com', 'yahoo.co.uk', 'gmail.co.uk', 'bt.com',
-            'sky.com', 'virginmedia.com', 'tiscali.co.uk', 'talktalk.net'
+            'live.com', 'msn.com', 'yahoo.co.uk', 'gmail.co.uk',
+            
+            # Microsoft domains
+            'hotmail.co.uk', 'hotmail.fr', 'hotmail.de', 'hotmail.it', 'hotmail.es',
+            'live.co.uk', 'live.fr', 'live.de', 'live.it', 'live.es',
+            'outlook.co.uk', 'outlook.fr', 'outlook.de', 'outlook.it', 'outlook.es',
+            'windowslive.com', 'passport.com',
+            
+            # Yahoo domains
+            'yahoo.co.uk', 'yahoo.fr', 'yahoo.de', 'yahoo.it', 'yahoo.es',
+            'yahoo.ca', 'yahoo.com.au', 'yahoo.co.jp', 'yahoo.com.br',
+            'yahoo.in', 'yahoo.com.mx', 'yahoo.com.ar', 'ymail.com',
+            'rocketmail.com', 'yahoomail.com',
+            
+            # Google domains
+            'googlemail.com', 'gmail.co.uk', 'gmail.com.au', 'gmail.fr',
+            'gmail.de', 'gmail.it', 'gmail.es', 'gmail.ca',
+            
+            # AOL domains
+            'aol.co.uk', 'aol.fr', 'aol.de', 'aol.it', 'aol.es',
+            'aim.com', 'netscape.net', 'netscape.com', 'compuserve.com',
+            
+            # Apple domains
+            'mac.com', 'icloud.com', 'me.com',
+            
+            # European providers
+            'gmx.de', 'gmx.at', 'gmx.ch', 'gmx.net', 'gmx.org',
+            'web.de', 't-online.de', 'freenet.de', 'arcor.de',
+            'orange.fr', 'laposte.net', 'sfr.fr', 'free.fr', 'wanadoo.fr',
+            'libero.it', 'virgilio.it', 'tiscali.it', 'alice.it',
+            'terra.es', 'telefonica.net', 'ya.com',
+            'mail.ru', 'yandex.ru', 'rambler.ru', 'inbox.ru',
+            
+            # UK providers
+            'bt.com', 'btinternet.com', 'sky.com', 'virginmedia.com',
+            'tiscali.co.uk', 'talktalk.net', 'ntlworld.com', 'blueyonder.co.uk',
+            'freeserve.co.uk', 'fsmail.net', 'plusnet.com',
+            
+            # Asian providers
+            'qq.com', '163.com', '126.com', 'sina.com', 'sohu.com',
+            'naver.com', 'daum.net', 'hanmail.net',
+            'rediffmail.com', 'sify.com', 'indiatimes.com',
+            
+            # Other international
+            'terra.com.br', 'bol.com.br', 'ig.com.br', 'globo.com',
+            'sympatico.ca', 'rogers.com', 'shaw.ca', 'telus.net',
+            'bigpond.com', 'optusnet.com.au', 'iinet.net.au',
+            'telstra.com', 'adam.com.au',
+            
+            # Privacy-focused
+            'protonmail.ch', 'pm.me', 'tutanota.de', 'tuta.io',
+            'guerrillamail.com', 'temp-mail.org', 'tempmail.net',
+            'mailinator.com', '10minutemail.com', 'guerrillamail.de',
+            'guerrillamail.net', 'guerrillamail.org', 'guerrillamail.biz',
+            
+            # Disposable email services
+            'temp-mail.org', 'tempmail.net', 'throwaway.email',
+            'mailnesia.com', 'maildrop.cc', 'getairmail.com',
+            'sharklasers.com', 'guerrillamail.info', 'grr.la',
+            'guerrillamail.biz', 'guerrillamail.com', 'guerrillamail.de',
+            'guerrillamail.net', 'guerrillamail.org', 'spam4.me',
+            
+            # Generic providers
+            'mail.com', 'email.com', 'usa.com', 'myself.com',
+            'consultant.com', 'techie.com', 'engineer.com',
+            'lawyer.com', 'doctor.com', 'workmail.com',
+            'europe.com', 'asia.com', 'africamail.com',
+            'americamail.com', 'australiamail.com',
+            
+            # Older/legacy providers
+            'excite.com', 'lycos.com', 'altavista.com', 'rediff.com',
+            'mailcity.com', 'mail2world.com', 'angelfire.com',
+            'geocities.com', 'tripod.com', 'juno.com',
+            'netzero.net', 'earthlink.net', 'mindspring.com',
+            
+            # Regional/Country specific
+            'post.com', 'bigfoot.com', 'cool.co.za', 'webmail.co.za',
+            'mweb.co.za', 'iafrica.com', 'vodamail.co.za',
+            'lantic.net', 'eastlink.ca', 'cogeco.ca',
+            'teksavvy.com', 'bell.net', 'sympatico.ca',
+            
+            # Educational (but free)
+            'student.com', 'alumni.com', 'grad.com',
+            
+            # Business-style but free
+            'contractor.net', 'freelancer.com', 'consultant.com',
+            'techie.com', 'engineer.com', 'programmer.net',
+            
+            # Other notable free providers
+            'inbox.com', 'safe-mail.net', 'anonymous.to',
+            'hushmail.com', 'countermail.com', 'startmail.com',
+            'mailfence.com', 'posteo.de', 'kolab.com',
+            'disroot.org', 'riseup.net', 'autistici.org',
+            'openmailbox.org', 'cock.li', 'aaathats3as.com',
+            'abv.bg', 'centrum.cz', 'seznam.cz', 'atlas.cz',
+            'email.cz', 'quick.cz', 'volny.cz', 'tlen.pl',
+            'gazeta.pl', 'interia.pl', 'wp.pl', 'o2.pl'
         }
         
         # Common business domain patterns
