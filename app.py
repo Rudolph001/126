@@ -1674,7 +1674,7 @@ def analytics_page(visualizer, anomaly_detector):
     # Analytics options
     analysis_type = st.selectbox(
         "Select Analysis Type",
-        ["Overview", "Anomaly Detection", "Risk Analysis", "Domain Analysis", "Security Tool Coverage", "Advanced Analytics - Low Risk BAU"]
+        ["Overview", "Anomaly Detection", "Risk Analysis", "Security Tool Coverage", "Advanced Analytics - Low Risk BAU"]
     )
 
     if analysis_type == "Overview":
@@ -1996,26 +1996,6 @@ def analytics_page(visualizer, anomaly_detector):
                 st.info("No high-risk emails found in the current dataset.")
         else:
             st.warning("Risk analysis not available. Please ensure risk scores are calculated.")
-
-    elif analysis_type == "Domain Analysis":
-        st.subheader("Domain Analysis")
-        st.info("This section has been simplified. For comprehensive domain analysis, please use the Enhanced Domain Analysis page.")
-
-
-
-
-
-        # Simplified Industry Summary
-        if 'email_domain_industry' in df.columns:
-            # Filter for business domains only
-            business_domain_df = df[df['email_domain_type'].isin(['business', 'internal'])]
-            
-            if not business_domain_df.empty:
-                st.info("Industry analysis simplified. Basic statistics available in Enhanced Domain Analysis page.")
-            else:
-                st.info("No business domains found for industry analysis")
-        else:
-            st.info("Industry classification not available. Please reprocess the data to include industry analysis.")
 
     elif analysis_type == "Security Tool Coverage":
         st.subheader("🛡️ Security Tool Coverage Analysis")
