@@ -844,6 +844,65 @@ def analytics_page(visualizer, anomaly_detector):
         st.subheader("🔍 Low Risk Business-as-Usual Analysis")
         st.info("Analyzing low-risk emails for BAU patterns and hidden threats including potential IP exfiltration in banking contexts")
         
+        # Dataset Overview KPIs
+        st.subheader("📊 Dataset Overview")
+        
+        # Calculate email counts by risk level
+        total_emails = len(df)
+        low_risk_count = len(df[df.get('risk_level', '') == 'Low'])
+        medium_risk_count = len(df[df.get('risk_level', '') == 'Medium']) 
+        high_risk_count = len(df[df.get('risk_level', '') == 'High'])
+        
+        # Create KPI metrics
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            st.metric(
+                label="Total Emails",
+                value=f"{total_emails:,}",
+                help="Total number of emails in the dataset"
+            )
+        
+        with col2:
+            low_risk_pct = (low_risk_count/total_emails*100) if total_emails > 0 else 0
+            st.metric(
+                label="Low Risk Emails", 
+                value=f"{low_risk_count:,}",
+                delta=f"{low_risk_pct:.1f}% of total",
+                help="Emails classified as low risk - focus of this analysis"
+            )
+        
+        with col3:
+            medium_risk_pct = (medium_risk_count/total_emails*100) if total_emails > 0 else 0
+            st.metric(
+                label="Medium Risk Emails",
+                value=f"{medium_risk_count:,}",
+                delta=f"{medium_risk_pct:.1f}% of total",
+                help="Emails classified as medium risk"
+            )
+        
+        with col4:
+            high_risk_pct = (high_risk_count/total_emails*100) if total_emails > 0 else 0
+            st.metric(
+                label="High Risk Emails",
+                value=f"{high_risk_count:,}",
+                delta=f"{high_risk_pct:.1f}% of total",
+                help="Emails classified as high risk"
+            )
+        
+        with col5:
+            unique_senders = df['sender'].nunique() if 'sender' in df.columns else 0
+            st.metric(
+                label="Unique Senders",
+                value=f"{unique_senders:,}",
+                help="Number of unique email senders in dataset"
+            )
+        
+        # Show warning if no low risk emails
+        if low_risk_count == 0:
+            st.warning("⚠️ No Low Risk emails found in dataset. Analysis will be limited.")
+            return
+        
         # Initialize BAU analyzer
         bau_analyzer = BAUAnalyzer()
         
