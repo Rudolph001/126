@@ -27,7 +27,7 @@ class DomainClassifier:
             
             # Google domains
             'googlemail.com', 'gmail.co.uk', 'gmail.com.au', 'gmail.fr',
-            'gmail.de', 'gmail.it', 'gmail.es', 'gmail.ca',
+            'gmail.de', 'gmail.it', 'gmail.es', 'gmail.ca', 'google.com',
             
             # AOL domains
             'aol.co.uk', 'aol.fr', 'aol.de', 'aol.it', 'aol.es',

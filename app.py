@@ -405,6 +405,19 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         classification_counts = domain_df['current_classification'].value_counts()
         st.write("Domain classifications:", classification_counts.to_dict())
         
+        # Show all domains and their classifications for debugging
+        st.write("**All domains found:**")
+        debug_df = domain_df[['domain', 'current_classification', 'is_free_domain']].head(10)
+        st.dataframe(debug_df)
+        
+        # Test classification of common free domains
+        test_domains = ['gmail.com', 'yahoo.com', 'hotmail.com']
+        st.write("**Test classifications:**")
+        for test_domain in test_domains:
+            classification = domain_classifier._classify_single_domain(test_domain)
+            is_in_free_list = test_domain in domain_classifier.free_email_domains
+            st.write(f"{test_domain}: classified as '{classification}', in free list: {is_in_free_list}")
+        
         # Show sample free domains if any
         free_domains = domain_df[domain_df['current_classification'] == 'free']
         if not free_domains.empty:
