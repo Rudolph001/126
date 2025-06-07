@@ -66,7 +66,7 @@ def main():
         reports_page()
 
 def network_view_page(visualizer):
-    st.header("🌐 Network View - Business Domain Analysis")
+    st.header("🌐 Network View - Domain Analysis")
     
     if st.session_state.processed_data is None:
         st.warning("Please upload email data first in the Data Upload page.")
@@ -80,7 +80,313 @@ def network_view_page(visualizer):
             'High' if x >= 61 else 'Medium' if x >= 31 else 'Low'
         )
     
-    st.info("🎯 **Purpose:** Identify emails sent to domains that are neither business domains nor free email domains to assess Business-As-Usual (BAU) patterns and detect potential anomalies.")
+    # Navigation tabs for different views
+    tab1, tab2 = st.tabs(["🏢 Domain Classification Analysis", "📧 Non-Standard Domain Analysis"])
+    
+    with tab1:
+        st.subheader("📊 Complete Domain Classification Overview")
+        st.info("🎯 **Purpose:** Comprehensive analysis of all email domains categorized by business type, free email providers, and industry sectors.")
+        
+        # Initialize domain classifier
+        from utils.domain_classifier import DomainClassifier
+        domain_classifier = DomainClassifier()
+        
+        # Ensure we have email_domain field
+        if 'email_domain' not in df.columns:
+            df['email_domain'] = df['sender'].apply(lambda x: str(x).split('@')[-1].lower().strip() if pd.notna(x) and '@' in str(x) else '')
+        
+        # Apply domain classification if not already done
+        if 'email_domain_type' not in df.columns:
+            df = domain_classifier.classify_domains(df)
+        
+        # Overall Statistics
+        st.subheader("📈 Domain Type Distribution")
+        
+        # Get domain type counts
+        domain_type_counts = df['email_domain_type'].value_counts()
+        total_emails = len(df)
+        
+        # Create metrics row
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            business_count = domain_type_counts.get('business', 0)
+            business_pct = (business_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("🏢 Business Domains", f"{business_count:,}", f"{business_pct:.1f}%")
+        
+        with col2:
+            free_count = domain_type_counts.get('free', 0)
+            free_pct = (free_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("📧 Free Email Domains", f"{free_count:,}", f"{free_pct:.1f}%")
+        
+        with col3:
+            internal_count = domain_type_counts.get('internal', 0)
+            internal_pct = (internal_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("🏠 Internal Domains", f"{internal_count:,}", f"{internal_pct:.1f}%")
+        
+        with col4:
+            public_count = domain_type_counts.get('public', 0)
+            public_pct = (public_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("🌐 Public Domains", f"{public_count:,}", f"{public_pct:.1f}%")
+        
+        with col5:
+            unknown_count = domain_type_counts.get('unknown', 0)
+            unknown_pct = (unknown_count / total_emails * 100) if total_emails > 0 else 0
+            st.metric("❓ Unknown Domains", f"{unknown_count:,}", f"{unknown_pct:.1f}%")
+        
+        # Visual Distribution Chart
+        st.subheader("📊 Domain Type Visualization")
+        
+        # Create pie chart for domain types
+        fig_pie = visualizer.create_domain_analysis_chart(df)
+        st.plotly_chart(fig_pie, use_container_width=True)
+        
+        # Detailed Domain Analysis by Type
+        st.subheader("🔍 Detailed Domain Analysis by Type")
+        
+        # Create tabs for each domain type
+        domain_tabs = st.tabs(["🏢 Business", "📧 Free Email", "🏠 Internal", "🌐 Public", "❓ Unknown"])
+        
+        with domain_tabs[0]:  # Business Domains
+            business_domains_df = df[df['email_domain_type'] == 'business']
+            if not business_domains_df.empty:
+                st.write(f"**{len(business_domains_df):,} emails from business domains**")
+                
+                # Industry breakdown
+                if 'email_domain_industry' in business_domains_df.columns:
+                    industry_counts = business_domains_df['email_domain_industry'].value_counts()
+                    
+                    st.write("**Industry Distribution:**")
+                    industry_col1, industry_col2, industry_col3 = st.columns(3)
+                    
+                    with industry_col1:
+                        banking_count = industry_counts.get('banking', 0)
+                        st.metric("🏦 Banking/Financial", banking_count)
+                        
+                        education_count = industry_counts.get('education', 0)
+                        st.metric("🎓 Education", education_count)
+                    
+                    with industry_col2:
+                        healthcare_count = industry_counts.get('healthcare', 0)
+                        st.metric("🏥 Healthcare", healthcare_count)
+                        
+                        tech_count = industry_counts.get('technology', 0)
+                        st.metric("💻 Technology", tech_count)
+                    
+                    with industry_col3:
+                        gov_count = industry_counts.get('government', 0)
+                        st.metric("🏛️ Government", gov_count)
+                        
+                        other_count = industry_counts.get('business_other', 0)
+                        st.metric("🏢 Other Business", other_count)
+                
+                # Top business domains
+                top_business_domains = business_domains_df['email_domain'].value_counts().head(15)
+                
+                business_display = []
+                for rank, (domain, count) in enumerate(top_business_domains.items(), 1):
+                    percentage = (count / len(business_domains_df) * 100)
+                    industry = business_domains_df[business_domains_df['email_domain'] == domain]['email_domain_industry'].iloc[0] if 'email_domain_industry' in business_domains_df.columns else 'Unknown'
+                    
+                    business_display.append({
+                        'Rank': f"#{rank}",
+                        'Domain': domain,
+                        'Email Count': f"{count:,}",
+                        'Percentage': f"{percentage:.1f}%",
+                        'Industry': industry.replace('_', ' ').title()
+                    })
+                
+                if business_display:
+                    business_df = pd.DataFrame(business_display)
+                    st.dataframe(business_df, use_container_width=True, height=400)
+            else:
+                st.info("No business domains found in the dataset")
+        
+        with domain_tabs[1]:  # Free Email Domains
+            free_domains_df = df[df['email_domain_type'] == 'free']
+            if not free_domains_df.empty:
+                st.write(f"**{len(free_domains_df):,} emails from free email domains**")
+                
+                # Security analysis for free domains
+                if 'risk_score' in free_domains_df.columns:
+                    avg_risk = free_domains_df['risk_score'].mean()
+                    high_risk_count = len(free_domains_df[free_domains_df['risk_score'] >= 61])
+                    
+                    risk_col1, risk_col2, risk_col3 = st.columns(3)
+                    with risk_col1:
+                        st.metric("Average Risk Score", f"{avg_risk:.1f}/100")
+                    with risk_col2:
+                        st.metric("High Risk Emails", high_risk_count)
+                    with risk_col3:
+                        risk_pct = (high_risk_count / len(free_domains_df) * 100) if len(free_domains_df) > 0 else 0
+                        st.metric("High Risk %", f"{risk_pct:.1f}%")
+                
+                # Top free email domains
+                top_free_domains = free_domains_df['email_domain'].value_counts().head(15)
+                
+                free_display = []
+                for rank, (domain, count) in enumerate(top_free_domains.items(), 1):
+                    percentage = (count / len(free_domains_df) * 100)
+                    domain_data = free_domains_df[free_domains_df['email_domain'] == domain]
+                    avg_risk = domain_data['risk_score'].mean() if 'risk_score' in domain_data.columns else 0
+                    
+                    free_display.append({
+                        'Rank': f"#{rank}",
+                        'Domain': domain,
+                        'Email Count': f"{count:,}",
+                        'Percentage': f"{percentage:.1f}%",
+                        'Avg Risk Score': f"{avg_risk:.1f}/100"
+                    })
+                
+                if free_display:
+                    free_df = pd.DataFrame(free_display)
+                    
+                    # Color code based on risk
+                    def highlight_free_risk(row):
+                        styles = [''] * len(row)
+                        try:
+                            risk_score = float(str(row['Avg Risk Score']).split('/')[0])
+                            if risk_score >= 61:
+                                styles[4] = 'background-color: #ffebee; color: #c62828; font-weight: bold'
+                            elif risk_score >= 31:
+                                styles[4] = 'background-color: #fff3e0; color: #ef6c00; font-weight: bold'
+                        except:
+                            pass
+                        return styles
+                    
+                    styled_free_df = free_df.style.apply(highlight_free_risk, axis=1)
+                    st.dataframe(styled_free_df, use_container_width=True, height=400)
+            else:
+                st.info("No free email domains found in the dataset")
+        
+        with domain_tabs[2]:  # Internal Domains
+            internal_domains_df = df[df['email_domain_type'] == 'internal']
+            if not internal_domains_df.empty:
+                st.write(f"**{len(internal_domains_df):,} emails from internal domains**")
+                
+                # Internal domain analysis
+                top_internal_domains = internal_domains_df['email_domain'].value_counts().head(10)
+                
+                internal_display = []
+                for rank, (domain, count) in enumerate(top_internal_domains.items(), 1):
+                    percentage = (count / len(internal_domains_df) * 100)
+                    
+                    internal_display.append({
+                        'Rank': f"#{rank}",
+                        'Domain': domain,
+                        'Email Count': f"{count:,}",
+                        'Percentage': f"{percentage:.1f}%"
+                    })
+                
+                if internal_display:
+                    internal_df = pd.DataFrame(internal_display)
+                    st.dataframe(internal_df, use_container_width=True, height=300)
+            else:
+                st.info("No internal domains found in the dataset")
+        
+        with domain_tabs[3]:  # Public Domains
+            public_domains_df = df[df['email_domain_type'] == 'public']
+            if not public_domains_df.empty:
+                st.write(f"**{len(public_domains_df):,} emails from public domains**")
+                
+                # Public domain analysis
+                top_public_domains = public_domains_df['email_domain'].value_counts().head(10)
+                
+                public_display = []
+                for rank, (domain, count) in enumerate(top_public_domains.items(), 1):
+                    percentage = (count / len(public_domains_df) * 100)
+                    domain_data = public_domains_df[public_domains_df['email_domain'] == domain]
+                    avg_risk = domain_data['risk_score'].mean() if 'risk_score' in domain_data.columns else 0
+                    
+                    public_display.append({
+                        'Rank': f"#{rank}",
+                        'Domain': domain,
+                        'Email Count': f"{count:,}",
+                        'Percentage': f"{percentage:.1f}%",
+                        'Avg Risk Score': f"{avg_risk:.1f}/100"
+                    })
+                
+                if public_display:
+                    public_df = pd.DataFrame(public_display)
+                    st.dataframe(public_df, use_container_width=True, height=300)
+            else:
+                st.info("No public domains found in the dataset")
+        
+        with domain_tabs[4]:  # Unknown Domains
+            unknown_domains_df = df[df['email_domain_type'] == 'unknown']
+            if not unknown_domains_df.empty:
+                st.write(f"**{len(unknown_domains_df):,} emails from unknown domains**")
+                st.warning("⚠️ Unknown domains require investigation to determine their classification")
+                
+                # Unknown domain analysis
+                top_unknown_domains = unknown_domains_df['email_domain'].value_counts().head(10)
+                
+                unknown_display = []
+                for rank, (domain, count) in enumerate(top_unknown_domains.items(), 1):
+                    percentage = (count / len(unknown_domains_df) * 100)
+                    domain_data = unknown_domains_df[unknown_domains_df['email_domain'] == domain]
+                    avg_risk = domain_data['risk_score'].mean() if 'risk_score' in domain_data.columns else 0
+                    
+                    unknown_display.append({
+                        'Rank': f"#{rank}",
+                        'Domain': domain,
+                        'Email Count': f"{count:,}",
+                        'Percentage': f"{percentage:.1f}%",
+                        'Avg Risk Score': f"{avg_risk:.1f}/100"
+                    })
+                
+                if unknown_display:
+                    unknown_df = pd.DataFrame(unknown_display)
+                    st.dataframe(unknown_df, use_container_width=True, height=300)
+            else:
+                st.success("✅ All domains have been classified")
+        
+        # Domain Security Summary
+        st.subheader("🔒 Domain Security Summary")
+        
+        security_col1, security_col2 = st.columns(2)
+        
+        with security_col1:
+            st.write("**Security Risk Assessment:**")
+            
+            # Calculate security metrics
+            if 'risk_score' in df.columns:
+                high_risk_business = len(df[(df['email_domain_type'] == 'business') & (df['risk_score'] >= 61)])
+                high_risk_free = len(df[(df['email_domain_type'] == 'free') & (df['risk_score'] >= 61)])
+                high_risk_unknown = len(df[(df['email_domain_type'] == 'unknown') & (df['risk_score'] >= 61)])
+                
+                st.write(f"• High-risk business domains: **{high_risk_business}** emails")
+                st.write(f"• High-risk free email domains: **{high_risk_free}** emails")
+                st.write(f"• High-risk unknown domains: **{high_risk_unknown}** emails")
+                
+                total_high_risk = high_risk_business + high_risk_free + high_risk_unknown
+                if total_high_risk > 0:
+                    st.error(f"🚨 **{total_high_risk}** total high-risk emails require attention")
+                else:
+                    st.success("✅ No high-risk domain communications detected")
+        
+        with security_col2:
+            st.write("**Recommendations:**")
+            
+            # Provide recommendations based on analysis
+            if free_count > business_count:
+                st.warning("⚠️ High volume of free email communications detected")
+                st.write("• Review free email domain policies")
+                st.write("• Consider additional monitoring for free domains")
+            
+            if unknown_count > 0:
+                st.warning("⚠️ Unknown domains require classification")
+                st.write("• Investigate unknown domain origins")
+                st.write("• Update domain classification rules")
+            
+            if public_count > 0:
+                st.info("ℹ️ Public domains detected")
+                st.write("• Verify legitimacy of public domain communications")
+                st.write("• Consider domain whitelist updates")
+    
+    with tab2:
+        st.subheader("📧 Non-Standard Domain Analysis")
+        st.info("🎯 **Purpose:** Identify emails sent to domains that are neither business domains nor free email domains to assess Business-As-Usual (BAU) patterns and detect potential anomalies.")
     
     # Initialize domain classifier
     from utils.domain_classifier import DomainClassifier
