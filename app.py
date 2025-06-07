@@ -815,6 +815,9 @@ def analytics_page(visualizer, anomaly_detector):
         # Domain statistics with business and free email classification
         st.subheader("Domain Statistics")
 
+        # Initialize domain classifier
+        domain_classifier = DomainClassifier()
+
         # Extract sender domains and classify them
         if 'sender_domain' not in df.columns:
             df['sender_domain'] = df['sender'].apply(lambda x: str(x).split('@')[-1].lower().strip() if pd.notna(x) and '@' in str(x) else '')
