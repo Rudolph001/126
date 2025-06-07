@@ -812,31 +812,87 @@ def analytics_page(visualizer, anomaly_detector):
         domain_chart = visualizer.create_domain_analysis_chart(df)
         st.plotly_chart(domain_chart, use_container_width=True)
 
-        # Domain statistics
-        if 'recipient_domains' in df.columns:
-            st.subheader("Domain Statistics")
+        # Domain statistics with business and free email classification
+        st.subheader("Domain Statistics")
 
-            # Extract all domains
-            all_domains = []
-            for domains_str in df['recipient_domains'].dropna():
-                if isinstance(domains_str, str):
-                    all_domains.extend([d.strip() for d in domains_str.split(',')])
+        # Extract sender domains and classify them
+        if 'sender_domain' not in df.columns:
+            df['sender_domain'] = df['sender'].apply(lambda x: str(x).split('@')[-1].lower().strip() if pd.notna(x) and '@' in str(x) else '')
 
-            if all_domains:
-                from collections import Counter
-                domain_counts = Counter(all_domains)
+        # Get domain counts
+        domain_counts = df['sender_domain'].value_counts()
+        
+        # Classify domains
+        business_domains = []
+        free_domains = []
+        
+        for domain, count in domain_counts.items():
+            if domain and domain != '':
+                domain_type = domain_classifier._classify_single_domain(domain)
+                if domain_type == 'free':
+                    free_domains.append((domain, count))
+                else:
+                    business_domains.append((domain, count))
 
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Unique Domains", len(domain_counts))
-                with col2:
-                    st.metric("Most Common Domain", domain_counts.most_common(1)[0][0])
+        # Sort by count
+        business_domains.sort(key=lambda x: x[1], reverse=True)
+        free_domains.sort(key=lambda x: x[1], reverse=True)
 
-                # Top domains table
-                st.subheader("Top Domains")
-                top_domains = pd.DataFrame(domain_counts.most_common(20), 
-                                         columns=['Domain', 'Email Count'])
-                st.dataframe(top_domains)
+        # Display metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Unique Domains", len(domain_counts))
+        with col2:
+            st.metric("Business Domains", len(business_domains))
+        with col3:
+            st.metric("Free Email Domains", len(free_domains))
+
+        # Display top domains in two columns
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🏢 Top 20 Business Domains")
+            if business_domains:
+                business_df = pd.DataFrame(business_domains[:20], columns=['Domain', 'Email Count'])
+                business_df['Rank'] = range(1, len(business_df) + 1)
+                business_df = business_df[['Rank', 'Domain', 'Email Count']]
+                st.dataframe(business_df, use_container_width=True, height=400)
+            else:
+                st.info("No business domains found in the dataset")
+
+        with col2:
+            st.subheader("📧 Top 20 Free Email Domains")
+            if free_domains:
+                free_df = pd.DataFrame(free_domains[:20], columns=['Domain', 'Email Count'])
+                free_df['Rank'] = range(1, len(free_df) + 1)
+                free_df = free_df[['Rank', 'Domain', 'Email Count']]
+                st.dataframe(free_df, use_container_width=True, height=400)
+            else:
+                st.info("No free email domains found in the dataset")
+
+        # Overall domain distribution summary
+        st.subheader("📊 Domain Type Distribution")
+        total_business_emails = sum(count for _, count in business_domains)
+        total_free_emails = sum(count for _, count in free_domains)
+        total_emails = total_business_emails + total_free_emails
+        
+        if total_emails > 0:
+            business_pct = (total_business_emails / total_emails) * 100
+            free_pct = (total_free_emails / total_emails) * 100
+            
+            summary_col1, summary_col2 = st.columns(2)
+            with summary_col1:
+                st.metric(
+                    "Business Domain Emails", 
+                    f"{total_business_emails:,}",
+                    delta=f"{business_pct:.1f}% of total"
+                )
+            with summary_col2:
+                st.metric(
+                    "Free Email Domain Emails", 
+                    f"{total_free_emails:,}",
+                    delta=f"{free_pct:.1f}% of total"
+                )
 
     elif analysis_type == "Advanced Analytics - Low Risk BAU":
         from utils.bau_analyzer import BAUAnalyzer
