@@ -841,8 +841,21 @@ def analytics_page(visualizer, anomaly_detector):
     elif analysis_type == "Advanced Analytics - Low Risk BAU":
         from utils.bau_analyzer import BAUAnalyzer
         
-        st.subheader("🔍 Low Risk Business-as-Usual Analysis")
-        st.info("Analyzing low-risk emails for BAU patterns and hidden threats including potential IP exfiltration in banking contexts")
+        st.subheader("🔍 Business-as-Usual Analysis")
+        st.info("Analyzing email patterns for BAU detection and hidden threats including potential IP exfiltration in banking contexts")
+        
+        # Risk Level Selector
+        col1, col2 = st.columns([1, 3])
+        
+        with col1:
+            risk_level_filter = st.selectbox(
+                "Select Risk Level",
+                ["All Emails", "Low Risk", "Medium Risk", "High Risk"],
+                help="Choose which risk level to analyze for patterns"
+            )
+        
+        with col2:
+            st.write("")  # Spacer
         
         # Dataset Overview KPIs
         st.subheader("📊 Dataset Overview")
@@ -869,7 +882,7 @@ def analytics_page(visualizer, anomaly_detector):
                 label="Low Risk Emails", 
                 value=f"{low_risk_count:,}",
                 delta=f"{low_risk_pct:.1f}% of total",
-                help="Emails classified as low risk - focus of this analysis"
+                help="Emails classified as low risk"
             )
         
         with col3:
@@ -898,65 +911,77 @@ def analytics_page(visualizer, anomaly_detector):
                 help="Number of unique email senders in dataset"
             )
         
-        # Show warning if no low risk emails
-        if low_risk_count == 0:
-            st.warning("⚠️ No Low Risk emails found in dataset. Analysis will be limited.")
+        # Filter data based on selected risk level
+        if risk_level_filter == "All Emails":
+            filtered_df = df.copy()
+            filter_label = "all emails"
+        elif risk_level_filter == "Low Risk":
+            filtered_df = df[df.get('risk_level', '') == 'Low'].copy()
+            filter_label = "low-risk emails"
+        elif risk_level_filter == "Medium Risk":
+            filtered_df = df[df.get('risk_level', '') == 'Medium'].copy()
+            filter_label = "medium-risk emails"
+        else:  # High Risk
+            filtered_df = df[df.get('risk_level', '') == 'High'].copy()
+            filter_label = "high-risk emails"
+        
+        # Show warning if no emails found
+        if len(filtered_df) == 0:
+            st.warning(f"⚠️ No {filter_label} found in dataset. Please select a different risk level.")
             return
         
         # Initialize BAU analyzer
         bau_analyzer = BAUAnalyzer()
         
-        # Perform analysis
-        with st.spinner("Analyzing low-risk email patterns..."):
-            analysis_results = bau_analyzer.analyze_low_risk_patterns(df)
+        # Perform analysis on filtered data
+        with st.spinner(f"Analyzing {filter_label} patterns..."):
+            analysis_results = bau_analyzer.analyze_low_risk_patterns(filtered_df)
         
         # Advanced Analytics KPIs - Show email counts used for each analysis
         st.subheader("📈 Analysis Coverage")
         
         # Calculate specific metrics for BAU analysis
-        low_risk_df = df[df.get('risk_level', '') == 'Low']
+        analysis_df = filtered_df
         
-        # Banking emails in low risk
+        # Banking emails in selected dataset
         banking_emails = 0
-        ip_risk_emails = 0
-        anomaly_emails = 0
         business_hours_emails = 0
         attachment_emails = 0
         
-        if not low_risk_df.empty:
+        if not analysis_df.empty:
             # Banking email detection
             banking_keywords = [
                 'financial', 'banking', 'credit', 'loan', 'investment', 'portfolio',
                 'transaction', 'account', 'balance', 'statement', 'audit', 'compliance'
             ]
             
-            banking_mask = pd.Series([False] * len(low_risk_df), index=low_risk_df.index)
+            banking_mask = pd.Series([False] * len(analysis_df), index=analysis_df.index)
             text_columns = ['subject']
-            if 'body' in low_risk_df.columns:
+            if 'body' in analysis_df.columns:
                 text_columns.append('body')
             
             for col in text_columns:
-                if col in low_risk_df.columns:
+                if col in analysis_df.columns:
                     for keyword in banking_keywords:
-                        banking_mask |= low_risk_df[col].str.contains(keyword, case=False, na=False)
+                        banking_mask |= analysis_df[col].str.contains(keyword, case=False, na=False)
             
             banking_emails = banking_mask.sum()
             
             # Business hours emails
-            if 'time' in low_risk_df.columns:
-                time_df = pd.to_datetime(low_risk_df['time'], errors='coerce')
+            if 'time' in analysis_df.columns:
+                time_df = pd.to_datetime(analysis_df['time'], errors='coerce')
                 hour = time_df.dt.hour
                 day_of_week = time_df.dt.dayofweek
-                business_hours_emails = len(low_risk_df[
+                business_hours_emails = len(analysis_df[
                     (hour >= 9) & (hour <= 17) & (day_of_week.isin([0, 1, 2, 3, 4]))
                 ])
             
             # Emails with attachments
-            if 'attachments' in low_risk_df.columns:
-                attachment_emails = len(low_risk_df[
-                    low_risk_df['attachments'].notna() & 
-                    (low_risk_df['attachments'] != '') & 
-                    (low_risk_df['attachments'].astype(str) != '0')
+            if 'attachments' in analysis_df.columns:
+                attachment_emails = len(analysis_df[
+                    analysis_df['attachments'].notna() & 
+                    (analysis_df['attachments'] != '') & 
+                    (analysis_df['attachments'].astype(str) != '0')
                 ])
         
         # Display KPI metrics for analysis coverage
@@ -964,44 +989,44 @@ def analytics_page(visualizer, anomaly_detector):
         
         with col1:
             st.metric(
-                label="Low Risk Dataset",
-                value=f"{len(low_risk_df):,}",
-                help="Total low-risk emails analyzed for BAU patterns"
+                label=f"Analysis Dataset",
+                value=f"{len(analysis_df):,}",
+                help=f"Total {filter_label} analyzed for BAU patterns"
             )
         
         with col2:
-            banking_pct = (banking_emails/len(low_risk_df)*100) if len(low_risk_df) > 0 else 0
+            banking_pct = (banking_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
             st.metric(
                 label="Banking Content",
                 value=f"{banking_emails:,}",
-                delta=f"{banking_pct:.1f}% of low risk",
-                help="Low-risk emails containing banking/financial keywords"
+                delta=f"{banking_pct:.1f}% of dataset",
+                help=f"{filter_label.capitalize()} containing banking/financial keywords"
             )
         
         with col3:
-            bh_pct = (business_hours_emails/len(low_risk_df)*100) if len(low_risk_df) > 0 else 0
+            bh_pct = (business_hours_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
             st.metric(
                 label="Business Hours",
                 value=f"{business_hours_emails:,}",
-                delta=f"{bh_pct:.1f}% of low risk",
-                help="Low-risk emails sent during business hours (9AM-5PM, Mon-Fri)"
+                delta=f"{bh_pct:.1f}% of dataset",
+                help=f"{filter_label.capitalize()} sent during business hours (9AM-5PM, Mon-Fri)"
             )
         
         with col4:
-            att_pct = (attachment_emails/len(low_risk_df)*100) if len(low_risk_df) > 0 else 0
+            att_pct = (attachment_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
             st.metric(
                 label="With Attachments",
                 value=f"{attachment_emails:,}",
-                delta=f"{att_pct:.1f}% of low risk",
-                help="Low-risk emails containing file attachments"
+                delta=f"{att_pct:.1f}% of dataset",
+                help=f"{filter_label.capitalize()} containing file attachments"
             )
         
         with col5:
-            unique_senders_lr = low_risk_df['sender'].nunique() if 'sender' in low_risk_df.columns else 0
+            unique_senders_filtered = analysis_df['sender'].nunique() if 'sender' in analysis_df.columns else 0
             st.metric(
                 label="Unique Senders",
-                value=f"{unique_senders_lr:,}",
-                help="Number of unique senders in low-risk email category"
+                value=f"{unique_senders_filtered:,}",
+                help=f"Number of unique senders in {filter_label}"
             )
         
         # Display results in tabs
