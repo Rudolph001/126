@@ -365,10 +365,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     with col4:
         medium_risk_pct = (medium_risk/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #f39c12;">
+        <div class="metric-card" style="border-left-color: #ffc107; background-color: #fffbf0;">
             <p class="metric-label">Medium</p>
-            <p class="metric-value" style="color: #f39c12;">{medium_risk}</p>
-            <p class="metric-delta" style="color: #f39c12;">⚠️ {medium_risk_pct:.1f}% of total</p>
+            <p class="metric-value" style="color: #856404;">{medium_risk}</p>
+            <p class="metric-delta" style="color: #856404;">⚠️ {medium_risk_pct:.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -376,10 +376,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         low_risk_count = len(df[df['risk_level'] == 'Normal'])
         low_risk_pct = (low_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #27ae60;">
+        <div class="metric-card" style="border-left-color: #28a745; background-color: #f0fff4;">
             <p class="metric-label">Low</p>
-            <p class="metric-value" style="color: #27ae60;">{low_risk_count}</p>
-            <p class="metric-delta" style="color: #27ae60;">✅ {low_risk_pct:.1f}% of total</p>
+            <p class="metric-value" style="color: #155724;">{low_risk_count}</p>
+            <p class="metric-delta" style="color: #155724;">✅ {low_risk_pct:.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -533,7 +533,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #ffe4cc; color: #cc5500;">{len(high_security_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            High security alerts: Emails with attachments sent on last working day requiring attention
+            High security alerts: Emails with attachments, leaver to free email domains
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -571,11 +571,11 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     ].sort_values(['risk_score', 'time'], ascending=[False, False])
     
     st.markdown(f"""
-    <div class="analysis-card medium-risk">
+    <div class="analysis-card" style="background: #fffbf0; border: 2px solid #ffc107;">
         <div class="analysis-header">
             <span class="analysis-icon">⚠️</span>
-            <h3 class="analysis-title">Moderate Risk Indicators</h3>
-            <span class="count-badge">{len(medium_risk_emails)} emails</span>
+            <h3 class="analysis-title" style="color: #856404;">Medium Risk Indicators</h3>
+            <span class="count-badge" style="background: #fff3cd; color: #856404;">{len(medium_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
             Potentially suspicious activity that warrants monitoring and review
@@ -619,11 +619,11 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     ].sort_values(['risk_score', 'time'], ascending=[True, False])
     
     st.markdown(f"""
-    <div class="analysis-card low-risk">
+    <div class="analysis-card" style="background: #f0fff4; border: 2px solid #28a745;">
         <div class="analysis-header">
             <span class="analysis-icon">✅</span>
-            <h3 class="analysis-title">Low Risk Communications</h3>
-            <span class="count-badge">{len(low_risk_emails)} emails</span>
+            <h3 class="analysis-title" style="color: #155724;">Low Risk Indicators</h3>
+            <span class="count-badge" style="background: #d4edda; color: #155724;">{len(low_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
             Emails with attachments showing normal communication patterns
