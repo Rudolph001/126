@@ -311,12 +311,22 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         """, unsafe_allow_html=True)
 
     with col2:
-        high_risk_pct = (high_risk/total_emails*100) if total_emails > 0 else 0
+        # Calculate critical alerts based on new criteria
+        critical_alerts = len(df[
+            (df['last_working_day'].notna()) &
+            (df['attachments'].notna()) &
+            (df['attachments'] != '') &
+            (df['attachments'].astype(str) != '0') &
+            (df['word_list_match'].notna()) &
+            (df['word_list_match'] != '') &
+            (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+        ])
+        critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #e74c3c;">
-            <p class="metric-label">High Risk Alerts</p>
-            <p class="metric-value" style="color: #e74c3c;">{high_risk}</p>
-            <p class="metric-delta" style="color: #e74c3c;">🚨 {high_risk_pct:.1f}% of total</p>
+            <p class="metric-label">Critical Alerts</p>
+            <p class="metric-value" style="color: #e74c3c;">{critical_alerts}</p>
+            <p class="metric-delta" style="color: #e74c3c;">🚨 {critical_pct:.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
 
