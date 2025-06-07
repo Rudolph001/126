@@ -266,6 +266,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         border-left: 4px solid;
         margin-bottom: 1rem;
         transition: transform 0.2s;
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
     .metric-card:hover {
         transform: translateY(-2px);
