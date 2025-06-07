@@ -1561,7 +1561,9 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #fff3cd; color: #856404;">{len(medium_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            Emailswith attachments and sensitive keywords, sent to non-free domains (no leaver status)
+            Medium Alerts: Emails containing attachments and sensitive keywords<br>
+            • Sent to external domains<br>
+            • Sender is not marked as a leaver
         </p>
     </div>
     """, unsafe_allow_html=True)
