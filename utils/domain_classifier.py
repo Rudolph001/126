@@ -245,8 +245,11 @@ class DomainClassifier:
             df_copy['sender_domain'] = df_copy['email_domain']
 
         # Ensure recipient_domain field exists for internal classification
-        if 'recipient_domain' not in df_copy.columns and 'recipients' in df_copy.columns:
-            df_copy['recipient_domain'] = df_copy['recipients'].apply(self._extract_first_recipient_domain)
+        if 'recipient_domain' not in df_copy.columns:
+            if 'recipients' in df_copy.columns:
+                df_copy['recipient_domain'] = df_copy['recipients'].apply(self._extract_first_recipient_domain)
+            else:
+                df_copy['recipient_domain'] = ''
 
         # Extract recipient domains list for analysis
         if 'recipient_domains' not in df_copy.columns:
@@ -323,10 +326,12 @@ class DomainClassifier:
 
     def _classify_domain_with_internal_check(self, row):
         """Classify domain considering sender-recipient domain matching for internal detection"""
-        sender_domain = row.get('email_domain', '')
+        # Get sender domain from multiple possible sources
+        sender_domain = row.get('sender_domain', '') or row.get('email_domain', '')
+        
+        # Get recipient domain from the data
         recipient_domain = row.get('recipient_domain', '')
-        recipient_domains = row.get('recipient_domains', [])
-
+        
         if not sender_domain:
             return 'unknown'
 
@@ -336,20 +341,14 @@ class DomainClassifier:
         if sender_clean in self.free_email_domains:
             return 'free'
         
-        # Primary check: Use recipient_domain field for internal detection
-        if recipient_domain:
-            recipient_clean = recipient_domain.lower().strip()
+        # Check for internal communication: sender_domain == recipient_domain
+        if recipient_domain and pd.notna(recipient_domain) and str(recipient_domain).strip() != '':
+            recipient_clean = str(recipient_domain).lower().strip()
             
-            # If sender domain matches recipient_domain field, classify as internal
+            # If sender domain matches recipient domain, it's internal communication
             if sender_clean == recipient_clean:
                 return 'internal'
         
-        # Secondary check: Check recipient_domains list for internal classification
-        if isinstance(recipient_domains, list) and len(recipient_domains) > 0:
-            recipient_domains_clean = [rd.lower().strip() for rd in recipient_domains if rd]
-            if sender_clean in recipient_domains_clean:
-                return 'internal'
-
         # For external domains, classify as business or public based on characteristics
         return self._classify_single_domain_strict(sender_clean)
 
