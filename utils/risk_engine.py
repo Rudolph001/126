@@ -12,7 +12,7 @@ class RiskEngine:
             'free_email_domain': 20,
             'new_external_domain': 15,
             'unusual_attachment': 15,
-            'leaver_activity': 30,
+            'leaver_activity': 70,  # Increased to ensure high risk classification
             'ip_keywords': 25,
             'burst_pattern': 15,
             'new_file_type': 10
@@ -54,6 +54,9 @@ class RiskEngine:
         if self._check_free_email_domains(email_row):
             score += self.risk_weights['free_email_domain']
         
+        # Business domain risk adjustment
+        score = self._adjust_business_domain_risk(email_row, score)
+        
         # New external domain
         if email_row.get('has_new_domain', False):
             score += self.risk_weights['new_external_domain']
@@ -62,8 +65,8 @@ class RiskEngine:
         if self._check_unusual_attachments(email_row):
             score += self.risk_weights['unusual_attachment']
         
-        # Leaver activity
-        if email_row.get('is_leaver', False):
+        # Leaver activity - check for last_working_day field
+        if email_row.get('is_leaver', False) or pd.notna(email_row.get('last_working_day')):
             score += self.risk_weights['leaver_activity']
         
         # IP keywords
@@ -224,6 +227,32 @@ class RiskEngine:
         # Check if any current type is new
         return any(file_type not in historical_types for file_type in current_types)
     
+    def _adjust_business_domain_risk(self, email_row, current_score):
+        """Adjust risk score for business domains based on IP keyword presence"""
+        recipient_domains = email_row.get('recipient_domains', [])
+        domain_type = email_row.get('domain_type', '')
+        
+        # Check if this is a business domain
+        if domain_type == 'business' or (isinstance(recipient_domains, list) and 
+                                       any('business' in str(domain).lower() for domain in recipient_domains)):
+            
+            # Check if it contains IP keywords
+            has_ip_keywords = self._check_ip_keywords(email_row)
+            
+            if not has_ip_keywords:
+                # Business domain without IP keywords - reduce risk significantly
+                reduction = min(current_score * 0.3, 25)  # Reduce by 30% or max 25 points
+                return max(current_score - reduction, 10)  # Minimum score of 10 for business domains
+            else:
+                # Business domain with IP keywords - keep at medium risk level
+                # Ensure score stays in medium range (31-60)
+                if current_score > 60:
+                    return 55  # Cap at medium-high
+                elif current_score < 31:
+                    return 35  # Minimum medium risk
+        
+        return current_score
+    
     def get_risk_level(self, score):
         """Convert risk score to risk level"""
         if score <= self.risk_levels['normal'][1]:
@@ -273,6 +302,28 @@ class RiskEngine:
                 'description': 'Recipients include free email providers'
             })
         
+        # Apply business domain risk adjustment
+        original_score = breakdown['total_score']
+        breakdown['total_score'] = self._adjust_business_domain_risk(email_row, breakdown['total_score'])
+        
+        if breakdown['total_score'] != original_score:
+            domain_type = email_row.get('domain_type', '')
+            has_ip_keywords = self._check_ip_keywords(email_row)
+            
+            if domain_type == 'business' and not has_ip_keywords:
+                adjustment = breakdown['total_score'] - original_score
+                breakdown['factors'].append({
+                    'factor': 'Business Domain (No IP Keywords)',
+                    'score': adjustment,
+                    'description': 'Risk reduced for business domain without sensitive keywords'
+                })
+            elif domain_type == 'business' and has_ip_keywords:
+                breakdown['factors'].append({
+                    'factor': 'Business Domain (With IP Keywords)',
+                    'score': 0,
+                    'description': 'Business domain with IP keywords - maintained at medium risk level'
+                })
+        
         if email_row.get('has_new_domain', False):
             breakdown['total_score'] += self.risk_weights['new_external_domain']
             breakdown['factors'].append({
@@ -289,12 +340,12 @@ class RiskEngine:
                 'description': 'Risky or large attachment detected'
             })
         
-        if email_row.get('is_leaver', False):
+        if email_row.get('is_leaver', False) or pd.notna(email_row.get('last_working_day')):
             breakdown['total_score'] += self.risk_weights['leaver_activity']
             breakdown['factors'].append({
                 'factor': 'Leaver Activity',
                 'score': self.risk_weights['leaver_activity'],
-                'description': 'Email sent within 7 days of last working day'
+                'description': 'Email from employee with last working day recorded - HIGH PRIORITY'
             })
         
         if self._check_ip_keywords(email_row):
