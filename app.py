@@ -3556,9 +3556,10 @@ def find_the_needle_page(domain_classifier, visualizer):
     """)
     
     # Create tabs for different analyses
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🏢 Department Analytics", 
         "🏬 Business Unit Insights", 
+        "🔄 Cross-Dept Communication",
         "🚨 Suspicious Domains", 
         "📊 Policy Recommendations"
     ])
@@ -3718,6 +3719,198 @@ def find_the_needle_page(domain_classifier, visualizer):
             st.dataframe(bunit_anomalies, use_container_width=True)
     
     with tab3:
+        st.subheader("Cross-Departmental Communication Pattern Monitoring")
+        
+        # Overview metrics for cross-departmental communication
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_depts = df['department'].nunique()
+            st.metric("Total Departments", total_depts)
+        
+        with col2:
+            # Estimate cross-departmental emails by looking at sender patterns
+            cross_dept_estimate = df.groupby('department')['sender'].nunique().sum()
+            st.metric("Est. Cross-Dept Emails", cross_dept_estimate)
+        
+        with col3:
+            if 'risk_level' in df.columns:
+                high_risk_cross_dept = 0
+                for dept in df['department'].unique():
+                    dept_data = df[df['department'] == dept]
+                    high_risk_mask = dept_data.get('risk_level', pd.Series(['Low'] * len(dept_data))) == 'High'
+                    high_risk_cross_dept += high_risk_mask.sum()
+                st.metric("High Risk Cross-Dept", high_risk_cross_dept)
+            else:
+                st.metric("High Risk Cross-Dept", "N/A")
+        
+        with col4:
+            external_domains_by_dept = df.groupby('department')['sender_domain'].nunique().sum() if 'sender_domain' in df.columns else 0
+            st.metric("External Domains Used", external_domains_by_dept)
+        
+        # Department Communication Matrix
+        st.subheader("Department Communication Flow Analysis")
+        
+        # Create a communication flow analysis
+        dept_sender_stats = df.groupby('department').agg({
+            'sender': 'nunique',
+            'recipients': lambda x: x.str.split(',').str.len().sum() if x.notna().any() else 0,
+            'attachments': lambda x: (x.notna() & (x != '')).sum() if x.notna().any() else 0
+        }).round(2)
+        
+        dept_sender_stats.columns = ['Unique Senders', 'Total Recipients', 'Emails with Attachments']
+        dept_sender_stats = dept_sender_stats.sort_values('Unique Senders', ascending=False)
+        
+        st.write("**Department Email Activity Summary:**")
+        st.dataframe(dept_sender_stats, use_container_width=True)
+        
+        # Cross-departmental risk patterns
+        st.subheader("Cross-Departmental Risk Patterns")
+        
+        if 'risk_level' in df.columns and 'ip_keywords_detected' in df.columns:
+            # Analyze risk patterns across departments
+            dept_risk_patterns = df.groupby('department').agg({
+                'risk_level': lambda x: (x == 'High').sum(),
+                'ip_keywords_detected': 'sum',
+                'sender': 'count'
+            }).round(2)
+            
+            dept_risk_patterns.columns = ['High Risk Emails', 'IP Keywords Detected', 'Total Emails']
+            dept_risk_patterns['Risk Percentage'] = (dept_risk_patterns['High Risk Emails'] / dept_risk_patterns['Total Emails'] * 100).round(1)
+            dept_risk_patterns = dept_risk_patterns.sort_values('Risk Percentage', ascending=False)
+            
+            st.dataframe(dept_risk_patterns, use_container_width=True)
+        
+        # Time-based cross-departmental analysis
+        st.subheader("Temporal Cross-Departmental Patterns")
+        
+        if 'time' in df.columns:
+            # Convert time to datetime if it's not already
+            df_time = df.copy()
+            try:
+                df_time['time_parsed'] = pd.to_datetime(df_time['time'])
+                df_time['hour'] = df_time['time_parsed'].dt.hour
+                df_time['day_of_week'] = df_time['time_parsed'].dt.day_name()
+                
+                # Department activity by hour
+                dept_hourly = df_time.groupby(['department', 'hour']).size().unstack(fill_value=0)
+                
+                if not dept_hourly.empty:
+                    st.write("**Department Email Activity by Hour of Day:**")
+                    
+                    import plotly.express as px
+                    import plotly.graph_objects as go
+                    
+                    # Create heatmap
+                    fig = go.Figure(data=go.Heatmap(
+                        z=dept_hourly.values,
+                        x=dept_hourly.columns,
+                        y=dept_hourly.index,
+                        colorscale='Blues',
+                        showscale=True
+                    ))
+                    
+                    fig.update_layout(
+                        title="Department Email Activity Heatmap (by Hour)",
+                        xaxis_title="Hour of Day",
+                        yaxis_title="Department",
+                        height=400
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                
+            except Exception as e:
+                st.info("Time analysis not available - time format may need adjustment")
+        
+        # Unusual cross-departmental patterns
+        st.subheader("Unusual Cross-Departmental Communication Flags")
+        
+        unusual_patterns = []
+        
+        # Flag departments with high external communication
+        if 'sender_domain_category' in df.columns:
+            for dept in df['department'].unique():
+                dept_data = df[df['department'] == dept]
+                sender_domain_cat = dept_data.get('sender_domain_category', pd.Series([''] * len(dept_data)))
+                external_ratio = (sender_domain_cat != 'Internal').sum() / len(dept_data) if len(dept_data) > 0 else 0
+                
+                if external_ratio > 0.7:  # More than 70% external communication
+                    unusual_patterns.append({
+                        'Department': dept,
+                        'Pattern': 'High External Communication',
+                        'Details': f'{external_ratio:.1%} of emails are external',
+                        'Risk Level': 'Medium' if external_ratio > 0.8 else 'Low'
+                    })
+        
+        # Flag departments with high IP keyword usage
+        if 'ip_keywords_detected' in df.columns:
+            for dept in df['department'].unique():
+                dept_data = df[df['department'] == dept]
+                ip_emails = (dept_data['ip_keywords_detected'] > 0).sum()
+                total_emails = len(dept_data)
+                ip_ratio = ip_emails / total_emails if total_emails > 0 else 0
+                
+                if ip_ratio > 0.3:  # More than 30% have IP keywords
+                    unusual_patterns.append({
+                        'Department': dept,
+                        'Pattern': 'High IP Keyword Usage',
+                        'Details': f'{ip_ratio:.1%} of emails contain IP keywords',
+                        'Risk Level': 'High'
+                    })
+        
+        if unusual_patterns:
+            st.write("**Flagged Unusual Patterns:**")
+            unusual_df = pd.DataFrame(unusual_patterns)
+            
+            # Color code by risk level
+            def highlight_risk(row):
+                if row['Risk Level'] == 'High':
+                    return ['background-color: #ffebee'] * len(row)
+                elif row['Risk Level'] == 'Medium':
+                    return ['background-color: #fff3e0'] * len(row)
+                else:
+                    return ['background-color: #e8f5e8'] * len(row)
+            
+            st.dataframe(unusual_df.style.apply(highlight_risk, axis=1), use_container_width=True)
+        else:
+            st.success("No unusual cross-departmental patterns detected.")
+        
+        # Cross-departmental collaboration insights
+        st.subheader("Cross-Departmental Collaboration Insights")
+        
+        collaboration_insights = []
+        
+        # Analyze department diversity in email communications
+        unique_depts = df['department'].nunique()
+        if unique_depts > 1:
+            collaboration_insights.append(
+                f"Organization has {unique_depts} departments actively sending emails"
+            )
+            
+            # Find most active departments
+            most_active_dept = df['department'].value_counts().index[0]
+            most_active_count = df['department'].value_counts().iloc[0]
+            collaboration_insights.append(
+                f"Most active department: {most_active_dept} ({most_active_count} emails)"
+            )
+            
+            # Find departments with most external communication
+            if 'sender_domain_category' in df.columns:
+                external_by_dept = df.groupby('department').apply(
+                    lambda x: (x.get('sender_domain_category', pd.Series([''] * len(x))) != 'Internal').sum()
+                ).sort_values(ascending=False)
+                
+                if not external_by_dept.empty:
+                    top_external_dept = external_by_dept.index[0]
+                    top_external_count = external_by_dept.iloc[0]
+                    collaboration_insights.append(
+                        f"Department with most external communication: {top_external_dept} ({top_external_count} external emails)"
+                    )
+        
+        for insight in collaboration_insights:
+            st.info(insight)
+    
+    with tab4:
         st.subheader("Suspicious Domain Pattern Identification")
         
         # Enhanced domain analysis using the domain classifier
