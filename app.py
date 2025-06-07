@@ -99,12 +99,7 @@ def network_view_page(visualizer):
         if 'email_domain_type' not in df.columns:
             df = domain_classifier.classify_domains(df)
         
-        # Debug: Show sample classification results
-        if st.sidebar.button("🔍 Debug Domain Classification"):
-            st.write("**Debug: Sample Domain Classification Results**")
-            debug_cols = ['sender', 'email_domain', 'recipients', 'recipient_domain', 'email_domain_type']
-            available_cols = [col for col in debug_cols if col in df.columns]
-            st.dataframe(df[available_cols].head(10), use_container_width=True)
+        
         
         # Overall Statistics
         st.subheader("📈 Domain Type Distribution")
