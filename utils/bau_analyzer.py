@@ -38,7 +38,11 @@ class BAUAnalyzer:
     def analyze_low_risk_patterns(self, df):
         """Comprehensive analysis of Low Risk email patterns"""
         # Filter for Low Risk emails only
-        low_risk_df = df[df.get('risk_level', '') == 'Low'].copy()
+        if 'risk_level' in df.columns:
+            low_risk_df = df[df['risk_level'] == 'Low'].copy()
+        else:
+            # If no risk_level column, use all data for analysis
+            low_risk_df = df.copy()
         
         if low_risk_df.empty:
             return {
