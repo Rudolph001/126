@@ -298,6 +298,26 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     
     # Get all unique domains from the data
     all_domains = set()
+    
+    # Extract domains from sender emails
+    if 'sender' in filtered_df.columns:
+        for email in filtered_df['sender'].dropna():
+            domain = domain_classifier._extract_domain(email)
+            if domain:
+                all_domains.add(domain)
+    
+    # Extract domains from recipients
+    if 'recipients' in filtered_df.columns:
+        for recipients in filtered_df['recipients'].dropna():
+            if isinstance(recipients, str):
+                # Split recipients string into individual emails
+                recipient_list = [email.strip() for email in recipients.split(',')]
+                for email in recipient_list:
+                    domain = domain_classifier._extract_domain(email)
+                    if domain:
+                        all_domains.add(domain)
+    
+    # Also check for pre-processed domain columns if they exist
     if 'sender_domain' in filtered_df.columns:
         all_domains.update(filtered_df['sender_domain'].dropna().unique())
     if 'recipient_domains' in filtered_df.columns:
@@ -314,21 +334,53 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             classification = domain_classifier._classify_single_domain(domain)
             
             # Count emails involving this domain
-            sender_count = len(filtered_df[filtered_df.get('sender_domain') == domain])
-            recipient_count = len(filtered_df[
-                filtered_df.get('recipient_domains', []).apply(
-                    lambda x: domain in x if isinstance(x, list) else False
-                )
-            ])
+            sender_count = 0
+            recipient_count = 0
+            
+            # Count sender emails
+            if 'sender' in filtered_df.columns:
+                sender_count = len(filtered_df[
+                    filtered_df['sender'].apply(
+                        lambda x: domain_classifier._extract_domain(x) == domain if pd.notna(x) else False
+                    )
+                ])
+            
+            # Count recipient emails
+            if 'recipients' in filtered_df.columns:
+                for idx, recipients in filtered_df['recipients'].items():
+                    if pd.notna(recipients) and isinstance(recipients, str):
+                        recipient_list = [email.strip() for email in recipients.split(',')]
+                        for email in recipient_list:
+                            if domain_classifier._extract_domain(email) == domain:
+                                recipient_count += 1
+                                break  # Count each email only once per domain
+            
+            # Also check pre-processed columns if they exist
+            if 'sender_domain' in filtered_df.columns:
+                sender_count += len(filtered_df[filtered_df.get('sender_domain') == domain])
+            
             total_count = sender_count + recipient_count
             
             # Calculate average risk score for emails involving this domain
-            domain_emails = filtered_df[
-                (filtered_df.get('sender_domain') == domain) |
-                (filtered_df.get('recipient_domains', []).apply(
-                    lambda x: domain in x if isinstance(x, list) else False
-                ))
-            ]
+            domain_mask = pd.Series([False] * len(filtered_df))
+            
+            # Mark emails where sender domain matches
+            if 'sender' in filtered_df.columns:
+                domain_mask |= filtered_df['sender'].apply(
+                    lambda x: domain_classifier._extract_domain(x) == domain if pd.notna(x) else False
+                )
+            
+            # Mark emails where any recipient domain matches
+            if 'recipients' in filtered_df.columns:
+                for idx, recipients in filtered_df['recipients'].items():
+                    if pd.notna(recipients) and isinstance(recipients, str):
+                        recipient_list = [email.strip() for email in recipients.split(',')]
+                        for email in recipient_list:
+                            if domain_classifier._extract_domain(email) == domain:
+                                domain_mask.iloc[idx] = True
+                                break
+            
+            domain_emails = filtered_df[domain_mask]
             avg_risk = domain_emails.get('risk_score', [0]).mean() if len(domain_emails) > 0 else 0
             
             # Check if domain is in free email list
@@ -346,6 +398,20 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             })
     
     domain_df = pd.DataFrame(domain_data)
+    
+    # Debug information
+    if not domain_df.empty:
+        st.write(f"**Debug Info:** Found {len(domain_df)} total domains")
+        classification_counts = domain_df['current_classification'].value_counts()
+        st.write("Domain classifications:", classification_counts.to_dict())
+        
+        # Show sample free domains if any
+        free_domains = domain_df[domain_df['current_classification'] == 'free']
+        if not free_domains.empty:
+            st.write(f"**Free email domains found:** {len(free_domains)}")
+            st.write("Sample free domains:", free_domains['domain'].head(5).tolist())
+        else:
+            st.write("**No free email domains found in the data**")
     
     if not domain_df.empty:
         # Domain filter options
