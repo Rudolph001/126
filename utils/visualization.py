@@ -208,8 +208,11 @@ class Visualizer:
                 hovertemplate='<b>Hour %{x}:00 (After Hours)</b><br>Email Count: %{y}<extra></extra>'
             ))
 
+        # Calculate total emails for title
+        total_emails = len(df_temp)
+        
         fig.update_layout(
-            title="Email Activity by Hour",
+            title=f"Email Activity by Hour (Total: {total_emails:,} emails)",
             xaxis_title="Hour of Day",
             yaxis_title="Email Count",
             barmode='overlay',
