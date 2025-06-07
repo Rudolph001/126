@@ -348,8 +348,8 @@ class DomainClassifier:
             
             # Both must be non-free, non-empty, and exactly matching
             if (sender_clean == recipient_clean and 
-                sender_clean not in self.free_email_domains and 
-                recipient_clean not in self.free_email_domains and
+                self._classify_free_email_category(sender_clean) == 'business' and 
+                self._classify_free_email_category(recipient_clean) == 'business' and
                 len(sender_clean) > 0 and len(recipient_clean) > 0):
                 return 'internal'
         

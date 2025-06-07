@@ -1341,63 +1341,47 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Domain Type Distribution Metrics
     domain_type_counts = df['email_domain_type'].value_counts()
     
-    # Create domain metrics row
-    domain_col1, domain_col2, domain_col3, domain_col4, domain_col5 = st.columns(5)
+    # Get top domain categories for display
+    top_categories = domain_type_counts.head(6)
     
-    with domain_col1:
-        business_count = domain_type_counts.get('business', 0)
-        business_pct = (business_count / total_emails * 100) if total_emails > 0 else 0
-        st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #2E8B57; background-color: #f0fff4;">
-            <p class="metric-label">Business Domains</p>
-            <p class="metric-value" style="color: #2E8B57;">{business_count:,}</p>
-            <p class="metric-delta" style="color: #2E8B57;">🏢 {business_pct:.1f}% of total</p>
-        </div>
-        """, unsafe_allow_html=True)
+    # Create dynamic columns based on categories
+    num_cols = min(len(top_categories), 6)
+    cols = st.columns(num_cols)
     
-    with domain_col2:
-        free_count = domain_type_counts.get('free', 0)
-        free_pct = (free_count / total_emails * 100) if total_emails > 0 else 0
-        st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #DC143C; background-color: #fff5f5;">
-            <p class="metric-label">Free Email</p>
-            <p class="metric-value" style="color: #DC143C;">{free_count:,}</p>
-            <p class="metric-delta" style="color: #DC143C;">📧 {free_pct:.1f}% of total</p>
-        </div>
-        """, unsafe_allow_html=True)
+    # Define colors for different categories
+    category_colors = {
+        'business': ('#2E8B57', '#f0fff4', '🏢'),
+        'internal': ('#4169E1', '#f0f8ff', '🏠'),
+        'Major Email Providers': ('#DC143C', '#fff5f5', '📧'),
+        'Microsoft Email Domains': ('#0078D4', '#f0f8ff', '🔷'),
+        'Google Email Domains': ('#4285F4', '#e8f0fe', '🔍'),
+        'Yahoo Email Domains': ('#720E9E', '#f5f0ff', '📮'),
+        'Disposable Email Services': ('#FF6B35', '#fff8f0', '🗑️'),
+        'Educational (but free)': ('#28a745', '#f0fff4', '🎓'),
+        'Privacy-Focused Email': ('#6F42C1', '#f8f0ff', '🔒'),
+        'European Email Providers': ('#FD7E14', '#fff8f0', '🌍'),
+        'Asian Email Providers': ('#20C997', '#f0fff8', '🌏'),
+        'Other Free Email Providers': ('#E83E8C', '#fff5f8', '📬'),
+        'unknown': ('#708090', '#f8f8ff', '❓'),
+        'public': ('#FF8C00', '#fff8f0', '🌐')
+    }
     
-    with domain_col3:
-        internal_count = domain_type_counts.get('internal', 0)
-        internal_pct = (internal_count / total_emails * 100) if total_emails > 0 else 0
-        st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #4169E1; background-color: #f0f8ff;">
-            <p class="metric-label">Internal</p>
-            <p class="metric-value" style="color: #4169E1;">{internal_count:,}</p>
-            <p class="metric-delta" style="color: #4169E1;">🏠 {internal_pct:.1f}% of total</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with domain_col4:
-        public_count = domain_type_counts.get('public', 0)
-        public_pct = (public_count / total_emails * 100) if total_emails > 0 else 0
-        st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #FF8C00; background-color: #fff8f0;">
-            <p class="metric-label">Public</p>
-            <p class="metric-value" style="color: #FF8C00;">{public_count:,}</p>
-            <p class="metric-delta" style="color: #FF8C00;">🌐 {public_pct:.1f}% of total</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with domain_col5:
-        unknown_count = domain_type_counts.get('unknown', 0)
-        unknown_pct = (unknown_count / total_emails * 100) if total_emails > 0 else 0
-        st.markdown(f"""
-        <div class="metric-card" style="border-left-color: #708090; background-color: #f8f8ff;">
-            <p class="metric-label">Unknown</p>
-            <p class="metric-value" style="color: #708090;">{unknown_count:,}</p>
-            <p class="metric-delta" style="color: #708090;">❓ {unknown_pct:.1f}% of total</p>
-        </div>
-        """, unsafe_allow_html=True)
+    for idx, (category, count) in enumerate(top_categories.items()):
+        if idx < len(cols):
+            with cols[idx]:
+                color, bg_color, icon = category_colors.get(category, ('#666666', '#f0f0f0', '📁'))
+                pct = (count / total_emails * 100) if total_emails > 0 else 0
+                
+                # Truncate long category names for display
+                display_name = category if len(category) <= 15 else category[:12] + '...'
+                
+                st.markdown(f"""
+                <div class="metric-card" style="border-left-color: {color}; background-color: {bg_color};">
+                    <p class="metric-label">{display_name}</p>
+                    <p class="metric-value" style="color: {color};">{count:,}</p>
+                    <p class="metric-delta" style="color: {color};">{icon} {pct:.1f}% of total</p>
+                </div>
+                """, unsafe_allow_html=True)
 
     # Domain Classification Visualization
     if len(domain_type_counts) > 0:
@@ -1406,8 +1390,17 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         # Prepare data for visualization
         domain_colors = {
             'business': '#2E8B57',
-            'free': '#DC143C', 
             'internal': '#4169E1',
+            'Major Email Providers': '#DC143C',
+            'Microsoft Email Domains': '#0078D4',
+            'Google Email Domains': '#4285F4',
+            'Yahoo Email Domains': '#720E9E',
+            'Disposable Email Services': '#FF6B35',
+            'Educational (but free)': '#28a745',
+            'Privacy-Focused Email': '#6F42C1',
+            'European Email Providers': '#FD7E14',
+            'Asian Email Providers': '#20C997',
+            'Other Free Email Providers': '#E83E8C',
             'public': '#FF8C00',
             'unknown': '#708090'
         }
