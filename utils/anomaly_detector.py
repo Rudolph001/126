@@ -18,7 +18,7 @@ class AnomalyDetector:
         self.is_fitted = False
     
     def detect_anomalies(self, df):
-        """Detect anomalies in email data"""
+        """Detect anomalies in email data with detailed explanations"""
         if df.empty:
             return np.array([])
         
@@ -35,11 +35,22 @@ class AnomalyDetector:
             
             # Detect anomalies
             anomaly_labels = self.isolation_forest.fit_predict(features_scaled)
+            anomaly_scores = self.isolation_forest.decision_function(features_scaled)
             
             # Convert to boolean (True = anomaly)
             anomalies = anomaly_labels == -1
             
+            # Add anomaly explanations to the dataframe
+            df_with_explanations = df.copy()
+            df_with_explanations['anomaly_score'] = anomaly_scores
+            df_with_explanations['is_anomaly'] = anomalies
+            df_with_explanations['anomaly_reasons'] = df_with_explanations.apply(
+                lambda row: self._get_anomaly_explanation(row, df_with_explanations) if row['is_anomaly'] else '',
+                axis=1
+            )
+            
             self.is_fitted = True
+            self.last_analyzed_df = df_with_explanations
             
             return anomalies
             
@@ -295,3 +306,75 @@ class AnomalyDetector:
             analysis['department_patterns'] = anomalous_depts.head(5).to_dict()
         
         return analysis
+    
+    def _get_anomaly_explanation(self, email_row, full_df):
+        """Generate detailed explanation for why an email is flagged as anomaly"""
+        reasons = []
+        
+        # Check volume patterns
+        sender = email_row.get('sender', '')
+        if sender:
+            sender_emails = full_df[full_df['sender'] == sender]
+            avg_recipients = sender_emails['recipient_count'].mean() if 'recipient_count' in sender_emails.columns else 0
+            current_recipients = email_row.get('recipient_count', 0)
+            
+            if current_recipients > avg_recipients * 2:
+                reasons.append(f"Unusual recipient volume: {current_recipients} recipients (typical: {avg_recipients:.1f})")
+        
+        # Check timing patterns
+        if 'time' in email_row.index:
+            try:
+                email_time = pd.to_datetime(email_row['time'])
+                hour = email_time.hour
+                if hour < 6 or hour > 22:
+                    reasons.append(f"Sent at unusual time: {hour:02d}:{email_time.minute:02d} (outside business hours)")
+            except:
+                pass
+        
+        # Check attachment patterns
+        if email_row.get('file_types'):
+            file_types = str(email_row['file_types']).lower()
+            risky_types = ['exe', 'bat', 'scr', 'zip', 'rar', 'dmg']
+            found_risky = [ft for ft in risky_types if ft in file_types]
+            if found_risky:
+                reasons.append(f"Contains potentially risky file types: {', '.join(found_risky)}")
+        
+        # Check domain patterns
+        if email_row.get('email_domain'):
+            domain = email_row['email_domain']
+            if 'gmail.com' in domain or 'yahoo.com' in domain or 'hotmail.com' in domain:
+                reasons.append("Uses free email domain for business communication")
+        
+        # Check IP keyword presence
+        if email_row.get('word_list_match'):
+            keywords = str(email_row['word_list_match'])
+            if keywords and keywords != '0' and keywords.lower() != 'nan':
+                reasons.append(f"Contains sensitive keywords: {keywords}")
+        
+        # Check risk score
+        risk_score = email_row.get('risk_score', 0)
+        if risk_score > 70:
+            reasons.append(f"High risk score: {risk_score:.1f}/100")
+        
+        # Check for new domain communication
+        if email_row.get('external_domains'):
+            domains = str(email_row['external_domains'])
+            if domains and domains != '0':
+                reasons.append(f"Communication with external domains: {domains}")
+        
+        # Check for large attachment sizes (if available)
+        if email_row.get('attachments'):
+            attachments = str(email_row['attachments'])
+            if 'large' in attachments.lower() or 'mb' in attachments.lower():
+                reasons.append("Contains large attachments")
+        
+        if not reasons:
+            reasons.append("Detected as statistical outlier based on behavioral patterns")
+        
+        return " | ".join(reasons[:4])  # Limit to top 4 reasons
+    
+    def get_anomaly_explanations(self):
+        """Get the anomaly explanations from the last analysis"""
+        if hasattr(self, 'last_analyzed_df'):
+            return self.last_analyzed_df[self.last_analyzed_df['is_anomaly']]['anomaly_reasons'].to_dict()
+        return {}

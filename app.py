@@ -507,6 +507,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Must be free email domain
     ]
     # Sort to show emails with last_working_day values at top
+    high_risk_emails = high_risk_emails.copy()
     high_risk_emails['has_last_working_day_sort'] = high_risk_emails['last_working_day'].notna()
     high_risk_emails = high_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
 
@@ -562,6 +563,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (~df.index.isin(high_risk_emails.index))  # Exclude already classified as critical
     ]
     # Sort to show emails with last_working_day values at top
+    high_security_emails = high_security_emails.copy()
     high_security_emails['has_last_working_day_sort'] = high_security_emails['last_working_day'].notna()
     high_security_emails = high_security_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
 
@@ -611,6 +613,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (~df.index.isin(high_security_emails.index))  # Exclude high security alerts
     ]
     # Sort to show emails with last_working_day values at top
+    medium_risk_emails = medium_risk_emails.copy()
     medium_risk_emails['has_last_working_day_sort'] = medium_risk_emails['last_working_day'].notna()
     medium_risk_emails = medium_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
 
@@ -661,6 +664,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (~df.index.isin(medium_risk_emails.index))  # Exclude medium risk
     ]
     # Sort to show emails with last_working_day values at top
+    low_risk_emails = low_risk_emails.copy()
     low_risk_emails['has_last_working_day_sort'] = low_risk_emails['last_working_day'].notna()
     low_risk_emails = low_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, True, False])
 
@@ -775,13 +779,49 @@ def analytics_page(visualizer, anomaly_detector):
             # Anomaly details
             st.subheader("Anomaly Details")
             anomaly_emails = df[anomalies].copy()
-            anomaly_emails['anomaly_score'] = anomaly_detector.get_anomaly_score(df)[anomalies]
-
-            # Display top anomalies
-            top_anomalies = anomaly_emails.nlargest(10, 'anomaly_score')
-            display_cols = ['time', 'sender', 'subject', 'anomaly_score']
-            available_cols = [col for col in display_cols if col in top_anomalies.columns]
-            st.dataframe(top_anomalies[available_cols])
+            
+            # Get anomaly explanations from the detector
+            if hasattr(anomaly_detector, 'last_analyzed_df'):
+                anomaly_df_with_reasons = anomaly_detector.last_analyzed_df[anomaly_detector.last_analyzed_df['is_anomaly']].copy()
+                
+                if not anomaly_df_with_reasons.empty:
+                    # Sort by anomaly score (most anomalous first)
+                    if 'anomaly_score' in anomaly_df_with_reasons.columns:
+                        anomaly_df_with_reasons = anomaly_df_with_reasons.sort_values('anomaly_score', ascending=True)
+                    
+                    st.write(f"**Top {min(10, len(anomaly_df_with_reasons))} Anomalous Emails with Explanations:**")
+                    
+                    # Display each anomaly with detailed explanation
+                    for idx, (_, row) in enumerate(anomaly_df_with_reasons.head(10).iterrows()):
+                        with st.expander(f"🚨 Anomaly #{idx+1}: {row.get('sender', 'Unknown')} - {row.get('subject', 'No Subject')[:50]}..."):
+                            col1, col2 = st.columns([1, 1])
+                            
+                            with col1:
+                                st.write("**Email Details:**")
+                                st.write(f"• **Time:** {row.get('time', 'N/A')}")
+                                st.write(f"• **Sender:** {row.get('sender', 'N/A')}")
+                                st.write(f"• **Recipients:** {row.get('recipient_count', 'N/A')}")
+                                st.write(f"• **Risk Score:** {row.get('risk_score', 'N/A'):.1f}/100")
+                                if 'anomaly_score' in row:
+                                    st.write(f"• **Anomaly Score:** {row['anomaly_score']:.2f}")
+                                
+                            with col2:
+                                st.write("**Why This is Flagged as Anomaly:**")
+                                if 'anomaly_reasons' in row and row['anomaly_reasons']:
+                                    reasons = str(row['anomaly_reasons']).split(' | ')
+                                    for reason in reasons:
+                                        st.write(f"• {reason}")
+                                else:
+                                    st.write("• Detected as statistical outlier based on behavioral patterns")
+                else:
+                    st.info("No anomaly details available.")
+            else:
+                # Fallback to basic display
+                anomaly_emails['anomaly_score'] = anomaly_detector.get_anomaly_score(df)[anomalies]
+                top_anomalies = anomaly_emails.nlargest(10, 'anomaly_score')
+                display_cols = ['time', 'sender', 'subject', 'anomaly_score']
+                available_cols = [col for col in display_cols if col in top_anomalies.columns]
+                st.dataframe(top_anomalies[available_cols])
         else:
             st.info("No significant anomalies detected in the data.")
 
