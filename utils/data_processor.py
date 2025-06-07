@@ -73,6 +73,8 @@ class DataProcessor:
             processed_df['recipient_domains'] = processed_df['recipient_domain'].apply(lambda x: [x] if pd.notna(x) and x != '' else [])
         else:
             processed_df['recipient_domains'] = processed_df['recipients'].apply(self._extract_domains)
+            # Also create a single recipient_domain field from the first domain for classification
+            processed_df['recipient_domain'] = processed_df['recipient_domains'].apply(lambda x: x[0] if x else '')
         
         # Fill missing values
         processed_df['subject'] = processed_df['subject'].fillna('')

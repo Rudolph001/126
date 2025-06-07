@@ -313,37 +313,34 @@ class DomainClassifier:
     def _classify_domain_with_internal_check(self, row):
         """Classify domain considering sender-recipient domain matching for internal detection"""
         sender_domain = row.get('email_domain', '')
-        recipient_domain = row.get('recipient_domain', '')  # Use the new recipient_domain field
+        recipient_domain = row.get('recipient_domain', '')
         recipient_domains = row.get('recipient_domains', [])
 
+        if not sender_domain:
+            return 'unknown'
+
+        sender_clean = sender_domain.lower().strip()
+        
         # First check if it's a known free email domain - these are NEVER internal
-        if sender_domain and sender_domain.lower().strip() in self.free_email_domains:
+        if sender_clean in self.free_email_domains:
             return 'free'
         
         # Primary check: Use recipient_domain field for internal detection
-        if sender_domain and recipient_domain:
-            sender_clean = sender_domain.lower().strip()
+        if recipient_domain:
             recipient_clean = recipient_domain.lower().strip()
             
             # If sender domain matches recipient_domain field, classify as internal
-            if sender_clean == recipient_clean and sender_clean not in self.free_email_domains:
+            if sender_clean == recipient_clean:
                 return 'internal'
         
-        # Fallback: Check recipient_domains list for internal classification
-        if sender_domain and isinstance(recipient_domains, list) and len(recipient_domains) > 0:
-            # Check for exact domain match (case-insensitive)
-            sender_clean = sender_domain.lower().strip()
-            recipient_clean = [rd.lower().strip() for rd in recipient_domains if rd]
-            if sender_clean in recipient_clean:
-                # Double-check it's not a free email domain
-                if sender_clean not in self.free_email_domains:
-                    return 'internal'
-                else:
-                    return 'free'
+        # Secondary check: Check recipient_domains list for internal classification
+        if isinstance(recipient_domains, list) and len(recipient_domains) > 0:
+            recipient_domains_clean = [rd.lower().strip() for rd in recipient_domains if rd]
+            if sender_clean in recipient_domains_clean:
+                return 'internal'
 
-        # Use standard classification but NEVER use _is_internal_domain heuristics alone
-        # Only classify as internal if there's actual sender-recipient domain matching
-        return self._classify_single_domain_strict(sender_domain)
+        # For external domains, classify as business or public based on characteristics
+        return self._classify_single_domain_strict(sender_clean)
 
     def _classify_single_domain(self, domain):
         """Classify a single domain"""
