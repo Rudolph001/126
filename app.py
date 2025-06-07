@@ -841,17 +841,17 @@ def analytics_page(visualizer, anomaly_detector):
     elif analysis_type == "Advanced Analytics - Low Risk BAU":
         from utils.bau_analyzer import BAUAnalyzer
         
-        st.subheader("🔍 Business-as-Usual Analysis")
-        st.info("Analyzing email patterns for BAU detection and hidden threats including potential IP exfiltration in banking contexts")
+        st.subheader("🔍 Advanced Analytics Dashboard")
+        st.info("Comprehensive email analysis with threat detection and pattern recognition across all risk levels")
         
-        # Risk Level Selector
+        # Alert Type Selector
         col1, col2 = st.columns([1, 3])
         
         with col1:
-            risk_level_filter = st.selectbox(
-                "Select Risk Level",
-                ["All Emails", "Low Risk", "Medium Risk", "High Risk"],
-                help="Choose which risk level to analyze for patterns"
+            alert_type_filter = st.selectbox(
+                "Select Alert Type",
+                ["All Emails", "Critical", "High", "Medium", "Low"],
+                help="Choose which alert type to analyze for patterns"
             )
         
         with col2:
@@ -860,11 +860,43 @@ def analytics_page(visualizer, anomaly_detector):
         # Dataset Overview KPIs
         st.subheader("📊 Dataset Overview")
         
-        # Calculate email counts by risk level
+        # Calculate email counts by alert type using the new classification
         total_emails = len(df)
-        low_risk_count = len(df[df.get('risk_level', '') == 'Low'])
-        medium_risk_count = len(df[df.get('risk_level', '') == 'Medium']) 
-        high_risk_count = len(df[df.get('risk_level', '') == 'High'])
+        
+        # Define alert classifications based on same logic as dashboard
+        df['has_attachments_bool'] = df['attachments'].notna() & (df['attachments'] != '') & (df['attachments'].astype(str) != '0')
+        df['has_last_working_day'] = df['last_working_day'].notna()
+        
+        # Critical alerts
+        critical_alerts = len(df[
+            (df['last_working_day'].notna()) &
+            (df['attachments'].notna()) &
+            (df['attachments'] != '') &
+            (df['attachments'].astype(str) != '0') &
+            (df['word_list_match'].notna()) &
+            (df['word_list_match'] != '') &
+            (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+        ])
+        
+        # High alerts
+        high_alerts = len(df[
+            (df['last_working_day'].notna()) &
+            (df['attachments'].notna()) &
+            (df['attachments'] != '') &
+            (df['attachments'].astype(str) != '0')
+        ]) - critical_alerts
+        
+        # Medium alerts
+        medium_alerts = len(df[
+            (df['has_attachments_bool']) &
+            (df['word_list_match'].notna()) &
+            (df['word_list_match'] != '') &
+            (~df['has_last_working_day']) &
+            (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+        ])
+        
+        # Low alerts (all others)
+        low_alerts = total_emails - critical_alerts - high_alerts - medium_alerts
         
         # Create KPI metrics
         col1, col2, col3, col4, col5 = st.columns(5)
@@ -877,57 +909,118 @@ def analytics_page(visualizer, anomaly_detector):
             )
         
         with col2:
-            low_risk_pct = (low_risk_count/total_emails*100) if total_emails > 0 else 0
+            critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
             st.metric(
-                label="Low Risk Emails", 
-                value=f"{low_risk_count:,}",
-                delta=f"{low_risk_pct:.1f}% of total",
-                help="Emails classified as low risk"
+                label="Critical Alerts", 
+                value=f"{critical_alerts:,}",
+                delta=f"{critical_pct:.1f}% of total",
+                help="Critical security alerts requiring immediate attention"
             )
         
         with col3:
-            medium_risk_pct = (medium_risk_count/total_emails*100) if total_emails > 0 else 0
+            high_pct = (high_alerts/total_emails*100) if total_emails > 0 else 0
             st.metric(
-                label="Medium Risk Emails",
-                value=f"{medium_risk_count:,}",
-                delta=f"{medium_risk_pct:.1f}% of total",
-                help="Emails classified as medium risk"
+                label="High Alerts",
+                value=f"{high_alerts:,}",
+                delta=f"{high_pct:.1f}% of total",
+                help="High priority security alerts"
             )
         
         with col4:
-            high_risk_pct = (high_risk_count/total_emails*100) if total_emails > 0 else 0
+            medium_pct = (medium_alerts/total_emails*100) if total_emails > 0 else 0
             st.metric(
-                label="High Risk Emails",
-                value=f"{high_risk_count:,}",
-                delta=f"{high_risk_pct:.1f}% of total",
-                help="Emails classified as high risk"
+                label="Medium Alerts",
+                value=f"{medium_alerts:,}",
+                delta=f"{medium_pct:.1f}% of total",
+                help="Medium priority security indicators"
             )
         
         with col5:
-            unique_senders = df['sender'].nunique() if 'sender' in df.columns else 0
+            low_pct = (low_alerts/total_emails*100) if total_emails > 0 else 0
             st.metric(
-                label="Unique Senders",
-                value=f"{unique_senders:,}",
-                help="Number of unique email senders in dataset"
+                label="Low Alerts",
+                value=f"{low_alerts:,}",
+                delta=f"{low_pct:.1f}% of total",
+                help="Low priority or normal email activity"
             )
         
-        # Filter data based on selected risk level
-        if risk_level_filter == "All Emails":
+        # Filter data based on selected alert type
+        if alert_type_filter == "All Emails":
             filtered_df = df.copy()
             filter_label = "all emails"
-        elif risk_level_filter == "Low Risk":
-            filtered_df = df[df.get('risk_level', '') == 'Low'].copy()
-            filter_label = "low-risk emails"
-        elif risk_level_filter == "Medium Risk":
-            filtered_df = df[df.get('risk_level', '') == 'Medium'].copy()
-            filter_label = "medium-risk emails"
-        else:  # High Risk
-            filtered_df = df[df.get('risk_level', '') == 'High'].copy()
-            filter_label = "high-risk emails"
+        elif alert_type_filter == "Critical":
+            # Critical alerts: all 4 conditions met
+            filtered_df = df[
+                (df['last_working_day'].notna()) &
+                (df['attachments'].notna()) &
+                (df['attachments'] != '') &
+                (df['attachments'].astype(str) != '0') &
+                (df['word_list_match'].notna()) &
+                (df['word_list_match'] != '') &
+                (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            ].copy()
+            filter_label = "critical alerts"
+        elif alert_type_filter == "High":
+            # High alerts: last_working_day + attachments, excluding critical
+            critical_mask = (
+                (df['last_working_day'].notna()) &
+                (df['attachments'].notna()) &
+                (df['attachments'] != '') &
+                (df['attachments'].astype(str) != '0') &
+                (df['word_list_match'].notna()) &
+                (df['word_list_match'] != '') &
+                (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            )
+            high_mask = (
+                (df['last_working_day'].notna()) &
+                (df['attachments'].notna()) &
+                (df['attachments'] != '') &
+                (df['attachments'].astype(str) != '0') &
+                (~critical_mask)
+            )
+            filtered_df = df[high_mask].copy()
+            filter_label = "high alerts"
+        elif alert_type_filter == "Medium":
+            # Medium alerts: attachments + word_list_match, no last_working_day, not free email
+            filtered_df = df[
+                (df['has_attachments_bool']) &
+                (df['word_list_match'].notna()) &
+                (df['word_list_match'] != '') &
+                (~df['has_last_working_day']) &
+                (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            ].copy()
+            filter_label = "medium alerts"
+        else:  # Low
+            # Low alerts: all others not in critical, high, or medium
+            critical_mask = (
+                (df['last_working_day'].notna()) &
+                (df['attachments'].notna()) &
+                (df['attachments'] != '') &
+                (df['attachments'].astype(str) != '0') &
+                (df['word_list_match'].notna()) &
+                (df['word_list_match'] != '') &
+                (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            )
+            high_mask = (
+                (df['last_working_day'].notna()) &
+                (df['attachments'].notna()) &
+                (df['attachments'] != '') &
+                (df['attachments'].astype(str) != '0') &
+                (~critical_mask)
+            )
+            medium_mask = (
+                (df['has_attachments_bool']) &
+                (df['word_list_match'].notna()) &
+                (df['word_list_match'] != '') &
+                (~df['has_last_working_day']) &
+                (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            )
+            filtered_df = df[~(critical_mask | high_mask | medium_mask)].copy()
+            filter_label = "low alerts"
         
         # Show warning if no emails found
         if len(filtered_df) == 0:
-            st.warning(f"⚠️ No {filter_label} found in dataset. Please select a different risk level.")
+            st.warning(f"⚠️ No {filter_label} found in dataset. Please select a different alert type.")
             return
         
         # Initialize BAU analyzer
@@ -991,7 +1084,7 @@ def analytics_page(visualizer, anomaly_detector):
             st.metric(
                 label=f"Analysis Dataset",
                 value=f"{len(analysis_df):,}",
-                help=f"Total {filter_label} analyzed for BAU patterns"
+                help=f"Total {filter_label} analyzed for patterns and threats"
             )
         
         with col2:
@@ -1031,27 +1124,27 @@ def analytics_page(visualizer, anomaly_detector):
         
         # Display results in tabs
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "BAU Overview", 
+            "Pattern Overview", 
             "Banking Context", 
-            "Hidden IP Risks", 
+            "Threat Detection", 
             "Anomalies", 
             "Recommendations"
         ])
         
         with tab1:
-            st.subheader("Business-as-Usual Patterns")
+            st.subheader(f"Communication Patterns - {filter_label.capitalize()}")
             
             bau_patterns = analysis_results.get('bau_patterns', {})
             
-            # Low risk email count
-            low_risk_count = len(df[df.get('risk_level', '') == 'Low'])
+            # Alert type count metrics
+            alert_count = len(filtered_df)
             total_count = len(df)
             
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Low Risk Emails", low_risk_count)
+                st.metric(f"{alert_type_filter} Alert Count", alert_count)
             with col2:
-                st.metric("Low Risk %", f"{(low_risk_count/total_count)*100:.1f}%" if total_count > 0 else "0%")
+                st.metric(f"{alert_type_filter} %", f"{(alert_count/total_count)*100:.1f}%" if total_count > 0 else "0%")
             with col3:
                 if bau_patterns.get('temporal', {}).get('business_hours_percentage'):
                     st.metric("Business Hours %", f"{bau_patterns['temporal']['business_hours_percentage']:.1f}%")
@@ -1144,12 +1237,12 @@ def analytics_page(visualizer, anomaly_detector):
                 st.info("No banking-related content detected in low-risk emails")
         
         with tab3:
-            st.subheader("Hidden IP Risk Detection")
+            st.subheader(f"Threat Detection - {filter_label.capitalize()}")
             
             ip_risks_df = analysis_results.get('ip_risks', pd.DataFrame())
             
             if not ip_risks_df.empty:
-                st.warning(f"Found {len(ip_risks_df)} potentially sensitive emails in low-risk category")
+                st.warning(f"Found {len(ip_risks_df)} potentially sensitive emails in {filter_label}")
                 
                 # Risk score distribution
                 risk_scores = ip_risks_df['risk_score']
@@ -1162,7 +1255,7 @@ def analytics_page(visualizer, anomaly_detector):
                     st.metric("High Risk (>7)", len(ip_risks_df[ip_risks_df['risk_score'] > 7]))
                 
                 # Top risky emails
-                st.subheader("Top Risk Emails")
+                st.subheader("Top Threat Emails")
                 display_cols = ['sender', 'subject', 'risk_score', 'banking_keywords', 'ip_keywords']
                 available_cols = [col for col in display_cols if col in ip_risks_df.columns]
                 
@@ -1170,7 +1263,7 @@ def analytics_page(visualizer, anomaly_detector):
                 st.dataframe(top_risks, use_container_width=True)
                 
                 # Risk factors analysis
-                st.subheader("Common Risk Factors")
+                st.subheader("Common Threat Indicators")
                 all_factors = []
                 for factors_list in ip_risks_df['risk_factors']:
                     if isinstance(factors_list, list):
@@ -1183,15 +1276,15 @@ def analytics_page(visualizer, anomaly_detector):
                     for factor, count in factor_counts.most_common(5):
                         st.write(f"• {factor}: {count} occurrences")
             else:
-                st.success("No hidden IP risks detected in low-risk emails")
+                st.success(f"No hidden threats detected in {filter_label}")
         
         with tab4:
-            st.subheader("Low-Risk Anomalies")
+            st.subheader(f"Anomaly Detection - {filter_label.capitalize()}")
             
             anomalies_df = analysis_results.get('anomalies', pd.DataFrame())
             
             if not anomalies_df.empty:
-                st.write(f"**Found {len(anomalies_df)} anomalies in low-risk emails**")
+                st.write(f"**Found {len(anomalies_df)} anomalies in {filter_label}**")
                 
                 # Group by type
                 anomaly_types = anomalies_df['type'].value_counts()
@@ -1214,7 +1307,7 @@ def analytics_page(visualizer, anomaly_detector):
                 available_cols = [col for col in display_cols if col in anomalies_df.columns]
                 st.dataframe(anomalies_df[available_cols], use_container_width=True)
             else:
-                st.info("No anomalies detected in low-risk emails")
+                st.info(f"No anomalies detected in {filter_label}")
         
         with tab5:
             st.subheader("Recommendations & Actions")
