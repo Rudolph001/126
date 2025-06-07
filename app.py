@@ -304,7 +304,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         st.plotly_chart(timeline_fig, use_container_width=True)
     
     # Detailed results table
-    st.subheader("Email Details")
+    st.subheader("Email Details with Risk Analysis")
     
     # Select columns to display
     display_cols = [
@@ -314,10 +314,87 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     
     available_cols = [col for col in display_cols if col in filtered_df.columns]
     
-    st.dataframe(
-        filtered_df[available_cols].sort_values('risk_score', ascending=False),
-        use_container_width=True
-    )
+    # Show filtered dataframe
+    sorted_df = filtered_df[available_cols].sort_values('risk_score', ascending=False)
+    st.dataframe(sorted_df, use_container_width=True)
+    
+    # Risk breakdown section
+    st.subheader("📊 Risk Factor Analysis")
+    
+    if len(filtered_df) > 0:
+        # Select an email to analyze
+        email_options = []
+        for idx, row in filtered_df.iterrows():
+            sender = row.get('sender', 'Unknown')
+            subject = str(row.get('subject', 'No Subject'))[:50]
+            risk_score = row.get('risk_score', 0)
+            email_options.append(f"{sender} - {subject}... (Score: {risk_score:.1f})")
+        
+        selected_email_idx = st.selectbox(
+            "Select an email to see detailed risk breakdown:",
+            range(len(email_options)),
+            format_func=lambda x: email_options[x]
+        )
+        
+        if selected_email_idx is not None:
+            # Get the actual dataframe index
+            email_row_idx = filtered_df.iloc[selected_email_idx].name
+            email_row = st.session_state.processed_data.loc[email_row_idx]
+            
+            # Get risk breakdown
+            risk_breakdown = risk_engine.get_risk_breakdown(
+                email_row, 
+                st.session_state.processed_data, 
+                st.session_state.whitelist_data
+            )
+            
+            # Display risk breakdown
+            col1, col2 = st.columns([1, 2])
+            
+            with col1:
+                st.metric("Total Risk Score", f"{risk_breakdown['total_score']:.1f}")
+                
+                risk_level = risk_engine.get_risk_level(risk_breakdown['total_score'])
+                if risk_level == 'High Risk':
+                    st.error(f"🔴 **{risk_level}**")
+                    st.write("**Explanation:** This email exhibits multiple high-risk patterns that may indicate potential data exfiltration.")
+                elif risk_level == 'Medium Risk':
+                    st.warning(f"🟡 **{risk_level}**")
+                    st.write("**Explanation:** This email shows some concerning patterns that warrant monitoring and review.")
+                else:
+                    st.success(f"🟢 **{risk_level}**")
+                    st.write("**Explanation:** This email appears to follow normal communication patterns with minimal risk indicators.")
+            
+            with col2:
+                st.write("**Risk Factors Detected:**")
+                
+                if not risk_breakdown['factors']:
+                    st.info("No specific risk factors detected for this email.")
+                else:
+                    for factor in risk_breakdown['factors']:
+                        if factor['score'] > 0:
+                            # Color code based on factor score
+                            if factor['score'] >= 20:
+                                st.error(f"🔴 **{factor['factor']}** (+{factor['score']} points)")
+                            elif factor['score'] >= 10:
+                                st.warning(f"🟡 **{factor['factor']}** (+{factor['score']} points)")
+                            else:
+                                st.info(f"🔵 **{factor['factor']}** (+{factor['score']} points)")
+                            
+                            st.write(f"   ↳ {factor['description']}")
+                        else:
+                            st.success(f"✅ **{factor['factor']}**")
+                            st.write(f"   ↳ {factor['description']}")
+                
+                # Risk factor legend
+                st.write("---")
+                st.write("**Risk Factor Legend:**")
+                st.write("🔴 High Impact (20+ points) - Significant risk indicators")
+                st.write("🟡 Medium Impact (10-19 points) - Moderate risk indicators") 
+                st.write("🔵 Low Impact (1-9 points) - Minor risk indicators")
+                st.write("✅ Protective Factor - Reduces or negates risk")
+    else:
+        st.info("No emails match the current filters. Adjust filters to see risk analysis.")
 
 def analytics_page(visualizer, anomaly_detector):
     st.header("📈 Advanced Analytics")
