@@ -325,18 +325,19 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #f39c12;">
             <p class="metric-label">Medium Risk</p>
-            <p class="metric-value" style="color: #f39c12;">{medium_risk_pct:.1f}%</p>
-            <p class="metric-delta" style="color: #f39c12;">⚠️ {medium_risk} emails</p>
+            <p class="metric-value" style="color: #f39c12;">{medium_risk}</p>
+            <p class="metric-delta" style="color: #f39c12;">⚠️ {medium_risk_pct:.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
 
     with col4:
         low_risk_count = len(df[df['risk_level'] == 'Normal'])
+        low_risk_pct = (low_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #27ae60;">
             <p class="metric-label">Low Risk Score</p>
             <p class="metric-value" style="color: #27ae60;">{low_risk_count}</p>
-            <p class="metric-delta" style="color: #27ae60;">✅ Normal Communications</p>
+            <p class="metric-delta" style="color: #27ae60;">✅ {low_risk_pct:.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
 
