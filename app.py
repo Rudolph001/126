@@ -2410,6 +2410,18 @@ def app_workflow_overview_page():
         font-weight: bold;
     }
 
+    /* Dashboard location styling */
+    .dashboard-location {
+        background: rgba(245, 245, 240, 0.8);
+        border: 1px solid #d4d0c4;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+        color: #5a5a4a;
+        font-style: italic;
+    }
+
     /* Responsive design */
     @media (max-width: 768px) {
         .main-title {
@@ -2471,18 +2483,19 @@ def app_workflow_overview_page():
     """, unsafe_allow_html=True)
     
     # Enhanced tabs with professional layout
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "🔄 Application Flow", 
         "⚙️ Processing Engine", 
         "📊 Analytics Engine", 
         "🛡️ Security Features",
-        "🏗️ Architecture"
+        "🏗️ Architecture",
+        "📋 Dashboard Components"
     ])
     
     with tab1:
         st.markdown("""
         <div class="section-header">
-            📋 Complete Application Workflow
+            📋 Complete Application Workflow with Dashboard Mapping
         </div>
         """, unsafe_allow_html=True)
         
@@ -2492,78 +2505,91 @@ def app_workflow_overview_page():
             <div class="flow-box">
                 🚀 <strong>INITIALIZATION</strong><br>
                 <small>User Authentication & Dashboard Access</small>
+                <div class="dashboard-location">📍 Dashboard: Main Navigation Sidebar</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="flow-box">
                 📥 <strong>DATA INGESTION</strong><br>
                 <small>CSV Upload with Email Data & Optional BAU Whitelist</small>
+                <div class="dashboard-location">📍 Dashboard: Data Upload Page - Email Data & Whitelist Upload Forms</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="process-box">
                 🔍 <strong>DATA VALIDATION</strong><br>
                 <small>Schema Validation, Field Verification & Data Quality Checks</small>
+                <div class="dashboard-location">📍 Dashboard: Data Upload Page - Validation Results & Error Messages</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="process-box">
                 🧹 <strong>DATA PREPROCESSING</strong><br>
                 <small>Normalization, Parsing & Temporal Analysis</small>
+                <div class="dashboard-location">📍 Dashboard: Data Upload Page - Data Preview & Processing Status</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="process-box">
                 🏢 <strong>DOMAIN CLASSIFICATION</strong><br>
                 <small>ML-Based Domain Categorization & Risk Assessment</small>
+                <div class="dashboard-location">📍 Dashboard: Enhanced Domain Analysis Page - Domain Classifications & Risk Categories</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="analysis-box">
                 🎯 <strong>CONTENT ANALYSIS</strong><br>
                 <small>Keyword Detection & Sensitive Data Identification</small>
+                <div class="dashboard-location">📍 Dashboard: Security Dashboard - Word List Match Detection & Content Flagging</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="analysis-box">
                 🧠 <strong>RISK CALCULATION</strong><br>
                 <small>Multi-Factor Scoring & Threat Level Assessment</small>
+                <div class="dashboard-location">📍 Dashboard: Security Dashboard - KPI Cards & Risk Level Classifications</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="analysis-box">
                 🔬 <strong>ANOMALY DETECTION</strong><br>
                 <small>Behavioral Analysis & Pattern Recognition</small>
+                <div class="dashboard-location">📍 Dashboard: Analytics Page - Anomaly Detection Results & Pattern Analysis</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="output-box">
                 📊 <strong>SECURITY DASHBOARD</strong><br>
                 <small>Real-Time Risk Visualization & Alert Management</small>
+                <div class="dashboard-location">📍 Dashboard: Security Dashboard - Critical/High/Medium/Low Risk Views</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="output-box">
                 📈 <strong>ADVANCED ANALYTICS</strong><br>
                 <small>Trend Analysis, Predictions & Intelligence Reports</small>
+                <div class="dashboard-location">📍 Dashboard: Analytics Page - Advanced Analytics & BAU Analysis</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="output-box">
                 🌐 <strong>NETWORK ANALYSIS</strong><br>
                 <small>Communication Patterns & Relationship Mapping</small>
+                <div class="dashboard-location">📍 Dashboard: Email Monitoring Sources - Coverage Analysis & Network Patterns</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="output-box">
                 📧 <strong>INCIDENT RESPONSE</strong><br>
                 <small>Automated Alerts & Follow-up Actions</small>
+                <div class="dashboard-location">📍 Dashboard: Follow-up Actions Page - Email Generation & Incident Management</div>
             </div>
             <div class="arrow">⬇️</div>
             
             <div class="flow-box">
                 ✅ <strong>SECURITY TEAM ACTION</strong><br>
                 <small>Investigation, Response & Threat Mitigation</small>
+                <div class="dashboard-location">📍 Dashboard: All Pages - Comprehensive Security Intelligence for Decision Making</div>
             </div>
             """, unsafe_allow_html=True)
     
@@ -3095,6 +3121,305 @@ def app_workflow_overview_page():
                     Detect and prevent data exfiltration attempts and insider threats before they impact 
                     the organization, providing security teams with actionable intelligence and automated 
                     response capabilities for comprehensive email security monitoring.
+                </p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with tab6:
+        st.markdown("""
+        <div class="section-header">📋 Dashboard Components & Navigation Guide</div>
+        """, unsafe_allow_html=True)
+        
+        # Primary Dashboard Pages Overview
+        st.markdown("""
+        <div class="card">
+            <h3 class="card-header">🏠 Primary Dashboard Pages</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1rem 0;">
+                <div class="flow-box">
+                    <h4>📁 Data Upload</h4>
+                    <small>CSV data ingestion, validation & BAU whitelist management</small>
+                </div>
+                <div class="output-box">
+                    <h4>📊 Security Dashboard</h4>
+                    <small>Real-time threat visualization & risk assessment</small>
+                </div>
+                <div class="analysis-box">
+                    <h4>📈 Advanced Analytics</h4>
+                    <small>ML anomaly detection & business intelligence</small>
+                </div>
+                <div class="process-box">
+                    <h4>📧 Email Monitoring Sources</h4>
+                    <small>Security tool coverage & gap analysis</small>
+                </div>
+                <div class="flow-box">
+                    <h4>🏢 Enhanced Domain Analysis</h4>
+                    <small>Domain classification & industry intelligence</small>
+                </div>
+                <div class="output-box">
+                    <h4>📧 Follow-up Actions</h4>
+                    <small>Incident response & email generation</small>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Specialized Security Components
+        st.markdown("""
+        <div class="card">
+            <h3 class="card-header">🛡️ Specialized Security Components</h3>
+            
+            <div style="margin: 1.5rem 0;">
+                <h4 style="color: #dc3545;">🚨 Critical Risk Indicators</h4>
+                <ul class="feature-list">
+                    <li><strong>Location:</strong> Security Dashboard → Critical Risk Section</li>
+                    <li><strong>Purpose:</strong> Immediate identification of high-priority threats</li>
+                    <li><strong>Features:</strong> Leaver activity + attachments + keywords + free domains</li>
+                    <li><strong>Actions:</strong> Highlighted rows with red background, immediate investigation required</li>
+                </ul>
+            </div>
+            
+            <div style="margin: 1.5rem 0;">
+                <h4 style="color: #ff8c00;">🟠 High Risk Indicators</h4>
+                <ul class="feature-list">
+                    <li><strong>Location:</strong> Security Dashboard → High Risk Section</li>
+                    <li><strong>Purpose:</strong> Leaver activity with file attachments</li>
+                    <li><strong>Features:</strong> Data exfiltration vector detection</li>
+                    <li><strong>Actions:</strong> Highlighted attachments and leaver status, priority monitoring</li>
+                </ul>
+            </div>
+            
+            <div style="margin: 1.5rem 0;">
+                <h4 style="color: #ffc107;">⚠️ Medium Risk Indicators</h4>
+                <ul class="feature-list">
+                    <li><strong>Location:</strong> Security Dashboard → Medium Risk Section</li>
+                    <li><strong>Purpose:</strong> Attachments with sensitive keywords to external domains</li>
+                    <li><strong>Features:</strong> Non-leaver communications requiring review</li>
+                    <li><strong>Actions:</strong> Yellow highlighting for keyword matches</li>
+                </ul>
+            </div>
+            
+            <div style="margin: 1.5rem 0;">
+                <h4 style="color: #28a745;">✅ Low Risk Indicators</h4>
+                <ul class="feature-list">
+                    <li><strong>Location:</strong> Security Dashboard → Low Risk Section</li>
+                    <li><strong>Purpose:</strong> Normal business communications</li>
+                    <li><strong>Features:</strong> Baseline activity monitoring</li>
+                    <li><strong>Actions:</strong> Green highlighting, routine monitoring</li>
+                </ul>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Detailed Feature Matrix
+        st.markdown("""
+        <div class="card">
+            <h3 class="card-header">📊 Detailed Feature Matrix</h3>
+            
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+                    <thead style="background: linear-gradient(135deg, #7d8471 0%, #6b7360 100%); color: white;">
+                        <tr>
+                            <th style="padding: 1rem; border: 1px solid #ddd;">Dashboard Page</th>
+                            <th style="padding: 1rem; border: 1px solid #ddd;">Key Features</th>
+                            <th style="padding: 1rem; border: 1px solid #ddd;">Security Intelligence</th>
+                            <th style="padding: 1rem; border: 1px solid #ddd;">User Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: #f9f9f9;">
+                            <td style="padding: 1rem; border: 1px solid #ddd; font-weight: bold;">📁 Data Upload</td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • CSV validation & processing<br>
+                                • BAU whitelist management<br>
+                                • Data quality assessment
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Required field verification<br>
+                                • Data integrity checks<br>
+                                • Real-time validation feedback
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Upload email datasets<br>
+                                • Manage whitelists<br>
+                                • Review data preview
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 1rem; border: 1px solid #ddd; font-weight: bold;">📊 Security Dashboard</td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Risk-based email categorization<br>
+                                • Security tool coverage analysis<br>
+                                • KPI metric cards
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Critical/High/Medium/Low risk views<br>
+                                • Leaver activity detection<br>
+                                • Keyword & attachment flagging
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Investigate high-risk emails<br>
+                                • Review security coverage<br>
+                                • Monitor threat levels
+                            </td>
+                        </tr>
+                        <tr style="background: #f9f9f9;">
+                            <td style="padding: 1rem; border: 1px solid #ddd; font-weight: bold;">📈 Advanced Analytics</td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • ML anomaly detection<br>
+                                • Word frequency analysis<br>
+                                • Business unit analytics
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Behavioral pattern recognition<br>
+                                • Statistical outlier identification<br>
+                                • Comprehensive BAU analysis
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Explore anomalies<br>
+                                • Analyze word patterns<br>
+                                • Review business trends
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 1rem; border: 1px solid #ddd; font-weight: bold;">📧 Email Monitoring Sources</td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Tessian/Mimecast coverage<br>
+                                • Security gap identification<br>
+                                • Protection status analysis
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Full/Partial/No coverage detection<br>
+                                • Security tool effectiveness<br>
+                                • Blind spot identification
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Review coverage gaps<br>
+                                • Assess protection levels<br>
+                                • Plan security enhancements
+                            </td>
+                        </tr>
+                        <tr style="background: #f9f9f9;">
+                            <td style="padding: 1rem; border: 1px solid #ddd; font-weight: bold;">🏢 Enhanced Domain Analysis</td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Domain classification engine<br>
+                                • Industry categorization<br>
+                                • Internal/external detection
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Business vs free domain analysis<br>
+                                • Internal communication detection<br>
+                                • Industry risk assessment
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Classify domains<br>
+                                • Export analysis<br>
+                                • Review industry patterns
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 1rem; border: 1px solid #ddd; font-weight: bold;">📧 Follow-up Actions</td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • High-risk email filtering<br>
+                                • Automated email generation<br>
+                                • Template management
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Risk-based follow-up prioritization<br>
+                                • Incident response automation<br>
+                                • Stakeholder notification system
+                            </td>
+                            <td style="padding: 1rem; border: 1px solid #ddd;">
+                                • Generate follow-up emails<br>
+                                • Export communications<br>
+                                • Manage incident response
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Real-time Data Flow Visualization
+        st.markdown("""
+        <div class="card">
+            <h3 class="card-header">🔄 Real-time Data Flow Visualization</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1.5rem 0;">
+                <div class="flow-box" style="text-align: center;">
+                    <h4>📊 KPI Cards</h4>
+                    <small>Total Emails, Critical, High, Medium, Low counts with real-time percentages</small>
+                </div>
+                <div class="process-box" style="text-align: center;">
+                    <h4>🔍 Dynamic Filtering</h4>
+                    <small>Real-time email categorization based on risk criteria</small>
+                </div>
+                <div class="analysis-box" style="text-align: center;">
+                    <h4>📈 Live Analytics</h4>
+                    <small>Continuous pattern analysis and anomaly detection</small>
+                </div>
+            </div>
+            
+            <div style="margin: 1.5rem 0;">
+                <h4 style="color: #3e4b3e;">🎯 Key Performance Indicators (KPIs)</h4>
+                <ul class="feature-list">
+                    <li><strong>Critical Risk Count:</strong> Last working day + attachments + keywords + free domains</li>
+                    <li><strong>High Risk Count:</strong> Last working day + attachments (excluding critical)</li>
+                    <li><strong>Medium Risk Count:</strong> Attachments + keywords without leaver status</li>
+                    <li><strong>Low Risk Count:</strong> All remaining communications</li>
+                    <li><strong>Security Coverage:</strong> Tessian/Mimecast protection status</li>
+                </ul>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Navigation Guide
+        st.markdown("""
+        <div class="card">
+            <h3 class="card-header">🧭 Navigation Guide & Workflow</h3>
+            
+            <div style="margin: 1.5rem 0;">
+                <h4 style="color: #3e4b3e;">📋 Step-by-Step Security Analysis Workflow</h4>
+                
+                <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <h5 style="color: #495057;">🚀 Step 1: Data Ingestion</h5>
+                    <p>Navigate to <strong>Data Upload</strong> → Upload CSV file → Verify validation → Review data preview</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <h5 style="color: #e65100;">🔍 Step 2: Initial Risk Assessment</h5>
+                    <p>Navigate to <strong>Security Dashboard</strong> → Review KPI cards → Examine Critical/High risk sections</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <h5 style="color: #7b1fa2;">🧠 Step 3: Deep Analysis</h5>
+                    <p>Navigate to <strong>Advanced Analytics</strong> → Review anomalies → Analyze word frequencies → Examine business unit patterns</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <h5 style="color: #2e7d32;">🌐 Step 4: Domain Intelligence</h5>
+                    <p>Navigate to <strong>Enhanced Domain Analysis</strong> → Review classifications → Export analysis → Assess industry patterns</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <h5 style="color: #1976d2;">🛡️ Step 5: Security Coverage</h5>
+                    <p>Navigate to <strong>Email Monitoring Sources</strong> → Assess coverage gaps → Review security recommendations</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <h5 style="color: #c2185b;">📧 Step 6: Incident Response</h5>
+                    <p>Navigate to <strong>Follow-up Actions</strong> → Generate follow-up emails → Export templates → Coordinate team response</p>
+                </div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #ebe8e0 0%, #d9d5c7 100%); padding: 1.5rem; border-radius: 10px; margin: 1rem 0;">
+                <h5 style="color: #4a5249; margin-bottom: 0.5rem;">🎯 Complete Security Intelligence Platform</h5>
+                <p style="margin: 0; color: #4a5249; font-weight: 500;">
+                    ExfilEye provides end-to-end email security monitoring with intuitive navigation, 
+                    comprehensive analytics, and actionable intelligence for enterprise security teams. 
+                    Each dashboard component is designed to provide specific insights while maintaining 
+                    a unified view of organizational email security posture.
                 </p>
             </div>
         </div>
