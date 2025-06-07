@@ -292,6 +292,9 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Domain Management Section
     st.subheader("🌐 Domain Management")
     
+    # Initialize domain classifier (reuse the one from data processing)
+    domain_classifier = DomainClassifier()
+    
     # Get all unique domains from the data
     all_domains = set()
     if 'sender_domain' in filtered_df.columns:
@@ -301,30 +304,53 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             if isinstance(domains, list):
                 all_domains.update(domains)
     
-    # Create domain classification dataframe
+    # Create comprehensive domain analysis
     domain_data = []
-    domain_classifier = DomainClassifier()
     
     for domain in sorted(all_domains):
         if domain:  # Skip empty domains
+            # Use the same classification logic as the domain classifier
             classification = domain_classifier._classify_single_domain(domain)
-            email_count = len(filtered_df[
+            
+            # Count emails involving this domain
+            sender_count = len(filtered_df[filtered_df.get('sender_domain') == domain])
+            recipient_count = len(filtered_df[
+                filtered_df.get('recipient_domains', []).apply(
+                    lambda x: domain in x if isinstance(x, list) else False
+                )
+            ])
+            total_count = sender_count + recipient_count
+            
+            # Calculate average risk score for emails involving this domain
+            domain_emails = filtered_df[
                 (filtered_df.get('sender_domain') == domain) |
                 (filtered_df.get('recipient_domains', []).apply(
                     lambda x: domain in x if isinstance(x, list) else False
                 ))
-            ])
+            ]
+            avg_risk = domain_emails.get('risk_score', [0]).mean() if len(domain_emails) > 0 else 0
+            
+            # Check if domain is in free email list
+            is_free_domain = domain.lower() in domain_classifier.free_email_domains
+            
             domain_data.append({
                 'domain': domain,
                 'current_classification': classification,
-                'email_count': email_count
+                'is_free_domain': is_free_domain,
+                'sender_count': sender_count,
+                'recipient_count': recipient_count,
+                'total_email_count': total_count,
+                'avg_risk_score': round(avg_risk, 1) if not pd.isna(avg_risk) else 0,
+                'contains_ip_keywords': any(
+                    domain_classifier._check_ip_keywords(row) for _, row in domain_emails.iterrows()
+                ) if len(domain_emails) > 0 else False
             })
     
     domain_df = pd.DataFrame(domain_data)
     
     if not domain_df.empty:
         # Domain filter options
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             domain_filter = st.selectbox(
@@ -341,6 +367,12 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             )
         
         with col3:
+            risk_filter = st.selectbox(
+                "Risk Level Filter",
+                ["All Risk Levels", "High Risk (>50)", "Medium Risk (25-50)", "Low Risk (<25)"]
+            )
+        
+        with col4:
             search_domain = st.text_input(
                 "Search Domain",
                 placeholder="Enter domain to search..."
@@ -363,64 +395,130 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         
         if min_email_count > 0:
             filtered_domain_df = filtered_domain_df[
-                filtered_domain_df['email_count'] >= min_email_count
+                filtered_domain_df['total_email_count'] >= min_email_count
             ]
+        
+        if risk_filter != "All Risk Levels":
+            if risk_filter == "High Risk (>50)":
+                filtered_domain_df = filtered_domain_df[filtered_domain_df['avg_risk_score'] > 50]
+            elif risk_filter == "Medium Risk (25-50)":
+                filtered_domain_df = filtered_domain_df[
+                    (filtered_domain_df['avg_risk_score'] >= 25) & 
+                    (filtered_domain_df['avg_risk_score'] <= 50)
+                ]
+            elif risk_filter == "Low Risk (<25)":
+                filtered_domain_df = filtered_domain_df[filtered_domain_df['avg_risk_score'] < 25]
         
         if search_domain:
             filtered_domain_df = filtered_domain_df[
                 filtered_domain_df['domain'].str.contains(search_domain, case=False, na=False)
             ]
         
-        # Display domain management table
+        # Display domain summary statistics
+        if not filtered_domain_df.empty:
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                total_domains = len(filtered_domain_df)
+                st.metric("Total Domains", total_domains)
+            
+            with col2:
+                free_domains = len(filtered_domain_df[filtered_domain_df['is_free_domain'] == True])
+                st.metric("Free Email Domains", free_domains)
+            
+            with col3:
+                business_domains = len(filtered_domain_df[filtered_domain_df['current_classification'] == 'business'])
+                st.metric("Business Domains", business_domains)
+            
+            with col4:
+                high_risk_domains = len(filtered_domain_df[filtered_domain_df['avg_risk_score'] > 50])
+                st.metric("High Risk Domains", high_risk_domains)
+        
         st.write(f"**Found {len(filtered_domain_df)} domains matching filters**")
         
         if not filtered_domain_df.empty:
+            # Sort by risk score and email count
+            filtered_domain_df = filtered_domain_df.sort_values(['avg_risk_score', 'total_email_count'], ascending=[False, False])
+            
             # Create interactive domain management interface
             for idx, row in filtered_domain_df.iterrows():
-                with st.expander(f"📧 {row['domain']} ({row['current_classification']} - {row['email_count']} emails)"):
-                    col1, col2, col3, col4 = st.columns(4)
+                # Color code the expander based on risk and classification
+                risk_icon = "🔴" if row['avg_risk_score'] > 50 else "🟡" if row['avg_risk_score'] > 25 else "🟢"
+                classification_icon = "🏢" if row['current_classification'] == 'business' else "📧" if row['is_free_domain'] else "🌐"
+                
+                header = f"{risk_icon}{classification_icon} {row['domain']} ({row['current_classification']} - {row['total_email_count']} emails - Risk: {row['avg_risk_score']})"
+                
+                with st.expander(header):
+                    # Domain information
+                    col1, col2, col3 = st.columns(3)
                     
                     with col1:
+                        st.write("**Domain Information:**")
+                        st.write(f"Classification: {row['current_classification'].title()}")
+                        st.write(f"Free Email Provider: {'Yes' if row['is_free_domain'] else 'No'}")
+                        st.write(f"Contains IP Keywords: {'Yes' if row['contains_ip_keywords'] else 'No'}")
+                    
+                    with col2:
+                        st.write("**Email Statistics:**")
+                        st.write(f"As Sender: {row['sender_count']} emails")
+                        st.write(f"As Recipient: {row['recipient_count']} emails")
+                        st.write(f"Total: {row['total_email_count']} emails")
+                        st.write(f"Avg Risk Score: {row['avg_risk_score']}")
+                    
+                    with col3:
+                        st.write("**Actions:**")
+                        
+                        # Reclassification
                         new_classification = st.selectbox(
                             "Reclassify as:",
                             ["business", "free", "internal", "public", "unknown"],
                             index=["business", "free", "internal", "public", "unknown"].index(row['current_classification']),
                             key=f"classify_{row['domain']}"
                         )
-                    
-                    with col2:
+                        
                         if st.button(f"Apply Classification", key=f"apply_{row['domain']}"):
                             # Update domain classification in domain classifier
-                            # Note: This would need to be persisted in a real application
+                            domain_classifier.classify_new_domain(row['domain'], new_classification)
                             st.success(f"Updated {row['domain']} classification to {new_classification}")
                             st.rerun()
-                    
-                    with col3:
-                        if st.button(f"Add to Whitelist", key=f"whitelist_{row['domain']}"):
-                            # Add domain to whitelist
-                            new_whitelist_entry = pd.DataFrame({
-                                'email_address': [''],
-                                'domain': [row['domain']]
-                            })
-                            st.session_state.whitelist_data = pd.concat([
-                                st.session_state.whitelist_data,
-                                new_whitelist_entry
-                            ], ignore_index=True)
-                            st.success(f"Added {row['domain']} to whitelist")
-                            st.rerun()
-                    
-                    with col4:
-                        # Show sample emails from this domain
-                        domain_emails = filtered_df[
-                            (filtered_df.get('sender_domain') == row['domain']) |
-                            (filtered_df.get('recipient_domains', []).apply(
-                                lambda x: row['domain'] in x if isinstance(x, list) else False
-                            ))
-                        ]
                         
-                        if len(domain_emails) > 0:
-                            avg_risk = domain_emails.get('risk_score', [0]).mean()
-                            st.metric("Avg Risk Score", f"{avg_risk:.1f}")
+                        if st.button(f"Add to Whitelist", key=f"whitelist_{row['domain']}"):
+                            # Check if already in whitelist
+                            if row['domain'] not in st.session_state.whitelist_data['domain'].values:
+                                new_whitelist_entry = pd.DataFrame({
+                                    'email_address': [''],
+                                    'domain': [row['domain']]
+                                })
+                                st.session_state.whitelist_data = pd.concat([
+                                    st.session_state.whitelist_data,
+                                    new_whitelist_entry
+                                ], ignore_index=True)
+                                st.success(f"Added {row['domain']} to whitelist")
+                                st.rerun()
+                            else:
+                                st.info(f"{row['domain']} is already in whitelist")
+                    
+                    # Risk assessment explanation
+                    if row['avg_risk_score'] > 0:
+                        st.write("**Risk Assessment:**")
+                        if row['avg_risk_score'] > 50:
+                            st.error(f"🔴 **High Risk** - This domain has an average risk score of {row['avg_risk_score']}")
+                        elif row['avg_risk_score'] > 25:
+                            st.warning(f"🟡 **Medium Risk** - This domain has an average risk score of {row['avg_risk_score']}")
+                        else:
+                            st.success(f"🟢 **Low Risk** - This domain has an average risk score of {row['avg_risk_score']}")
+                        
+                        # Additional context
+                        risk_factors = []
+                        if row['is_free_domain']:
+                            risk_factors.append("Uses free email provider")
+                        if row['contains_ip_keywords']:
+                            risk_factors.append("Contains sensitive/IP keywords")
+                        if row['total_email_count'] > 50:
+                            risk_factors.append("High email volume")
+                        
+                        if risk_factors:
+                            st.write("Risk factors: " + ", ".join(risk_factors))
         
         # Bulk actions
         st.subheader("🔧 Bulk Domain Actions")
