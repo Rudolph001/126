@@ -247,9 +247,17 @@ class DomainClassifier:
         if 'recipient_domains' not in df_copy.columns and 'recipients' in df_copy.columns:
             df_copy['recipient_domains'] = df_copy['recipients'].apply(self._extract_recipient_domains)
         
+        # Extract recipient domains for enhanced internal detection
+        if 'recipients' in df_copy.columns:
+            df_copy['recipient_domains'] = df_copy['recipients'].apply(self._extract_recipient_domains)
+        
         # Classify email domains with internal domain detection
         df_copy['email_domain_type'] = df_copy.apply(self._classify_domain_with_internal_check, axis=1)
         df_copy['sender_domain_type'] = df_copy['email_domain_type']  # For compatibility
+        
+        # Add internal communication flag for dashboard visibility
+        df_copy['is_internal_communication'] = df_copy.apply(self._check_internal_communication, axis=1)
+        df_copy['sender_recipient_match'] = df_copy.apply(self._analyze_sender_recipient_match, axis=1)
         
         # Add industry classification for business domains
         df_copy['email_domain_industry'] = df_copy['email_domain'].apply(self.classify_business_industry)
@@ -334,6 +342,32 @@ class DomainClassifier:
             return 'business'
         
         return 'public'
+    
+    def _check_internal_communication(self, row):
+        """Check if email represents internal communication based on sender-recipient domain matching"""
+        sender_domain = row.get('email_domain', '')
+        recipient_domains = row.get('recipient_domains', [])
+        
+        if not sender_domain or not isinstance(recipient_domains, list):
+            return False
+        
+        # Check if sender domain matches any recipient domain
+        return sender_domain in recipient_domains
+    
+    def _analyze_sender_recipient_match(self, row):
+        """Analyze sender-recipient domain matching details"""
+        sender_domain = row.get('email_domain', '')
+        recipient_domains = row.get('recipient_domains', [])
+        
+        if not sender_domain or not isinstance(recipient_domains, list):
+            return 'no_match_data'
+        
+        if sender_domain in recipient_domains:
+            return f'internal_match_{sender_domain}'
+        elif len(recipient_domains) > 0:
+            return f'external_to_{",".join(recipient_domains[:3])}'  # Show up to 3 domains
+        else:
+            return 'no_recipients'
     
     def classify_business_industry(self, domain):
         """Classify business domains by industry sector"""

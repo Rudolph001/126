@@ -137,9 +137,79 @@ def network_view_page(visualizer):
         # Visual Distribution Chart
         st.subheader("📊 Domain Type Visualization")
         
-        # Create pie chart for domain types
-        fig_pie = visualizer.create_domain_analysis_chart(df)
-        st.plotly_chart(fig_pie, use_container_width=True)
+        # Create distribution charts
+        import plotly.express as px
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+        
+        # Prepare data for charts
+        domain_labels = []
+        domain_values = []
+        domain_colors = []
+        
+        color_map = {
+            'business': '#2E8B57',      # Sea Green
+            'free': '#DC143C',          # Crimson  
+            'internal': '#4169E1',      # Royal Blue
+            'public': '#FF8C00',        # Dark Orange
+            'unknown': '#708090'        # Slate Gray
+        }
+        
+        for domain_type, count in domain_type_counts.items():
+            if count > 0:
+                percentage = (count / total_emails * 100)
+                domain_labels.append(f"{domain_type.title()} ({count:,} - {percentage:.1f}%)")
+                domain_values.append(count)
+                domain_colors.append(color_map.get(domain_type, '#708090'))
+        
+        # Create subplot with pie chart and bar chart
+        fig = make_subplots(
+            rows=1, cols=2,
+            specs=[[{"type": "domain"}, {"type": "xy"}]],
+            subplot_titles=("Distribution by Count", "Distribution by Percentage"),
+            column_widths=[0.5, 0.5]
+        )
+        
+        # Add pie chart
+        fig.add_trace(
+            go.Pie(
+                labels=domain_labels,
+                values=domain_values,
+                marker_colors=domain_colors,
+                textinfo='label+percent',
+                textposition='auto',
+                hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
+            ),
+            row=1, col=1
+        )
+        
+        # Add bar chart
+        fig.add_trace(
+            go.Bar(
+                x=[label.split(' (')[0] for label in domain_labels],
+                y=[(val/total_emails*100) for val in domain_values],
+                marker_color=domain_colors,
+                text=[f"{val/total_emails*100:.1f}%" for val in domain_values],
+                textposition='auto',
+                hovertemplate='<b>%{x}</b><br>Percentage: %{y:.1f}%<br>Count: %{customdata}<extra></extra>',
+                customdata=domain_values
+            ),
+            row=1, col=2
+        )
+        
+        # Update layout
+        fig.update_layout(
+            title_text="Email Domain Distribution Analysis",
+            title_x=0.5,
+            height=500,
+            showlegend=False
+        )
+        
+        # Update bar chart axes
+        fig.update_xaxes(title_text="Domain Type", row=1, col=2)
+        fig.update_yaxes(title_text="Percentage (%)", row=1, col=2)
+        
+        st.plotly_chart(fig, use_container_width=True)
         
         # Detailed Domain Analysis by Type
         st.subheader("🔍 Detailed Domain Analysis by Type")
@@ -1034,6 +1104,12 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     df['risk_level'] = df['risk_score'].apply(lambda x: 
         'High Risk' if x >= 61 else 'Medium Risk' if x >= 31 else 'Normal'
     )
+    
+    # Apply domain classification if not already done
+    from utils.domain_classifier import DomainClassifier
+    domain_classifier = DomainClassifier()
+    if 'email_domain_type' not in df.columns:
+        df = domain_classifier.classify_domains(df)
 
     # Professional KPI Cards
     st.markdown("""
