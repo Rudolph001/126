@@ -47,7 +47,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📧 Email Monitoring Sources", "🏢 Enhanced Domain Analysis", "📧 Follow-up Actions", "🔄 App Flow Dashboard"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📧 Email Monitoring Sources", "🏢 Enhanced Domain Analysis", "📧 Follow-up Actions", "🔄 App Workflow Overview"]
     )
 
     if page == "📁 Data Upload":
@@ -60,8 +60,8 @@ def main():
         security_coverage_page()
     elif page == "🏢 Enhanced Domain Analysis":
         enhanced_domain_analysis_page(domain_classifier)
-    elif page == "🔄 App Flow Dashboard":
-        app_flow_dashboard_page()
+    elif page == "🔄 App Workflow Overview":
+        app_workflow_overview_page()
     elif page == "📧 Follow-up Actions":
         follow_up_actions_page(email_generator)
 
@@ -2139,7 +2139,7 @@ def analytics_page(visualizer, anomaly_detector):
                 st.info("Please ensure your email data includes the 'bunit' field for business unit analysis")
 
 
-def app_flow_dashboard_page():
+def app_workflow_overview_page():
     # Professional styling with enhanced design
     st.markdown("""
     <style>
@@ -2452,7 +2452,7 @@ def app_flow_dashboard_page():
     # Professional header
     st.markdown("""
     <div class="main-header">
-        <h1 class="main-title">🔐 ExfilEye Application Architecture</h1>
+        <h1 class="main-title">🔐 ExfilEye Application Workflow</h1>
         <p class="main-subtitle">Enterprise Data Loss Prevention & Email Security Monitoring System</p>
     </div>
     """, unsafe_allow_html=True)
