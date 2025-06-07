@@ -556,7 +556,7 @@ def network_view_page(visualizer):
     domain_classifications = {}
     for domain in all_recipient_domains:
         if domain:
-            classification = domain_classifier._classify_single_domain(domain)
+            classification = domain_classifier._classify_single_domain_strict(domain)
             domain_classifications[domain] = classification
     
     # Filter emails with recipient domains that are neither business nor free
@@ -1376,8 +1376,8 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     recipient_domain_classifications = {}
     for domain in set(all_recipient_domains):
         if domain:
-            classification = domain_classifier._classify_single_domain(domain)
-            detailed_category = domain_classifier._get_detailed_category(domain)
+            classification = domain_classifier._classify_single_domain_strict(domain)
+            detailed_category = domain_classifier._classify_free_email_category(domain)
             recipient_domain_classifications[domain] = {
                 'type': classification,
                 'category': detailed_category
@@ -2545,7 +2545,7 @@ def analytics_page(visualizer, anomaly_detector):
 
         for domain, count in domain_counts.items():
             if domain and domain != '':
-                domain_type = domain_classifier._classify_single_domain(domain)
+                domain_type = domain_classifier._classify_single_domain_strict(domain)
                 if domain_type == 'free':
                     free_domains.append((domain, count))
                 else:
