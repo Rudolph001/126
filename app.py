@@ -10,7 +10,7 @@ from utils.risk_engine import RiskEngine
 from utils.anomaly_detector import AnomalyDetector
 from utils.domain_classifier import DomainClassifier
 from utils.visualization import Visualizer
-from utils.email_generator import EmailGenerator
+
 from utils.keyword_detector import KeywordDetector
 
 # Page configuration
@@ -40,14 +40,13 @@ def main():
     anomaly_detector = AnomalyDetector()
     domain_classifier = DomainClassifier()
     visualizer = Visualizer()
-    email_generator = EmailGenerator()
     keyword_detector = KeywordDetector()
 
     # Sidebar navigation
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📧 Email Monitoring Sources", "🏢 Enhanced Domain Analysis", "📧 Follow-up Actions", "🔄 App Workflow Overview"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📧 Email Monitoring Sources", "🏢 Enhanced Domain Analysis", "🔄 App Workflow Overview"]
     )
 
     if page == "📁 Data Upload":
@@ -62,8 +61,6 @@ def main():
         enhanced_domain_analysis_page(domain_classifier)
     elif page == "🔄 App Workflow Overview":
         app_workflow_overview_page()
-    elif page == "📧 Follow-up Actions":
-        follow_up_actions_page(email_generator)
 
 def security_coverage_page():
     st.header("📧 Email Monitoring Sources")
@@ -489,70 +486,7 @@ def whitelist_management_page():
                 st.success(f"Added {len(new_entry_df)} new entries!")
                 st.rerun()
 
-def follow_up_actions_page(email_generator):
-    st.header("📧 Follow-up Actions")
-    
-    if st.session_state.processed_data is None:
-        st.warning("Please upload email data first in the Data Upload page.")
-        return
-    
-    df = st.session_state.processed_data.copy()
-    
-    if st.session_state.risk_scores is not None:
-        df['risk_score'] = st.session_state.risk_scores
-        df['risk_level'] = df['risk_score'].apply(lambda x: 
-            'High' if x >= 61 else 'Medium' if x >= 31 else 'Low'
-        )
-        
-        # Filter high-risk emails for follow-up
-        high_risk_emails = df[df['risk_level'] == 'High']
-        
-        if not high_risk_emails.empty:
-            st.subheader("High-Risk Emails Requiring Follow-up")
-            
-            # Show high-risk emails table
-            display_columns = ['sender', 'subject', 'time', 'recipients', 'risk_score', 'risk_level']
-            available_columns = [col for col in display_columns if col in high_risk_emails.columns]
-            st.dataframe(high_risk_emails[available_columns], use_container_width=True)
-            
-            # Email generation options
-            st.subheader("Generate Follow-up Emails")
-            
-            email_type = st.selectbox(
-                "Select Email Type",
-                ["Security Inquiry", "Data Review Request", "Policy Reminder"]
-            )
-            
-            if st.button("Generate Follow-up Emails"):
-                with st.spinner("Generating follow-up emails..."):
-                    generated_emails = email_generator.generate_bulk_emails(
-                        high_risk_emails.to_dict('records'),
-                        email_type
-                    )
-                    
-                    if generated_emails:
-                        st.success(f"Generated {len(generated_emails)} follow-up emails")
-                        
-                        # Display generated emails
-                        for i, email in enumerate(generated_emails):
-                            recipient = email.get('recipient', email.get('to', 'Unknown Recipient'))
-                            with st.expander(f"Email {i+1}: {recipient}"):
-                                st.text_area("Subject", value=email.get('subject', ''), height=50)
-                                st.text_area("Body", value=email.get('body', ''), height=200)
-                        
-                        # Export option
-                        if st.button("Export Emails to CSV"):
-                            csv_data = email_generator.export_emails_to_csv(generated_emails)
-                            st.download_button(
-                                label="Download Email Templates",
-                                data=csv_data,
-                                file_name=f"follow_up_emails_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                mime="text/csv"
-                            )
-        else:
-            st.info("No high-risk emails found that require follow-up actions.")
-    else:
-        st.warning("Risk scores not calculated. Please visit the Dashboard page first to calculate risk scores.")
+
 
 def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Professional header with custom styling
