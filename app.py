@@ -57,11 +57,9 @@ def main():
     elif page == "📈 Analytics":
         analytics_page(visualizer, anomaly_detector)
     elif page == "🌐 Network View":
-
+        network_view_page(visualizer)
     elif page == "🔄 App Flow Dashboard":
         app_flow_dashboard_page()
-
-        network_view_page(visualizer)
     elif page == "📧 Follow-up Actions":
         follow_up_actions_page(email_generator)
 
