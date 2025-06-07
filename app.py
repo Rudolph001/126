@@ -329,6 +329,15 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     </div>
     """, unsafe_allow_html=True)
 
+    # Add explanatory note about security tool coverage
+    st.info("""
+    ℹ️ **Security Tool Coverage Note:** 
+    Tessian operates on policy-driven detection and selectively monitors email events based on configured security policies. 
+    It targets communications containing sensitive information patterns, suspicious attachments, and potential data loss scenarios. 
+    Not all emails will show Tessian coverage as it focuses resources on emails matching specific security criteria and 
+    organizational risk policies, rather than monitoring every email event.
+    """)
+
     if st.session_state.processed_data is None:
         st.markdown("""
         <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
@@ -545,14 +554,184 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Spacing
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Add explanatory note about security tool coverage
-    st.info("""
-    ℹ️ **Security Tool Coverage Note:** 
-    Tessian operates on policy-driven detection and selectively monitors email events based on configured security policies. 
-    It targets communications containing sensitive information patterns, suspicious attachments, and potential data loss scenarios. 
-    Not all emails will show Tessian coverage as it focuses resources on emails matching specific security criteria and 
-    organizational risk policies, rather than monitoring every email event.
-    """)
+    # Complete Dataset Overview (moved from Advanced Analytics)
+    st.subheader("📊 Complete Dataset Overview")
+
+    # Calculate email counts by alert type using the new classification
+    total_emails = len(df)
+
+    # Define alert classifications based on same logic as dashboard
+    df['has_attachments_bool'] = df['attachments'].notna() & (df['attachments'] != '') & (df['attachments'].astype(str) != '0')
+    df['has_last_working_day'] = df['last_working_day'].notna()
+
+    # Critical alerts
+    critical_alerts = len(df[
+        (df['last_working_day'].notna()) &
+        (df['attachments'].notna()) &
+        (df['attachments'] != '') &
+        (df['attachments'].astype(str) != '0') &
+        (df['word_list_match'].notna()) &
+        (df['word_list_match'] != '') &
+        (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+    ])
+
+    # High alerts
+    high_alerts = len(df[
+        (df['last_working_day'].notna()) &
+        (df['attachments'].notna()) &
+        (df['attachments'] != '') &
+        (df['attachments'].astype(str) != '0')
+    ]) - critical_alerts
+
+    # Medium alerts
+    medium_alerts = len(df[
+        (df['has_attachments_bool']) &
+        (df['word_list_match'].notna()) &
+        (df['word_list_match'] != '') &
+        (~df['has_last_working_day']) &
+        (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+    ])
+
+    # Low alerts (all others)
+    low_alerts = total_emails - critical_alerts - high_alerts - medium_alerts
+
+    # Create KPI metrics
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        st.metric(
+            label="Total Emails",
+            value=f"{total_emails:,}",
+            help="Total number of emails in the complete dataset"
+        )
+
+    with col2:
+        critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
+        st.metric(
+            label="Critical Alerts", 
+            value=f"{critical_alerts:,}",
+            delta=f"{critical_pct:.1f}% of total",
+            help="Critical security alerts requiring immediate attention"
+        )
+
+    with col3:
+        high_pct = (high_alerts/total_emails*100) if total_emails > 0 else 0
+        st.metric(
+            label="High Alerts",
+            value=f"{high_alerts:,}",
+            delta=f"{high_pct:.1f}% of total",
+            help="High priority security alerts"
+        )
+
+    with col4:
+        medium_pct = (medium_alerts/total_emails*100) if total_emails > 0 else 0
+        st.metric(
+            label="Medium Alerts",
+            value=f"{medium_alerts:,}",
+            delta=f"{medium_pct:.1f}% of total",
+            help="Medium priority security indicators"
+        )
+
+    with col5:
+        low_pct = (low_alerts/total_emails*100) if total_emails > 0 else 0
+        st.metric(
+            label="Low Alerts",
+            value=f"{low_alerts:,}",
+            delta=f"{low_pct:.1f}% of total",
+            help="Low priority or normal email activity"
+        )
+
+    # Complete Dataset Analysis Coverage
+    st.subheader("📈 Complete Dataset Analysis Coverage")
+
+    # Calculate specific metrics for the complete dataset analysis
+    analysis_df = df
+
+    # Banking emails in complete dataset
+    banking_emails = 0
+    business_hours_emails = 0
+    attachment_emails = 0
+
+    if not analysis_df.empty:
+        # Banking email detection
+        banking_keywords = [
+            'financial', 'banking', 'credit', 'loan', 'investment', 'portfolio',
+            'transaction', 'account', 'balance', 'statement', 'audit', 'compliance'
+        ]
+
+        banking_mask = pd.Series([False] * len(analysis_df), index=analysis_df.index)
+        text_columns = ['subject']
+        if 'body' in analysis_df.columns:
+            text_columns.append('body')
+
+        for col in text_columns:
+            if col in analysis_df.columns:
+                for keyword in banking_keywords:
+                    banking_mask |= analysis_df[col].str.contains(keyword, case=False, na=False)
+
+        banking_emails = banking_mask.sum()
+
+        # Business hours emails
+        if 'time' in analysis_df.columns:
+            time_df = pd.to_datetime(analysis_df['time'], errors='coerce')
+            hour = time_df.dt.hour
+            day_of_week = time_df.dt.dayofweek
+            business_hours_emails = len(analysis_df[
+                (hour >= 9) & (hour <= 17) & (day_of_week.isin([0, 1, 2, 3, 4]))
+            ])
+
+        # Emails with attachments
+        if 'attachments' in analysis_df.columns:
+            attachment_emails = len(analysis_df[
+                analysis_df['attachments'].notna() & 
+                (analysis_df['attachments'] != '') & 
+                (analysis_df['attachments'].astype(str) != '0')
+            ])
+
+    # Display KPI metrics for complete dataset analysis coverage
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        st.metric(
+            label="Analysis Dataset",
+            value=f"{len(analysis_df):,}",
+            help="Complete dataset analyzed for patterns and threats"
+        )
+
+    with col2:
+        banking_pct = (banking_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
+        st.metric(
+            label="Banking Content",
+            value=f"{banking_emails:,}",
+            delta=f"{banking_pct:.1f}% of dataset",
+            help="All emails containing banking/financial keywords"
+        )
+
+    with col3:
+        bh_pct = (business_hours_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
+        st.metric(
+            label="Business Hours",
+            value=f"{business_hours_emails:,}",
+            delta=f"{bh_pct:.1f}% of dataset",
+            help="All emails sent during business hours (9AM-5PM, Mon-Fri)"
+        )
+
+    with col4:
+        att_pct = (attachment_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
+        st.metric(
+            label="With Attachments",
+            value=f"{attachment_emails:,}",
+            delta=f"{att_pct:.1f}% of dataset",
+            help="All emails containing file attachments"
+        )
+
+    with col5:
+        unique_senders_filtered = analysis_df['sender'].nunique() if 'sender' in analysis_df.columns else 0
+        st.metric(
+            label="Unique Senders",
+            value=f"{unique_senders_filtered:,}",
+            help="Number of unique senders in complete dataset"
+        )
 
     # Professional section header
     st.markdown("""
@@ -1525,93 +1704,6 @@ def analytics_page(visualizer, anomaly_detector):
         st.subheader("🔍 Advanced Analytics Dashboard")
         st.info("Comprehensive email analysis with threat detection and pattern recognition across ALL email events")
 
-        # Dataset Overview KPIs
-        st.subheader("📊 Complete Dataset Overview")
-
-        # Calculate email counts by alert type using the new classification
-        total_emails = len(df)
-
-        # Define alert classifications based on same logic as dashboard
-        df['has_attachments_bool'] = df['attachments'].notna() & (df['attachments'] != '') & (df['attachments'].astype(str) != '0')
-        df['has_last_working_day'] = df['last_working_day'].notna()
-
-        # Critical alerts
-        critical_alerts = len(df[
-            (df['last_working_day'].notna()) &
-            (df['attachments'].notna()) &
-            (df['attachments'] != '') &
-            (df['attachments'].astype(str) != '0') &
-            (df['word_list_match'].notna()) &
-            (df['word_list_match'] != '') &
-            (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
-        ])
-
-        # High alerts
-        high_alerts = len(df[
-            (df['last_working_day'].notna()) &
-            (df['attachments'].notna()) &
-            (df['attachments'] != '') &
-            (df['attachments'].astype(str) != '0')
-        ]) - critical_alerts
-
-        # Medium alerts
-        medium_alerts = len(df[
-            (df['has_attachments_bool']) &
-            (df['word_list_match'].notna()) &
-            (df['word_list_match'] != '') &
-            (~df['has_last_working_day']) &
-            (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
-        ])
-
-        # Low alerts (all others)
-        low_alerts = total_emails - critical_alerts - high_alerts - medium_alerts
-
-        # Create KPI metrics
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        with col1:
-            st.metric(
-                label="Total Emails",
-                value=f"{total_emails:,}",
-                help="Total number of emails in the complete dataset"
-            )
-
-        with col2:
-            critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
-            st.metric(
-                label="Critical Alerts", 
-                value=f"{critical_alerts:,}",
-                delta=f"{critical_pct:.1f}% of total",
-                help="Critical security alerts requiring immediate attention"
-            )
-
-        with col3:
-            high_pct = (high_alerts/total_emails*100) if total_emails > 0 else 0
-            st.metric(
-                label="High Alerts",
-                value=f"{high_alerts:,}",
-                delta=f"{high_pct:.1f}% of total",
-                help="High priority security alerts"
-            )
-
-        with col4:
-            medium_pct = (medium_alerts/total_emails*100) if total_emails > 0 else 0
-            st.metric(
-                label="Medium Alerts",
-                value=f"{medium_alerts:,}",
-                delta=f"{medium_pct:.1f}% of total",
-                help="Medium priority security indicators"
-            )
-
-        with col5:
-            low_pct = (low_alerts/total_emails*100) if total_emails > 0 else 0
-            st.metric(
-                label="Low Alerts",
-                value=f"{low_alerts:,}",
-                delta=f"{low_pct:.1f}% of total",
-                help="Low priority or normal email activity"
-            )
-
         # Use complete dataset for analysis (no filtering)
         filtered_df = df.copy()
         filter_label = "all email events"
@@ -1622,98 +1714,6 @@ def analytics_page(visualizer, anomaly_detector):
         # Perform analysis on complete dataset
         with st.spinner(f"Analyzing complete dataset patterns..."):
             analysis_results = bau_analyzer.analyze_low_risk_patterns(filtered_df)
-
-        # Advanced Analytics KPIs - Show email counts used for analysis of complete dataset
-        st.subheader("📈 Complete Dataset Analysis Coverage")
-
-        # Calculate specific metrics for the complete dataset analysis
-        analysis_df = filtered_df
-
-        # Banking emails in complete dataset
-        banking_emails = 0
-        business_hours_emails = 0
-        attachment_emails = 0
-
-        if not analysis_df.empty:
-            # Banking email detection
-            banking_keywords = [
-                'financial', 'banking', 'credit', 'loan', 'investment', 'portfolio',
-                'transaction', 'account', 'balance', 'statement', 'audit', 'compliance'
-            ]
-
-            banking_mask = pd.Series([False] * len(analysis_df), index=analysis_df.index)
-            text_columns = ['subject']
-            if 'body' in analysis_df.columns:
-                text_columns.append('body')
-
-            for col in text_columns:
-                if col in analysis_df.columns:
-                    for keyword in banking_keywords:
-                        banking_mask |= analysis_df[col].str.contains(keyword, case=False, na=False)
-
-            banking_emails = banking_mask.sum()
-
-            # Business hours emails
-            if 'time' in analysis_df.columns:
-                time_df = pd.to_datetime(analysis_df['time'], errors='coerce')
-                hour = time_df.dt.hour
-                day_of_week = time_df.dt.dayofweek
-                business_hours_emails = len(analysis_df[
-                    (hour >= 9) & (hour <= 17) & (day_of_week.isin([0, 1, 2, 3, 4]))
-                ])
-
-            # Emails with attachments
-            if 'attachments' in analysis_df.columns:
-                attachment_emails = len(analysis_df[
-                    analysis_df['attachments'].notna() & 
-                    (analysis_df['attachments'] != '') & 
-                    (analysis_df['attachments'].astype(str) != '0')
-                ])
-
-        # Display KPI metrics for complete dataset analysis coverage
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        with col1:
-            st.metric(
-                label="Analysis Dataset",
-                value=f"{len(analysis_df):,}",
-                help="Complete dataset analyzed for patterns and threats"
-            )
-
-        with col2:
-            banking_pct = (banking_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
-            st.metric(
-                label="Banking Content",
-                value=f"{banking_emails:,}",
-                delta=f"{banking_pct:.1f}% of dataset",
-                help="All emails containing banking/financial keywords"
-            )
-
-        with col3:
-            bh_pct = (business_hours_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
-            st.metric(
-                label="Business Hours",
-                value=f"{business_hours_emails:,}",
-                delta=f"{bh_pct:.1f}% of dataset",
-                help="All emails sent during business hours (9AM-5PM, Mon-Fri)"
-            )
-
-        with col4:
-            att_pct = (attachment_emails/len(analysis_df)*100) if len(analysis_df) > 0 else 0
-            st.metric(
-                label="With Attachments",
-                value=f"{attachment_emails:,}",
-                delta=f"{att_pct:.1f}% of dataset",
-                help="All emails containing file attachments"
-            )
-
-        with col5:
-            unique_senders_filtered = analysis_df['sender'].nunique() if 'sender' in analysis_df.columns else 0
-            st.metric(
-                label="Unique Senders",
-                value=f"{unique_senders_filtered:,}",
-                help="Number of unique senders in complete dataset"
-            )
 
         # Display results in tabs
         tab1, tab2, tab3, tab4 = st.tabs([
