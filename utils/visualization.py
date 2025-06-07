@@ -273,12 +273,14 @@ class Visualizer:
     def create_domain_analysis_chart(self, df):
         """Create chart showing email distribution by domain type"""
         # Check if we need to classify domains first
-        if 'sender_domain' not in df.columns:
-            # Extract sender domains
-            df_temp = df.copy()
-            df_temp['sender_domain'] = df_temp['sender'].apply(self._extract_domain_from_email)
-        else:
-            df_temp = df.copy()
+        # Use email_domain consistently, extract if not available
+        df_temp = df.copy()
+        if 'email_domain' not in df_temp.columns:
+            df_temp['email_domain'] = df_temp['sender'].apply(self._extract_domain_from_email)
+
+        # Also create sender_domain for backward compatibility
+        if 'sender_domain' not in df_temp.columns:
+            df_temp['sender_domain'] = df_temp['email_domain']
 
         # Classify domains as business or free
         from utils.domain_classifier import DomainClassifier

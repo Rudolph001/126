@@ -622,7 +622,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #fff3cd; color: #856404;">{len(medium_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            Emails with attachments and sensitive keywords, sent to non-free domains (no leaver status)
+            Emailswith attachments and sensitive keywords, sent to non-free domains (no leaver status)
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -824,11 +824,11 @@ def analytics_page(visualizer, anomaly_detector):
 
         # Get domain counts
         domain_counts = df['sender_domain'].value_counts()
-        
+
         # Classify domains
         business_domains = []
         free_domains = []
-        
+
         for domain, count in domain_counts.items():
             if domain and domain != '':
                 domain_type = domain_classifier._classify_single_domain(domain)
@@ -852,7 +852,7 @@ def analytics_page(visualizer, anomaly_detector):
 
         # Display top domains in two columns
         col1, col2 = st.columns(2)
-        
+
         with col1:
             st.subheader("🏢 Top 20 Business Domains")
             if business_domains:
@@ -878,11 +878,11 @@ def analytics_page(visualizer, anomaly_detector):
         total_business_emails = sum(count for _, count in business_domains)
         total_free_emails = sum(count for _, count in free_domains)
         total_emails = total_business_emails + total_free_emails
-        
+
         if total_emails > 0:
             business_pct = (total_business_emails / total_emails) * 100
             free_pct = (total_free_emails / total_emails) * 100
-            
+
             summary_col1, summary_col2 = st.columns(2)
             with summary_col1:
                 st.metric(
@@ -1281,7 +1281,7 @@ def analytics_page(visualizer, anomaly_detector):
                     anomaly_type = anomaly.get('type', 'Unknown')
                     severity = anomaly.get('severity', 'Medium')
                     description = anomaly.get('description', 'No description available')
-                    
+
                     # Color coding based on severity
                     if severity == 'High':
                         severity_color = "🔴"
@@ -1304,7 +1304,7 @@ def analytics_page(visualizer, anomaly_detector):
                         - Unusual spike in email volume compared to normal patterns
                         - Could indicate data exfiltration attempts or compromised accounts
                         - Sudden increases in activity warrant investigation
-                        
+
                         **Risk Indicators:**
                         • Volume significantly exceeds baseline patterns
                         • Pattern deviates from sender's normal behavior
@@ -1316,7 +1316,7 @@ def analytics_page(visualizer, anomaly_detector):
                         - Email activity occurring outside normal business hours
                         - Unusual timing patterns may indicate unauthorized access
                         - Late-night or weekend activity requires scrutiny
-                        
+
                         **Risk Indicators:**
                         • Communications sent during non-business hours
                         • Deviates from typical organizational patterns
@@ -1328,7 +1328,7 @@ def analytics_page(visualizer, anomaly_detector):
                         - Unusual attachment behavior detected
                         - Pattern differs significantly from sender's normal habits
                         - Attachments can be vectors for data exfiltration
-                        
+
                         **Risk Indicators:**
                         • Sender rarely sends attachments but suddenly does
                         • Attachment types or sizes are unusual
@@ -1340,7 +1340,7 @@ def analytics_page(visualizer, anomaly_detector):
                         - Unusual recipient communication patterns
                         - Emails sent to new or uncommon domains
                         - Deviates from normal communication networks
-                        
+
                         **Risk Indicators:**
                         • Communications to previously unused domains
                         • Sudden changes in recipient patterns
@@ -1352,7 +1352,7 @@ def analytics_page(visualizer, anomaly_detector):
                         - Email content differs from normal patterns
                         - Unusual keywords or content structure detected
                         - Content analysis reveals atypical communication
-                        
+
                         **Risk Indicators:**
                         • Content contains sensitive keywords unexpectedly
                         • Communication style deviates from normal patterns
@@ -1364,7 +1364,7 @@ def analytics_page(visualizer, anomaly_detector):
                         - Communication frequency significantly changed
                         - Burst patterns or unusual timing intervals
                         - Deviates from established communication rhythms
-                        
+
                         **Risk Indicators:**
                         • Sudden increase or decrease in email frequency
                         • Irregular timing patterns
@@ -1376,7 +1376,7 @@ def analytics_page(visualizer, anomaly_detector):
                         - Pattern deviates significantly from normal behavior
                         - Statistical analysis identified unusual characteristics
                         - Requires further investigation to determine risk level
-                        
+
                         **Risk Indicators:**
                         • Behavior outside normal parameters
                         • Pattern not typically observed in the dataset
@@ -1392,17 +1392,17 @@ def analytics_page(visualizer, anomaly_detector):
                             <p><strong>Severity Level:</strong> {severity}</p>
                         </div>
                         """, unsafe_allow_html=True)
-                        
+
                         st.markdown("#### 🔍 Detailed Analysis")
                         st.markdown(reasoning)
-                        
+
                         # Additional context if available
                         if hasattr(anomaly, 'value') and anomaly.get('value') is not None:
                             st.markdown(f"**📊 Metric Value:** {anomaly['value']}")
-                        
+
                         if hasattr(anomaly, 'count') and anomaly.get('count') is not None:
                             st.markdown(f"**📈 Count:** {anomaly['count']}")
-                        
+
                         if hasattr(anomaly, 'percentage') and anomaly.get('percentage') is not None:
                             st.markdown(f"**📋 Percentage:** {anomaly['percentage']:.1f}%")
 
@@ -1436,13 +1436,13 @@ def analytics_page(visualizer, anomaly_detector):
                 st.subheader("🎯 Anomaly Detection Summary")
                 st.markdown("""
                 **How anomalies are identified:**
-                
+
                 1. **Statistical Analysis**: Emails are compared against established baseline patterns using machine learning algorithms
                 2. **Behavioral Profiling**: Individual sender patterns are analyzed for deviations from their normal behavior
                 3. **Temporal Analysis**: Time-based patterns are examined for unusual activity outside normal business hours
                 4. **Volume Analysis**: Email volumes are checked for spikes or unusual distribution patterns
                 5. **Content Analysis**: Email content and attachments are analyzed for unusual characteristics
-                
+
                 **Risk Assessment Methodology:**
                 - **High Severity**: Anomalies that pose immediate security risks or indicate potential data breaches
                 - **Medium Severity**: Patterns that deviate significantly but may have legitimate explanations
@@ -1452,7 +1452,7 @@ def analytics_page(visualizer, anomaly_detector):
             else:
                 st.info("No anomalies detected in complete dataset")
                 st.success("✅ All email patterns appear normal based on statistical analysis")
-                
+
                 # Explain what this means
                 st.markdown("""
                 **What this means:**
@@ -1460,7 +1460,7 @@ def analytics_page(visualizer, anomaly_detector):
                 - No significant deviations from normal behavior detected
                 - Communication volumes and timing are within normal ranges
                 - No suspicious content or recipient patterns identified
-                
+
                 **This indicates:**
                 - Normal business operations across the organization
                 - No immediate security concerns in the complete dataset
@@ -1508,387 +1508,4 @@ def analytics_page(visualizer, anomaly_detector):
             5. **Compliance Integration**
                - SOX compliance checking
                - Basel III regulatory alignment
-               -```python
- GDPR data protection verification
-            """)
-
-        # Create and display charts
-        charts = bau_analyzer.create_bau_dashboard_charts(analysis_results)
-
-        if charts:
-            st.subheader("📈 Visual Analytics")
-
-            chart_cols = st.columns(2)
-            chart_idx = 0
-
-            for chart_name, chart in charts.items():
-                with chart_cols[chart_idx % 2]:
-                    st.plotly_chart(chart, use_container_width=True)
-                chart_idx += 1
-
-def network_view_page(visualizer):
-    st.header("🌐 Network Visualization")
-
-    if st.session_state.processed_data is None:
-        st.warning("Please upload email data first in the Data Upload page.")
-        return
-
-    df = st.session_state.processed_data.copy()
-
-    if st.session_state.risk_scores is not None:
-        df['risk_score'] = st.session_state.risk_scores
-        df['risk_level'] = df['risk_score'].apply(lambda x: 
-            'High Risk' if x >= 61 else 'Medium Risk' if x >= 31 else 'Normal'
-        )
-
-    # Network visualization options
-    col1, col2 = st.columns([1, 3])
-
-    with col1:
-        st.subheader("Network Options")
-
-        max_nodes = st.slider("Max Nodes", 10, 200, 50)
-        risk_filter = st.selectbox(
-            "Risk Level Filter",
-            ['All', 'High Risk', 'Medium Risk', 'Normal']
-        )
-
-        layout_type = st.selectbox(
-            "Layout Type",
-            ['spring', 'circular', 'random']
-        )
-
-    with col2:
-        st.subheader("Email Network Graph")
-
-        # Filter data based on selection
-        filtered_df = df.copy()
-        if risk_filter != 'All':
-            filtered_df = filtered_df[filtered_df.get('risk_level', 'Normal') == risk_filter]
-
-        # Create network visualization
-        with st.spinner("Generating network graph..."):
-            network_fig = visualizer.create_network_graph(filtered_df, max_nodes, layout_type)
-            st.plotly_chart(network_fig, use_container_width=True)
-
-    # Network statistics
-    st.subheader("📊 Network Statistics")
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        unique_senders = df['sender'].nunique()
-        st.metric("Unique Senders", unique_senders)
-
-    with col2:
-        unique_domains = df['email_domain'].nunique()
-        st.metric("Unique Domains", unique_domains)
-
-    with col3:
-        if 'risk_score' in df.columns:
-            high_risk_senders = len(df[df.get('risk_level', 'Normal') == 'High Risk']['sender'].unique())
-            st.metric("High Risk Senders", high_risk_senders)
-
-def follow_up_actions_page(email_generator):
-    st.header("📧 Follow-up Actions")
-
-    if st.session_state.processed_data is None:
-        st.warning("Please upload email data first in the Data Upload page.")
-        return
-
-    df = st.session_state.processed_data.copy()
-
-    if st.session_state.risk_scores is not None:
-        df['risk_score'] = st.session_state.risk_scores
-        df['risk_level'] = df['risk_score'].apply(lambda x: 
-            'High Risk' if x >= 61 else 'Medium Risk' if x >= 31 else 'Normal'
-        )
-
-    # Filter high and medium risk emails
-    risky_emails = df[df.get('risk_level', 'Normal').isin(['High Risk', 'Medium Risk'])]
-
-    st.subheader("⚠️ Flagged Emails Requiring Follow-up")
-    st.info(f"Found {len(risky_emails)} emails that may require follow-up action.")
-
-    if len(risky_emails) > 0:
-        # Selection options
-        col1, col2 = st.columns(2)
-
-        with col1:
-            selection_mode = st.radio(
-                "Selection Mode",
-                ["Select All High Risk", "Select All Medium Risk", "Manual Selection"]
-            )
-
-        with col2:
-            email_type = st.selectbox(
-                "Follow-up Type",
-                ["Security Inquiry", "Data Classification Review", "Policy Reminder", "Custom"]
-            )
-
-        # Email selection
-        selected_emails = []
-
-        if selection_mode == "Select All High Risk":
-            selected_emails = risky_emails[risky_emails['risk_level'] == 'High Risk'].index.tolist()
-        elif selection_mode == "Select All Medium Risk":
-            selected_emails = risky_emails[risky_emails['risk_level'] == 'Medium Risk'].index.tolist()
-        else:
-            # Manual selection with checkboxes
-            st.subheader("Select Emails for Follow-up")
-
-            for idx, row in risky_emails.iterrows():
-                col1, col2, col3, col4 = st.columns([1, 3, 2, 2])
-
-                with col1:
-                    if st.checkbox("", key=f"select_{idx}"):
-                        selected_emails.append(idx)
-
-                with col2:
-                    st.write(f"**{row['sender']}** → {row['recipients']}")
-
-                with col3:
-                    st.write(f"Risk: {row.get('risk_level', 'Unknown')}")
-
-                with col4:
-                    st.write(f"Score: {row.get('risk_score', 0):.1f}")
-
-        # Generate follow-up emails
-        if selected_emails:
-            st.subheader("📝 Generate Follow-up Emails")
-            st.info(f"Selected {len(selected_emails)} emails for follow-up.")
-
-            # Email template customization
-            if email_type == "Custom":
-                subject_template = st.text_input(
-                    "Email Subject",
-                    "Security Review Required: Email Activity Alert"
-                )
-
-                body_template = st.text_area(
-                    "Email Body Template",
-                    """Dear [SENDER_NAME],
-
-We hope this message finds you well. As part of our ongoing commitment to data security, we have identified some email activity that requires review.
-
-Details:
-- Email sent on: [EMAIL_DATE]
-- Recipients: [RECIPIENTS]
-- Risk Score: [RISK_SCORE]
-
-This is a routine security measure to ensure compliance with our data protection policies. Please contact the IT Security team if you have any questions.
-
-Best regards,
-IT Security Team""",
-                    height=200
-                )
-            else:
-                subject_template, body_template = email_generator.get_template(email_type)
-
-                st.write("**Subject:**", subject_template)
-                st.write("**Body Preview:**")
-                st.text_area("", body_template, height=150, disabled=True)
-
-            # Generate emails
-            col1, col2 = st.columns(2)
-
-            with col1:
-                if st.button("📧 Generate Follow-up Emails", type="primary"):
-                    generated_emails = []
-
-                    for idx in selected_emails:
-                        email_data = risky_emails.loc[idx]
-                        email_content = email_generator.generate_email(
-                            email_data, subject_template, body_template
-                        )
-                        generated_emails.append(email_content)
-
-                    # Display generated emails
-                    st.subheader("Generated Emails")
-
-                    for i, email in enumerate(generated_emails):
-                        with st.expander(f"Email {i+1}: {email['to']}"):
-                            st.write(f"**To:** {email['to']}")
-                            st.write(f"**Subject:** {email['subject']}")
-                            st.write("**Body:**")
-                            st.text_area("", email['body'], height=150, key=f"email_{i}")
-
-                    # Export option
-                    emails_df = pd.DataFrame(generated_emails)
-                    csv_buffer = io.StringIO()
-                    emails_df.to_csv(csv_buffer, index=False)
-
-                    st.download_button(
-                        label="📥 Download Follow-up Emails",
-                        data=csv_buffer.getvalue(),
-                        file_name=f"follow_up_emails_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
-                    )
-
-            with col2:
-                if st.button("📊 Export Selected Data"):
-                    selected_data = risky_emails.loc[selected_emails]
-                    csv_buffer = io.StringIO()
-                    selected_data.to_csv(csv_buffer, index=False)
-
-                    st.download_button(
-                        label="📥 Download Selected Email Data",
-                        data=csv_buffer.getvalue(),
-                        file_name=f"flagged_emails_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
-                    )
-    else:
-        st.success("No emails currently flagged for follow-up action.")
-
-def reports_page():
-    st.header("📋 Reports & Export")
-
-    if st.session_state.processed_data is None:
-        st.warning("Please upload email data first in the Data Upload page.")
-        return
-
-    df = st.session_state.processed_data.copy()
-
-    if st.session_state.risk_scores is not None:
-        df['risk_score'] = st.session_state.risk_scores
-        df['risk_level'] = df['risk_score'].apply(lambda x: 
-            'High Risk' if x >= 61 else 'Medium Risk' if x >= 31 else 'Normal'
-        )
-
-    # Report generation options
-    st.subheader("📊 Generate Reports")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        report_type = st.selectbox(
-            "Report Type",
-            ["Summary Report", "Risk Analysis", "Department Breakdown", "Timeline Analysis", "Custom Export"]
-        )
-
-    with col2:
-        date_range = st.date_input(
-            "Date Range",
-            value=[datetime.now() - timedelta(days=30), datetime.now()],
-            key="report_date_range"
-        )
-
-    # Generate report based on selection
-    if report_type == "Summary Report":
-        st.subheader("📈 Executive Summary")
-
-        # Key metrics
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            st.metric("Total Emails Analyzed", len(df))
-
-        with col2:
-            high_risk_count = len(df[df.get('risk_level', 'Normal') == 'High Risk'])
-            st.metric("High Risk Emails", high_risk_count)
-
-        with col3:
-            if 'risk_score' in df.columns:
-                avg_risk = df['risk_score'].mean()
-                st.metric("Average Risk Score", f"{avg_risk:.1f}")
-
-        with col4:
-            unique_senders = df['sender'].nunique()
-            st.metric("Unique Senders", unique_senders)
-
-        # Summary table
-        summary_data = {
-            'Risk Level': ['Normal', 'Medium Risk', 'High Risk'],
-            'Count': [
-                len(df[df.get('risk_level', 'Normal') == 'Normal']),
-                len(df[df.get('risk_level', 'Normal') == 'Medium Risk']),
-                len(df[df.get('risk_level', 'Normal') == 'High Risk'])
-            ]
-        }
-
-        summary_df = pd.DataFrame(summary_data)
-        summary_df['Percentage'] = (summary_df['Count'] / len(df) * 100).round(1)
-
-        st.dataframe(summary_df, use_container_width=True)
-
-    elif report_type == "Risk Analysis":
-        st.subheader("⚠️ Risk Analysis Report")
-
-        if 'risk_score' in df.columns:
-            # Risk score distribution
-            st.write("**Risk Score Distribution:**")
-            st.dataframe(df['risk_score'].describe())
-
-            # Top risk factors
-            st.write("**High Risk Emails:**")
-            high_risk_emails = df[df.get('risk_level', 'Normal') == 'High Risk']
-
-            if len(high_risk_emails) > 0:
-                display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score']
-                available_cols = [col for col in display_cols if col in high_risk_emails.columns]
-                st.dataframe(high_risk_emails[available_cols], use_container_width=True)
-            else:
-                st.info("No high risk emails found.")
-
-    elif report_type == "Department Breakdown":
-        st.subheader("🏢 Department Analysis")
-
-        if 'department' in df.columns:
-            dept_analysis = df.groupby('department').agg({
-                'sender': 'count',
-                'risk_score': 'mean' if 'risk_score' in df.columns else 'size'
-            }).round(2)
-
-            dept_analysis.columns = ['Email Count', 'Avg Risk Score']
-            dept_analysis = dept_analysis.sort_values('Avg Risk Score', ascending=False)
-
-            st.dataframe(dept_analysis, use_container_width=True)
-
-    # Export options
-    st.subheader("📥 Export Data")
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        # Full dataset export
-        csv_buffer = io.StringIO()
-        df.to_csv(csv_buffer, index=False)
-
-        st.download_button(
-            label="📊 Export Full Dataset",
-            data=csv_buffer.getvalue(),
-            file_name=f"email_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv"
-        )
-
-    with col2:
-        # High risk emails only
-        if 'risk_level' in df.columns:
-            high_risk_df = df[df['risk_level'] == 'High Risk']
-
-            if len(high_risk_df) > 0:
-                csv_buffer = io.StringIO()
-                high_risk_df.to_csv(csv_buffer, index=False)
-
-                st.download_button(
-                    label="⚠️ Export High Risk Emails",
-                    data=csv_buffer.getvalue(),
-                    file_name=f"high_risk_emails_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
-
-    with col3:
-        # Whitelist export
-        if not st.session_state.whitelist_data.empty:
-            csv_buffer = io.StringIO()
-            st.session_state.whitelist_data.to_csv(csv_buffer, index=False)
-
-            st.download_button(
-                label="📋 Export Whitelist",
-                data=csv_buffer.getvalue(),
-                file_name=f"whitelist_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
-            )
-
-if __name__ == "__main__":
-    main()
+               -

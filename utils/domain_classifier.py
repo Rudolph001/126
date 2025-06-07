@@ -124,14 +124,19 @@ class DomainClassifier:
         }
     
     def classify_domains(self, df):
-        """Classify domains in the email dataframe"""
+        """Classify domains in the email dataframe using email_domain consistently"""
         df_copy = df.copy()
         
-        # Extract domains from sender and recipients
-        df_copy['sender_domain'] = df_copy['sender'].apply(self._extract_domain)
+        # Use email_domain if it exists, otherwise extract from sender
+        if 'email_domain' not in df_copy.columns:
+            df_copy['email_domain'] = df_copy['sender'].apply(self._extract_domain)
         
-        # Classify sender domains
-        df_copy['sender_domain_type'] = df_copy['sender_domain'].apply(self._classify_single_domain)
+        # Also maintain sender_domain for backward compatibility
+        df_copy['sender_domain'] = df_copy['email_domain']
+        
+        # Classify email domains
+        df_copy['email_domain_type'] = df_copy['email_domain'].apply(self._classify_single_domain)
+        df_copy['sender_domain_type'] = df_copy['email_domain_type']  # For compatibility
         
         # Classify recipient domains (if recipient_domains column exists)
         if 'recipient_domains' in df_copy.columns:
@@ -144,8 +149,8 @@ class DomainClassifier:
                 self._get_primary_domain_type
             )
         else:
-            # Use sender domain as fallback
-            df_copy['domain_type'] = df_copy['sender_domain_type']
+            # Use email_domain classification as fallback
+            df_copy['domain_type'] = df_copy['email_domain_type']
         
         return df_copy
     
@@ -272,8 +277,16 @@ class DomainClassifier:
             for domain_type, count in domain_counts.items()
         }
         
-        # Top domains by type
-        if 'sender_domain' in df.columns:
+        # Top domains by type - use email_domain consistently
+        if 'email_domain' in df.columns:
+            stats['top_domains_by_type'] = {}
+            
+            for domain_type in domain_counts.index:
+                type_domains = df[df['domain_type'] == domain_type]['email_domain']
+                top_domains = type_domains.value_counts().head(5)
+                stats['top_domains_by_type'][domain_type] = top_domains.to_dict()
+        elif 'sender_domain' in df.columns:
+            # Fallback to sender_domain for backward compatibility
             stats['top_domains_by_type'] = {}
             
             for domain_type in domain_counts.index:
@@ -284,13 +297,16 @@ class DomainClassifier:
         return stats
     
     def identify_suspicious_domains(self, df):
-        """Identify potentially suspicious domains"""
+        """Identify potentially suspicious domains using email_domain consistently"""
         suspicious_domains = []
         
-        if 'sender_domain' not in df.columns:
+        # Use email_domain if available, fallback to sender_domain
+        domain_column = 'email_domain' if 'email_domain' in df.columns else 'sender_domain'
+        
+        if domain_column not in df.columns:
             return suspicious_domains
         
-        domain_counts = df['sender_domain'].value_counts()
+        domain_counts = df[domain_column].value_counts()
         
         for domain, count in domain_counts.items():
             if self._is_suspicious_domain(domain, count, len(df)):
