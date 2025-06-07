@@ -240,12 +240,17 @@ class DomainClassifier:
         if 'email_domain' not in df_copy.columns:
             df_copy['email_domain'] = df_copy['sender'].apply(self._extract_domain)
 
-        # Also maintain sender_domain for backward compatibility
-        df_copy['sender_domain'] = df_copy['email_domain']
+        # Use sender_domain from data if available, otherwise use email_domain
+        if 'sender_domain' not in df_copy.columns:
+            df_copy['sender_domain'] = df_copy['email_domain']
 
-        # Extract recipient domains if not present
-        if 'recipient_domains' not in df_copy.columns and 'recipients' in df_copy.columns:
-            df_copy['recipient_domains'] = df_copy['recipients'].apply(self._extract_recipient_domains)
+        # Extract recipient domains if not present - use recipient_domain field if available
+        if 'recipient_domains' not in df_copy.columns:
+            if 'recipient_domain' in df_copy.columns:
+                # Convert single recipient_domain to list format for consistency
+                df_copy['recipient_domains'] = df_copy['recipient_domain'].apply(lambda x: [x] if pd.notna(x) and x != '' else [])
+            elif 'recipients' in df_copy.columns:
+                df_copy['recipient_domains'] = df_copy['recipients'].apply(self._extract_recipient_domains)
 
         # Extract recipient domains for enhanced internal detection
         if 'recipients' in df_copy.columns:

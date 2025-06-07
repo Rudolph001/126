@@ -852,7 +852,7 @@ def data_upload_page(data_processor, domain_classifier, keyword_detector):
         uploaded_file = st.file_uploader(
             "Upload Email Data (CSV)",
             type=['csv'],
-            help="Required fields: time, sender, recipients, email_domain, word_list_match, recipient_status, subject, attachments, act, delivered, deliveryErrors, direction, eventtype, aggreatedid, tessian, tessian_response, mimecast, tessian_outcome, tessian_policy, last_working_day, bunit, department, businessPillar"
+            help="Required fields: time, sender, sender_domain, recipients, recipient_domain, email_domain, word_list_match, recipient_status, subject, attachments, act, delivered, deliveryErrors, direction, eventtype, aggreatedid, tessian, tessian_response, mimecast, tessian_outcome, tessian_policy, last_working_day, bunit, department, businessPillar"
         )
 
         if uploaded_file is not None:
@@ -862,7 +862,7 @@ def data_upload_page(data_processor, domain_classifier, keyword_detector):
 
                 # Check required fields
                 required_fields = [
-                    'time', 'sender', 'recipients', 'email_domain', 'word_list_match',
+                    'time', 'sender', 'sender_domain', 'recipients', 'recipient_domain', 'email_domain', 'word_list_match',
                     'recipient_status', 'subject', 'attachments', 'act', 'delivered',
                     'deliveryErrors', 'direction', 'eventtype', 'aggreatedid', 'tessian',
                     'tessian_response', 'mimecast', 'tessian_outcome', 'tessian_policy',

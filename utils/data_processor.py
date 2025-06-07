@@ -8,7 +8,7 @@ class DataProcessor:
     
     def __init__(self):
         self.required_fields = [
-            'time', 'sender', 'recipients', 'email_domain', 'word_list_match',
+            'time', 'sender', 'sender_domain', 'recipients', 'recipient_domain', 'email_domain', 'word_list_match',
             'recipient_status', 'subject', 'attachments', 'act', 'delivered',
             'deliveryErrors', 'direction', 'eventtype', 'aggreatedid', 'tessian',
             'tessian_response', 'mimecast', 'tessian_outcome', 'tessian_policy',
@@ -67,8 +67,12 @@ class DataProcessor:
         # Count recipients
         processed_df['recipient_count'] = processed_df['recipients'].apply(self._count_recipients)
         
-        # Extract domain from recipients
-        processed_df['recipient_domains'] = processed_df['recipients'].apply(self._extract_domains)
+        # Extract recipient domains - use recipient_domain field if available, otherwise extract from recipients
+        if 'recipient_domain' in processed_df.columns:
+            # Convert single recipient_domain to list format for consistency with existing code
+            processed_df['recipient_domains'] = processed_df['recipient_domain'].apply(lambda x: [x] if pd.notna(x) and x != '' else [])
+        else:
+            processed_df['recipient_domains'] = processed_df['recipients'].apply(self._extract_domains)
         
         # Fill missing values
         processed_df['subject'] = processed_df['subject'].fillna('')
