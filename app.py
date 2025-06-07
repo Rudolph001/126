@@ -385,11 +385,33 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         """, unsafe_allow_html=True)
 
     with col5:
-        # Calculate low risk based on new criteria
-        low_risk_count = len(df[
-            (~df['has_attachments_bool']) &  # No attachments
-            (~df['has_last_working_day'])    # No last working day
+        # Calculate low risk based on new criteria - all emails not in critical, high, or medium
+        critical_alerts = len(df[
+            (df['last_working_day'].notna()) &
+            (df['attachments'].notna()) &
+            (df['attachments'] != '') &
+            (df['attachments'].astype(str) != '0') &
+            (df['word_list_match'].notna()) &
+            (df['word_list_match'] != '') &
+            (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
+        
+        high_security_alerts = len(df[
+            (df['last_working_day'].notna()) &
+            (df['attachments'].notna()) &
+            (df['attachments'] != '') &
+            (df['attachments'].astype(str) != '0')
+        ]) - critical_alerts
+        
+        medium_risk_count = len(df[
+            (df['has_attachments_bool']) &
+            (df['word_list_match'].notna()) &
+            (df['word_list_match'] != '') &
+            (~df['has_last_working_day']) &
+            (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+        ])
+        
+        low_risk_count = total_emails - critical_alerts - high_security_alerts - medium_risk_count
         low_risk_pct = (low_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
         <div class="metric-card" style="border-left-color: #28a745; background-color: #f0fff4;">
@@ -623,10 +645,8 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     else:
         st.success("✅ No moderate risk indicators found.")
 
-    # View 4: Low-Risk Emails
+    # View 4: Low-Risk Emails - All emails not classified as critical, high, or medium risk
     low_risk_emails = df[
-        (~df['has_attachments_bool']) &  # No attachments
-        (~df['has_last_working_day']) &  # No last working day
         (~df.index.isin(high_risk_emails.index)) &  # Exclude critical alerts
         (~df.index.isin(high_security_emails.index)) &  # Exclude high security alerts
         (~df.index.isin(medium_risk_emails.index))  # Exclude medium risk
@@ -640,14 +660,14 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #d4edda; color: #155724;">{len(low_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            Standard email communications without attachments or leaver status
+            All other email communications that do not meet critical, high, or medium risk criteria
         </p>
     </div>
     """, unsafe_allow_html=True)
     
     if len(low_risk_emails) > 0:
         # Display with minimal highlighting
-        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'attachments']
+        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'attachments', 'last_working_day', 'word_list_match']
         available_cols = [col for col in display_cols if col in low_risk_emails.columns]
         
         def highlight_low_risk(row):
@@ -661,7 +681,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         styled_low_risk = low_risk_emails[available_cols].style.apply(highlight_low_risk, axis=1)
         st.dataframe(styled_low_risk, use_container_width=True, height=400)
     else:
-        st.info("No low-risk emails with attachments found.")
+        st.info("No low-risk emails found.")
 
     # View 5: Standard Email Communications (moved below Low Risk)
     emails_no_attachments = df[~df['has_attachments_bool']]
