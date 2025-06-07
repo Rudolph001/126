@@ -4293,16 +4293,21 @@ def find_the_needle_page(domain_classifier, visualizer):
             
             # Style the dataframe based on risk level
             def highlight_risk_level(row):
-                if row['risk_level'] == 'High':
+                if 'Risk Level' in row and row['Risk Level'] == 'High':
                     return ['background-color: #ffebee; color: #c62828; font-weight: bold'] * len(row)
-                elif row['risk_level'] == 'Medium':
+                elif 'Risk Level' in row and row['Risk Level'] == 'Medium':
                     return ['background-color: #fff3e0; color: #ef6c00'] * len(row)
                 else:
                     return [''] * len(row)
             
             if not filtered_df.empty:
-                # Reorder columns for better display
-                display_columns = ['timestamp', 'sender', 'department', 'business_unit', 'new_domain', 'domain_category', 'risk_level', 'subject']
+                # Reorder columns for better display - check if columns exist first
+                available_columns = ['timestamp', 'sender', 'department', 'business_unit', 'new_domain', 'domain_category', 'subject']
+                if 'risk_level' in filtered_df.columns:
+                    available_columns.insert(-1, 'risk_level')
+                
+                # Only use columns that actually exist in the dataframe
+                display_columns = [col for col in available_columns if col in filtered_df.columns]
                 filtered_display = filtered_df[display_columns].copy()
                 
                 # Format timestamp
@@ -4310,7 +4315,19 @@ def find_the_needle_page(domain_classifier, visualizer):
                     filtered_display['timestamp'] = pd.to_datetime(filtered_display['timestamp']).dt.strftime('%Y-%m-%d %H:%M')
                 
                 # Rename columns for better readability
-                filtered_display.columns = ['Time', 'Sender', 'Department', 'Business Unit', 'New Domain', 'Category', 'Risk Level', 'Subject']
+                column_mapping = {
+                    'timestamp': 'Time',
+                    'sender': 'Sender',
+                    'department': 'Department',
+                    'business_unit': 'Business Unit',
+                    'new_domain': 'New Domain',
+                    'domain_category': 'Category',
+                    'risk_level': 'Risk Level',
+                    'subject': 'Subject'
+                }
+                
+                # Only rename columns that exist
+                filtered_display.columns = [column_mapping.get(col, col) for col in filtered_display.columns]
                 
                 styled_df = filtered_display.style.apply(highlight_risk_level, axis=1)
                 st.dataframe(styled_df, use_container_width=True, height=400)
