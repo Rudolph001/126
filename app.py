@@ -298,8 +298,8 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     low_risk = len(df[df['risk_level'] == 'Normal'])
     avg_risk = df['risk_score'].mean()
 
-    # KPI Cards - now with 5 columns
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # KPI Cards - now with 5 equal columns
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
 
     with col1:
         st.markdown(f"""
