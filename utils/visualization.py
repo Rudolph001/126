@@ -299,11 +299,15 @@ class Visualizer:
         domain_types = {}
 
         for domain in unique_domains:
-            domain_type = classifier._classify_single_domain(domain)
+            domain_type = classifier._classify_single_domain_strict(domain)
             if domain_type == 'free':
                 domain_types[domain] = 'Free Email'
-            else:
+            elif domain_type == 'internal':
+                domain_types[domain] = 'Internal Domain'
+            elif domain_type == 'business':
                 domain_types[domain] = 'Business Domain'
+            else:
+                domain_types[domain] = 'Unknown'
 
         # Map domains to types in dataframe
         df_temp['domain_classification'] = df_temp['sender_domain'].map(domain_types).fillna('Unknown')
@@ -313,9 +317,10 @@ class Visualizer:
 
         # Create chart with proper colors
         colors = {
-            'Business Domain': '#4ECDC4',
-            'Free Email': '#FF6B6B',
-            'Unknown': '#96CEB4'
+            'Business Domain': '#2E8B57',      # Sea Green
+            'Free Email': '#DC143C',           # Crimson
+            'Internal Domain': '#4169E1',      # Royal Blue
+            'Unknown': '#708090'               # Slate Gray
         }
 
         chart_colors = [colors.get(domain_type, '#FECA57') for domain_type in domain_counts.index]

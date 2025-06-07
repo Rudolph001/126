@@ -2613,8 +2613,9 @@ def analytics_page(visualizer, anomaly_detector):
                     delta=f"{free_pct:.1f}% of total"
                 )
 
-        # Industry Analysis for Business Domains
-        st.subheader("🏛️ Business Domain Industry Analysis")
+        # Enhanced Industry Analysis for Business Domains
+        st.subheader("🏛️ Comprehensive Industry Classification Analysis")
+        st.info("🎯 **Purpose:** Detailed analysis of business domains categorized by industry sectors with risk assessment and compliance insights.")
         
         if 'email_domain_industry' in df.columns:
             # Filter for business domains only
@@ -2622,49 +2623,141 @@ def analytics_page(visualizer, anomaly_detector):
             
             if not business_domain_df.empty:
                 industry_counts = business_domain_df['email_domain_industry'].value_counts()
+                total_business_emails = len(business_domain_df)
                 
-                # Display industry metrics
-                st.write("**Industry Distribution of Business Domains:**")
+                # Enhanced Industry Overview with Visual Charts
+                st.subheader("📊 Industry Distribution Overview")
                 
-                industry_col1, industry_col2, industry_col3 = st.columns(3)
+                # Create comprehensive industry metrics in organized layout
+                industry_col1, industry_col2, industry_col3, industry_col4 = st.columns(4)
                 
                 with industry_col1:
                     banking_count = industry_counts.get('banking', 0)
-                    banking_pct = (banking_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    banking_pct = (banking_count / total_business_emails * 100) if total_business_emails > 0 else 0
                     st.metric("🏦 Banking/Financial", f"{banking_count:,}", f"{banking_pct:.1f}%")
+                    
+                    financial_count = industry_counts.get('financial_services', 0)
+                    financial_pct = (financial_count / total_business_emails * 100) if total_business_emails > 0 else 0
+                    st.metric("💰 Financial Services", f"{financial_count:,}", f"{financial_pct:.1f}%")
                 
                 with industry_col2:
+                    tech_count = industry_counts.get('technology', 0)
+                    tech_pct = (tech_count / total_business_emails * 100) if total_business_emails > 0 else 0
+                    st.metric("💻 Technology", f"{tech_count:,}", f"{tech_pct:.1f}%")
+                    
                     education_count = industry_counts.get('education', 0)
-                    education_pct = (education_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    education_pct = (education_count / total_business_emails * 100) if total_business_emails > 0 else 0
                     st.metric("🎓 Education", f"{education_count:,}", f"{education_pct:.1f}%")
                 
                 with industry_col3:
                     healthcare_count = industry_counts.get('healthcare', 0)
-                    healthcare_pct = (healthcare_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    healthcare_pct = (healthcare_count / total_business_emails * 100) if total_business_emails > 0 else 0
                     st.metric("🏥 Healthcare", f"{healthcare_count:,}", f"{healthcare_pct:.1f}%")
-                
-                # Additional industries in a second row
-                industry_col4, industry_col5, industry_col6 = st.columns(3)
-                
-                with industry_col4:
-                    tech_count = industry_counts.get('technology', 0)
-                    tech_pct = (tech_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
-                    st.metric("💻 Technology", f"{tech_count:,}", f"{tech_pct:.1f}%")
-                
-                with industry_col5:
+                    
                     gov_count = industry_counts.get('government', 0)
-                    gov_pct = (gov_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    gov_pct = (gov_count / total_business_emails * 100) if total_business_emails > 0 else 0
                     st.metric("🏛️ Government", f"{gov_count:,}", f"{gov_pct:.1f}%")
                 
-                with industry_col6:
+                with industry_col4:
                     other_count = industry_counts.get('business_other', 0)
-                    other_pct = (other_count / len(business_domain_df) * 100) if len(business_domain_df) > 0 else 0
+                    other_pct = (other_count / total_business_emails * 100) if total_business_emails > 0 else 0
                     st.metric("🏢 Other Business", f"{other_count:,}", f"{other_pct:.1f}%")
+                    
+                    not_business_count = industry_counts.get('not_business', 0)
+                    not_business_pct = (not_business_count / total_business_emails * 100) if total_business_emails > 0 else 0
+                    st.metric("🚫 Non-Business", f"{not_business_count:,}", f"{not_business_pct:.1f}%")
+
+                # Industry Distribution Visualization
+                st.subheader("📈 Industry Distribution Visualization")
                 
-                # Detailed industry breakdown table
-                st.subheader("📋 Detailed Industry Breakdown")
+                if len(industry_counts) > 0:
+                    import plotly.graph_objects as go
+                    from plotly.subplots import make_subplots
+                    
+                    # Enhanced color palette for industries
+                    industry_colors = {
+                        'banking': '#1f77b4',           # Blue
+                        'financial_services': '#ff7f0e', # Orange
+                        'technology': '#2ca02c',        # Green
+                        'healthcare': '#d62728',        # Red
+                        'education': '#9467bd',         # Purple
+                        'government': '#8c564b',        # Brown
+                        'business_other': '#e377c2',    # Pink
+                        'not_business': '#7f7f7f'       # Gray
+                    }
+                    
+                    # Create enhanced visualization
+                    fig = make_subplots(
+                        rows=1, cols=2,
+                        specs=[[{"type": "domain"}, {"type": "xy"}]],
+                        subplot_titles=("Industry Distribution", "Email Volume by Industry"),
+                        column_widths=[0.5, 0.5]
+                    )
+                    
+                    # Prepare data
+                    industry_names = []
+                    industry_values = []
+                    colors = []
+                    
+                    for industry, count in industry_counts.items():
+                        if count > 0:
+                            display_name = {
+                                'banking': '🏦 Banking',
+                                'financial_services': '💰 Financial Services',
+                                'technology': '💻 Technology',
+                                'healthcare': '🏥 Healthcare',
+                                'education': '🎓 Education',
+                                'government': '🏛️ Government',
+                                'business_other': '🏢 Other Business',
+                                'not_business': '🚫 Non-Business'
+                            }.get(industry, industry.title())
+                            
+                            industry_names.append(display_name)
+                            industry_values.append(count)
+                            colors.append(industry_colors.get(industry, '#95a5a6'))
+                    
+                    # Add pie chart
+                    fig.add_trace(
+                        go.Pie(
+                            labels=industry_names,
+                            values=industry_values,
+                            marker_colors=colors,
+                            textinfo='label+percent',
+                            textposition='auto',
+                            hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
+                        ),
+                        row=1, col=1
+                    )
+                    
+                    # Add bar chart
+                    fig.add_trace(
+                        go.Bar(
+                            x=industry_names,
+                            y=industry_values,
+                            marker_color=colors,
+                            text=[f"{val:,}" for val in industry_values],
+                            textposition='auto',
+                            hovertemplate='<b>%{x}</b><br>Email Count: %{y:,}<extra></extra>'
+                        ),
+                        row=1, col=2
+                    )
+                    
+                    fig.update_layout(
+                        title="Business Domain Industry Analysis",
+                        title_x=0.5,
+                        height=500,
+                        showlegend=False
+                    )
+                    
+                    fig.update_xaxes(title_text="Industry Sector", row=1, col=2, tickangle=45)
+                    fig.update_yaxes(title_text="Email Count", row=1, col=2)
+                    
+                    st.plotly_chart(fig, use_container_width=True)
                 
-                # Create detailed breakdown by industry
+                # Enhanced Detailed Industry Analysis Table
+                st.subheader("📋 Comprehensive Industry Breakdown & Risk Analysis")
+                
+                # Create detailed analysis with risk assessment
                 industry_details = []
                 for industry, count in industry_counts.items():
                     if count > 0:
@@ -2672,89 +2765,283 @@ def analytics_page(visualizer, anomaly_detector):
                         unique_domains = industry_data['email_domain'].nunique()
                         unique_senders = industry_data['sender'].nunique()
                         
+                        # Risk assessment
+                        avg_risk = industry_data['risk_score'].mean() if 'risk_score' in industry_data.columns else 0
+                        high_risk_count = len(industry_data[industry_data['risk_score'] >= 61]) if 'risk_score' in industry_data.columns else 0
+                        
+                        # Word matches analysis
+                        word_matches = 0
+                        if 'word_list_match' in industry_data.columns:
+                            word_matches = len(industry_data[
+                                (industry_data['word_list_match'].notna()) & 
+                                (industry_data['word_list_match'] != '') & 
+                                (industry_data['word_list_match'].astype(str) != '0')
+                            ])
+                        
                         # Get top 3 domains for this industry
                         top_domains = industry_data['email_domain'].value_counts().head(3)
                         top_domains_str = ', '.join([f"{domain} ({count})" for domain, count in top_domains.items()])
                         
-                        industry_display_name = {
+                        # Enhanced display names with compliance indicators
+                        industry_display_mapping = {
                             'banking': '🏦 Banking/Financial',
-                            'education': '🎓 Education',
+                            'financial_services': '💰 Financial Services',
                             'healthcare': '🏥 Healthcare',
+                            'education': '🎓 Education',
                             'technology': '💻 Technology',
                             'government': '🏛️ Government',
-                            'business_other': '🏢 Other Business'
-                        }.get(industry, industry.title())
+                            'business_other': '🏢 Other Business',
+                            'not_business': '🚫 Non-Business'
+                        }
+                        
+                        industry_display_name = industry_display_mapping.get(industry, industry.title())
+                        
+                        # Add compliance indicators for regulated industries
+                        compliance_note = ""
+                        if industry in ['banking', 'financial_services']:
+                            compliance_note = "📋 GDPR/SOX Regulated"
+                        elif industry == 'healthcare':
+                            compliance_note = "🔒 HIPAA Regulated"
+                        elif industry == 'government':
+                            compliance_note = "🛡️ Government Sector"
+                        elif industry == 'education':
+                            compliance_note = "🎓 FERPA Regulated"
                         
                         industry_details.append({
                             'Industry': industry_display_name,
                             'Email Count': f"{count:,}",
-                            'Percentage': f"{(count/len(business_domain_df)*100):.1f}%",
+                            'Percentage': f"{(count/total_business_emails*100):.1f}%",
                             'Unique Domains': unique_domains,
                             'Unique Senders': unique_senders,
-                            'Top Domains (Count)': top_domains_str[:80] + ('...' if len(top_domains_str) > 80 else '')
+                            'Avg Risk Score': f"{avg_risk:.1f}/100",
+                            'High Risk Emails': high_risk_count,
+                            'Sensitive Content': word_matches,
+                            'Compliance': compliance_note,
+                            'Top Domains': top_domains_str[:60] + ('...' if len(top_domains_str) > 60 else '')
                         })
                 
                 if industry_details:
                     industry_df = pd.DataFrame(industry_details)
                     
-                    # Style the industry table
-                    def highlight_industry(row):
+                    # Enhanced styling with risk-based color coding
+                    def highlight_industry_risk(row):
                         styles = [''] * len(row)
+                        
+                        # Industry name styling
                         industry = str(row['Industry'])
-                        if '🏦' in industry:  # Banking
-                            styles[0] = 'background-color: #e8f5e8; color: #2e7d32; font-weight: bold'
-                        elif '🎓' in industry:  # Education
-                            styles[0] = 'background-color: #e3f2fd; color: #1565c0; font-weight: bold'
+                        if '🏦' in industry or '💰' in industry:  # Financial
+                            styles[0] = 'background-color: #e8f4fd; color: #1565c0; font-weight: bold'
                         elif '🏥' in industry:  # Healthcare
                             styles[0] = 'background-color: #fce4ec; color: #ad1457; font-weight: bold'
                         elif '💻' in industry:  # Technology
-                            styles[0] = 'background-color: #f3e5f5; color: #7b1fa2; font-weight: bold'
+                            styles[0] = 'background-color: #e8f5e8; color: #2e7d32; font-weight: bold'
                         elif '🏛️' in industry:  # Government
                             styles[0] = 'background-color: #fff3e0; color: #ef6c00; font-weight: bold'
+                        elif '🎓' in industry:  # Education
+                            styles[0] = 'background-color: #f3e5f5; color: #7b1fa2; font-weight: bold'
+                        
+                        # Risk score styling
+                        try:
+                            risk_score = float(str(row['Avg Risk Score']).split('/')[0])
+                            if risk_score >= 60:
+                                styles[5] = 'background-color: #ffebee; color: #c62828; font-weight: bold'
+                            elif risk_score >= 30:
+                                styles[5] = 'background-color: #fff3e0; color: #ef6c00; font-weight: bold'
+                        except:
+                            pass
+                        
+                        # High risk emails styling
+                        try:
+                            high_risk = int(row['High Risk Emails'])
+                            if high_risk > 0:
+                                styles[6] = 'background-color: #ffcdd2; color: #b71c1c; font-weight: bold'
+                        except:
+                            pass
+                        
+                        # Sensitive content styling
+                        try:
+                            sensitive = int(row['Sensitive Content'])
+                            if sensitive > 0:
+                                styles[7] = 'background-color: #fff3cd; color: #856404; font-weight: bold'
+                        except:
+                            pass
+                        
                         return styles
                     
-                    styled_industry_df = industry_df.style.apply(highlight_industry, axis=1)
-                    st.dataframe(styled_industry_df, use_container_width=True, height=300)
+                    styled_industry_df = industry_df.style.apply(highlight_industry_risk, axis=1)
+                    st.dataframe(styled_industry_df, use_container_width=True, height=400)
                     
-                    # Industry insights
-                    st.subheader("💡 Industry Analysis Insights")
+                    # Enhanced Industry Risk & Compliance Analysis
+                    st.subheader("🔍 Industry-Specific Risk & Compliance Analysis")
                     
-                    # Banking analysis
-                    if banking_count > 0:
-                        banking_data = business_domain_df[business_domain_df['email_domain_industry'] == 'banking']
-                        banking_domains = banking_data['email_domain'].value_counts()
-                        st.write(f"**🏦 Banking/Financial Sector:**")
-                        st.write(f"• {banking_count:,} emails from {banking_domains.nunique()} banking institutions")
-                        if not banking_domains.empty:
-                            st.write(f"• Top banking domain: {banking_domains.index[0]} ({banking_domains.iloc[0]} emails)")
+                    # Create tabbed analysis for major industries
+                    industry_tabs = []
+                    major_industries = ['banking', 'financial_services', 'healthcare', 'technology', 'education', 'government']
+                    
+                    for industry in major_industries:
+                        if industry_counts.get(industry, 0) > 0:
+                            tab_name = {
+                                'banking': '🏦 Banking',
+                                'financial_services': '💰 Financial',
+                                'healthcare': '🏥 Healthcare',
+                                'technology': '💻 Technology',
+                                'education': '🎓 Education',
+                                'government': '🏛️ Government'
+                            }.get(industry, industry.title())
+                            industry_tabs.append((industry, tab_name))
+                    
+                    if industry_tabs:
+                        tab_objects = st.tabs([tab[1] for tab in industry_tabs])
                         
-                        # Check for potential compliance concerns
-                        if 'word_list_match' in banking_data.columns:
-                            banking_word_matches = len(banking_data[
-                                (banking_data['word_list_match'].notna()) & 
-                                (banking_data['word_list_match'] != '') & 
-                                (banking_data['word_list_match'].astype(str) != '0')
+                        for i, (industry, tab_name) in enumerate(industry_tabs):
+                            with tab_objects[i]:
+                                industry_data = business_domain_df[business_domain_df['email_domain_industry'] == industry]
+                                industry_count = len(industry_data)
+                                
+                                # Industry-specific metrics
+                                col1, col2, col3, col4 = st.columns(4)
+                                
+                                with col1:
+                                    st.metric("Total Emails", f"{industry_count:,}")
+                                
+                                with col2:
+                                    unique_domains = industry_data['email_domain'].nunique()
+                                    st.metric("Unique Domains", unique_domains)
+                                
+                                with col3:
+                                    if 'risk_score' in industry_data.columns:
+                                        avg_risk = industry_data['risk_score'].mean()
+                                        st.metric("Avg Risk Score", f"{avg_risk:.1f}/100")
+                                
+                                with col4:
+                                    if 'word_list_match' in industry_data.columns:
+                                        word_matches = len(industry_data[
+                                            (industry_data['word_list_match'].notna()) & 
+                                            (industry_data['word_list_match'] != '') & 
+                                            (industry_data['word_list_match'].astype(str) != '0')
+                                        ])
+                                        st.metric("Sensitive Content", word_matches)
+                                
+                                # Top domains in this industry
+                                st.write("**Top Domains in this Industry:**")
+                                top_domains = industry_data['email_domain'].value_counts().head(10)
+                                
+                                domain_display = []
+                                for rank, (domain, count) in enumerate(top_domains.items(), 1):
+                                    percentage = (count / industry_count * 100)
+                                    domain_risk = industry_data[industry_data['email_domain'] == domain]['risk_score'].mean() if 'risk_score' in industry_data.columns else 0
+                                    
+                                    domain_display.append({
+                                        'Rank': f"#{rank}",
+                                        'Domain': domain,
+                                        'Email Count': f"{count:,}",
+                                        'Industry %': f"{percentage:.1f}%",
+                                        'Avg Risk': f"{domain_risk:.1f}"
+                                    })
+                                
+                                if domain_display:
+                                    domain_df = pd.DataFrame(domain_display)
+                                    st.dataframe(domain_df, use_container_width=True, height=300)
+                                
+                                # Industry-specific compliance notes
+                                compliance_info = {
+                                    'banking': {
+                                        'regulations': ['GDPR', 'SOX', 'PCI DSS', 'Basel III'],
+                                        'focus': 'Financial data protection and transaction monitoring',
+                                        'keywords': ['account', 'transaction', 'balance', 'payment']
+                                    },
+                                    'financial_services': {
+                                        'regulations': ['GDPR', 'MiFID II', 'SOX'],
+                                        'focus': 'Investment data and client information protection',
+                                        'keywords': ['investment', 'portfolio', 'client', 'fund']
+                                    },
+                                    'healthcare': {
+                                        'regulations': ['HIPAA', 'GDPR', 'HITECH'],
+                                        'focus': 'Patient data privacy and medical information security',
+                                        'keywords': ['patient', 'medical', 'diagnosis', 'treatment']
+                                    },
+                                    'education': {
+                                        'regulations': ['FERPA', 'COPPA', 'GDPR'],
+                                        'focus': 'Student record privacy and educational data protection',
+                                        'keywords': ['student', 'grade', 'academic', 'enrollment']
+                                    },
+                                    'government': {
+                                        'regulations': ['FISMA', 'GDPR', 'FOIA'],
+                                        'focus': 'Classified information and citizen data protection',
+                                        'keywords': ['classified', 'sensitive', 'citizen', 'security']
+                                    },
+                                    'technology': {
+                                        'regulations': ['GDPR', 'CCPA', 'SOX'],
+                                        'focus': 'Intellectual property and user data protection',
+                                        'keywords': ['source code', 'algorithm', 'user data', 'api']
+                                    }
+                                }
+                                
+                                if industry in compliance_info:
+                                    info = compliance_info[industry]
+                                    st.write("**Compliance & Risk Considerations:**")
+                                    st.write(f"• **Applicable Regulations:** {', '.join(info['regulations'])}")
+                                    st.write(f"• **Focus Area:** {info['focus']}")
+                                    st.write(f"• **Key Risk Keywords:** {', '.join(info['keywords'])}")
+                                    
+                                    # Check for compliance-related keywords
+                                    if 'word_list_match' in industry_data.columns:
+                                        compliance_matches = 0
+                                        for keyword in info['keywords']:
+                                            keyword_count = len(industry_data[
+                                                industry_data['word_list_match'].str.contains(keyword, case=False, na=False)
+                                            ])
+                                            compliance_matches += keyword_count
+                                        
+                                        if compliance_matches > 0:
+                                            st.warning(f"⚠️ {compliance_matches} emails contain industry-specific sensitive keywords")
+                    
+                    # Overall Industry Summary
+                    st.subheader("📊 Industry Analysis Summary")
+                    
+                    # Calculate industry diversity metrics
+                    total_industries = len([count for count in industry_counts.values() if count > 0])
+                    dominant_industry = industry_counts.index[0] if len(industry_counts) > 0 else "None"
+                    dominant_percentage = (industry_counts.iloc[0] / total_business_emails * 100) if len(industry_counts) > 0 else 0
+                    
+                    summary_col1, summary_col2, summary_col3 = st.columns(3)
+                    
+                    with summary_col1:
+                        st.write("**Industry Diversity:**")
+                        st.write(f"• Total Industries Represented: **{total_industries}**")
+                        st.write(f"• Dominant Industry: **{dominant_industry.replace('_', ' ').title()}**")
+                        st.write(f"• Dominance Level: **{dominant_percentage:.1f}%**")
+                    
+                    with summary_col2:
+                        st.write("**Risk Assessment:**")
+                        regulated_industries = ['banking', 'financial_services', 'healthcare', 'government', 'education']
+                        regulated_count = sum(industry_counts.get(ind, 0) for ind in regulated_industries)
+                        regulated_pct = (regulated_count / total_business_emails * 100) if total_business_emails > 0 else 0
+                        
+                        st.write(f"• Regulated Industry Emails: **{regulated_count:,}** ({regulated_pct:.1f}%)")
+                        
+                        if 'risk_score' in business_domain_df.columns:
+                            high_risk_total = len(business_domain_df[business_domain_df['risk_score'] >= 61])
+                            st.write(f"• High Risk Business Emails: **{high_risk_total:,}**")
+                    
+                    with summary_col3:
+                        st.write("**Compliance Focus:**")
+                        if regulated_pct > 50:
+                            st.error("🚨 High regulatory compliance requirements")
+                        elif regulated_pct > 25:
+                            st.warning("⚠️ Moderate regulatory oversight needed")
+                        else:
+                            st.success("✅ Lower regulatory complexity")
+                        
+                        # Word match summary across industries
+                        if 'word_list_match' in business_domain_df.columns:
+                            total_word_matches = len(business_domain_df[
+                                (business_domain_df['word_list_match'].notna()) & 
+                                (business_domain_df['word_list_match'] != '') & 
+                                (business_domain_df['word_list_match'].astype(str) != '0')
                             ])
-                            if banking_word_matches > 0:
-                                st.warning(f"⚠️ {banking_word_matches} banking emails contain sensitive keywords")
-                    
-                    # Education analysis
-                    if education_count > 0:
-                        education_data = business_domain_df[business_domain_df['email_domain_industry'] == 'education']
-                        education_domains = education_data['email_domain'].value_counts()
-                        st.write(f"**🎓 Education Sector:**")
-                        st.write(f"• {education_count:,} emails from {education_domains.nunique()} educational institutions")
-                        if not education_domains.empty:
-                            st.write(f"• Top education domain: {education_domains.index[0]} ({education_domains.iloc[0]} emails)")
-                    
-                    # Technology analysis
-                    if tech_count > 0:
-                        tech_data = business_domain_df[business_domain_df['email_domain_industry'] == 'technology']
-                        tech_domains = tech_data['email_domain'].value_counts()
-                        st.write(f"**💻 Technology Sector:**")
-                        st.write(f"• {tech_count:,} emails from {tech_domains.nunique()} technology companies")
-                        if not tech_domains.empty:
-                            st.write(f"• Top tech domain: {tech_domains.index[0]} ({tech_domains.iloc[0]} emails)")
+                            word_match_pct = (total_word_matches / total_business_emails * 100) if total_business_emails > 0 else 0
+                            st.write(f"• Sensitive Content: **{total_word_matches:,}** ({word_match_pct:.1f}%)")
                 
             else:
                 st.info("No business domains found for industry analysis")
