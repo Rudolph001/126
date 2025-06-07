@@ -1499,7 +1499,9 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #ffe4cc; color: #cc5500;">{len(high_security_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            High risk indicators: Emails with attachments, leaver to free email domains
+            High-Risk Indicators:<br>
+            • Messages with file attachments<br>
+            • Emails sent by departing employees to free/public email domains
         </p>
     </div>
     """, unsafe_allow_html=True)
