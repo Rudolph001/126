@@ -1510,3 +1510,20 @@ def analytics_page(visualizer, anomaly_detector):
                - Basel III regulatory alignment
                - GDPR data protection compliance
             """)
+
+        # Create and display charts
+        charts = bau_analyzer.create_bau_dashboard_charts(analysis_results)
+        
+        if charts:
+            st.subheader("📈 Visual Analytics")
+            
+            chart_cols = st.columns(2)
+            chart_idx = 0
+            
+            for chart_name, chart in charts.items():
+                with chart_cols[chart_idx % 2]:
+                    st.plotly_chart(chart, use_container_width=True)
+                chart_idx += 1
+
+if __name__ == "__main__":
+    main()
