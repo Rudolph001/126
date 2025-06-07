@@ -778,7 +778,6 @@ def analytics_page(visualizer, anomaly_detector):
 
             # Anomaly details
             st.subheader("Anomaly Details")
-            anomaly_emails = df[anomalies].copy()
             
             # Get anomaly explanations from the detector
             if hasattr(anomaly_detector, 'last_analyzed_df'):
@@ -789,39 +788,125 @@ def analytics_page(visualizer, anomaly_detector):
                     if 'anomaly_score' in anomaly_df_with_reasons.columns:
                         anomaly_df_with_reasons = anomaly_df_with_reasons.sort_values('anomaly_score', ascending=True)
                     
-                    st.write(f"**Top {min(10, len(anomaly_df_with_reasons))} Anomalous Emails with Explanations:**")
+                    st.write(f"**{len(anomaly_df_with_reasons)} Anomalous Emails Found**")
                     
-                    # Display each anomaly with detailed explanation
-                    for idx, (_, row) in enumerate(anomaly_df_with_reasons.head(10).iterrows()):
-                        with st.expander(f"🚨 Anomaly #{idx+1}: {row.get('sender', 'Unknown')} - {row.get('subject', 'No Subject')[:50]}..."):
-                            col1, col2 = st.columns([1, 1])
+                    # Create a clean table for display
+                    display_data = []
+                    for idx, (_, row) in enumerate(anomaly_df_with_reasons.head(20).iterrows()):
+                        # Format time
+                        time_str = str(row.get('time', 'N/A'))
+                        if 'T' in time_str:
+                            time_str = time_str.split('T')[0] + ' ' + time_str.split('T')[1][:8]
+                        
+                        # Get anomaly reasons
+                        reasons = "Statistical outlier"
+                        if 'anomaly_reasons' in row and row['anomaly_reasons']:
+                            reasons = str(row['anomaly_reasons']).replace(' | ', ' • ')
+                        
+                        # Format risk score
+                        risk_score = row.get('risk_score', 0)
+                        risk_display = f"{risk_score:.1f}/100" if risk_score else "N/A"
+                        
+                        # Format anomaly score
+                        anomaly_score = row.get('anomaly_score', 0)
+                        anomaly_display = f"{anomaly_score:.3f}" if anomaly_score else "N/A"
+                        
+                        display_data.append({
+                            'Priority': f"#{idx+1}",
+                            'Date/Time': time_str,
+                            'Sender': str(row.get('sender', 'Unknown'))[:30] + ('...' if len(str(row.get('sender', ''))) > 30 else ''),
+                            'Subject': str(row.get('subject', 'No Subject'))[:40] + ('...' if len(str(row.get('subject', ''))) > 40 else ''),
+                            'Recipients': str(row.get('recipient_count', 'N/A')),
+                            'Risk Score': risk_display,
+                            'Anomaly Score': anomaly_display,
+                            'Anomaly Reasons': reasons[:80] + ('...' if len(reasons) > 80 else '')
+                        })
+                    
+                    # Display as dataframe with better formatting
+                    anomaly_display_df = pd.DataFrame(display_data)
+                    
+                    # Color code based on risk score
+                    def highlight_anomalies(val):
+                        if 'Risk Score' in str(val) and val != 'N/A':
+                            try:
+                                score = float(str(val).split('/')[0])
+                                if score >= 80:
+                                    return 'background-color: #ffebee; color: #c62828'
+                                elif score >= 60:
+                                    return 'background-color: #fff3e0; color: #ef6c00'
+                                elif score >= 40:
+                                    return 'background-color: #fffde7; color: #f57f17'
+                            except:
+                                pass
+                        return ''
+                    
+                    # Apply styling and display
+                    styled_df = anomaly_display_df.style.applymap(highlight_anomalies)
+                    st.dataframe(styled_df, use_container_width=True, height=400)
+                    
+                    # Add summary statistics
+                    st.subheader("Anomaly Summary")
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        high_risk_anomalies = len([d for d in display_data if 'Risk Score' in d and d['Risk Score'] != 'N/A' and float(d['Risk Score'].split('/')[0]) >= 70])
+                        st.metric("High Risk Anomalies", high_risk_anomalies)
+                    
+                    with col2:
+                        avg_risk = sum([float(d['Risk Score'].split('/')[0]) for d in display_data if d['Risk Score'] != 'N/A']) / len([d for d in display_data if d['Risk Score'] != 'N/A'])
+                        st.metric("Avg Risk Score", f"{avg_risk:.1f}/100")
+                    
+                    with col3:
+                        unique_senders = len(set([d['Sender'] for d in display_data]))
+                        st.metric("Unique Senders", unique_senders)
+                    
+                    with col4:
+                        total_recipients = sum([int(d['Recipients']) for d in display_data if d['Recipients'].isdigit()])
+                        st.metric("Total Recipients", total_recipients)
+                    
+                    # Detailed view option
+                    st.subheader("Detailed View")
+                    selected_anomaly = st.selectbox(
+                        "Select an anomaly for detailed analysis:",
+                        options=range(len(display_data)),
+                        format_func=lambda x: f"#{x+1}: {display_data[x]['Sender']} - {display_data[x]['Subject']}"
+                    )
+                    
+                    if selected_anomaly is not None:
+                        selected_row = anomaly_df_with_reasons.iloc[selected_anomaly]
+                        
+                        col1, col2 = st.columns([1, 1])
+                        
+                        with col1:
+                            st.write("**Complete Email Details:**")
+                            st.write(f"**Time:** {selected_row.get('time', 'N/A')}")
+                            st.write(f"**Sender:** {selected_row.get('sender', 'N/A')}")
+                            st.write(f"**Subject:** {selected_row.get('subject', 'N/A')}")
+                            st.write(f"**Recipients:** {selected_row.get('recipient_count', 'N/A')}")
+                            st.write(f"**Attachments:** {selected_row.get('attachments', 'None')}")
+                            st.write(f"**File Types:** {selected_row.get('file_types', 'None')}")
+                            st.write(f"**Email Domain:** {selected_row.get('email_domain', 'N/A')}")
                             
-                            with col1:
-                                st.write("**Email Details:**")
-                                st.write(f"• **Time:** {row.get('time', 'N/A')}")
-                                st.write(f"• **Sender:** {row.get('sender', 'N/A')}")
-                                st.write(f"• **Recipients:** {row.get('recipient_count', 'N/A')}")
-                                st.write(f"• **Risk Score:** {row.get('risk_score', 'N/A'):.1f}/100")
-                                if 'anomaly_score' in row:
-                                    st.write(f"• **Anomaly Score:** {row['anomaly_score']:.2f}")
-                                
-                            with col2:
-                                st.write("**Why This is Flagged as Anomaly:**")
-                                if 'anomaly_reasons' in row and row['anomaly_reasons']:
-                                    reasons = str(row['anomaly_reasons']).split(' | ')
-                                    for reason in reasons:
-                                        st.write(f"• {reason}")
-                                else:
-                                    st.write("• Detected as statistical outlier based on behavioral patterns")
+                        with col2:
+                            st.write("**Risk Assessment:**")
+                            st.write(f"**Risk Score:** {selected_row.get('risk_score', 'N/A'):.1f}/100")
+                            st.write(f"**Risk Level:** {selected_row.get('risk_level', 'N/A')}")
+                            if 'anomaly_score' in selected_row:
+                                st.write(f"**Anomaly Score:** {selected_row['anomaly_score']:.3f}")
+                            st.write(f"**Keywords Found:** {selected_row.get('word_list_match', 'None')}")
+                            
+                            st.write("**Complete Anomaly Analysis:**")
+                            if 'anomaly_reasons' in selected_row and selected_row['anomaly_reasons']:
+                                reasons = str(selected_row['anomaly_reasons']).split(' | ')
+                                for reason in reasons:
+                                    st.write(f"• {reason}")
+                            else:
+                                st.write("• Detected as statistical outlier based on behavioral patterns")
+                
                 else:
                     st.info("No anomaly details available.")
             else:
-                # Fallback to basic display
-                anomaly_emails['anomaly_score'] = anomaly_detector.get_anomaly_score(df)[anomalies]
-                top_anomalies = anomaly_emails.nlargest(10, 'anomaly_score')
-                display_cols = ['time', 'sender', 'subject', 'anomaly_score']
-                available_cols = [col for col in display_cols if col in top_anomalies.columns]
-                st.dataframe(top_anomalies[available_cols])
+                st.info("Anomaly detection analysis not available.")
         else:
             st.info("No significant anomalies detected in the data.")
 
