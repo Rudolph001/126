@@ -723,7 +723,7 @@ def analytics_page(visualizer, anomaly_detector):
     # Analytics options
     analysis_type = st.selectbox(
         "Select Analysis Type",
-        ["Overview", "Anomaly Detection", "Risk Analysis", "Domain Analysis", "Advanced Analytics - Low Risk BAU"]
+        ["Overview", "Anomaly Detection", "Risk Analysis", "Domain Analysis", "Security Tool Coverage", "Advanced Analytics - Low Risk BAU"]
     )
 
     if analysis_type == "Overview":
@@ -1131,6 +1131,207 @@ def analytics_page(visualizer, anomaly_detector):
                     f"{total_free_emails:,}",
                     delta=f"{free_pct:.1f}% of total"
                 )
+
+    elif analysis_type == "Security Tool Coverage":
+        st.subheader("🛡️ Security Tool Coverage Analysis")
+        st.write("Analysis of Tessian Policy and Mimecast security tool coverage across email events")
+        
+        # Check if the required fields exist
+        has_tessian = 'tessian_policy' in df.columns
+        has_mimecast = 'mimecast' in df.columns
+        
+        if not has_tessian and not has_mimecast:
+            st.warning("Neither 'tessian_policy' nor 'mimecast' fields found in the dataset.")
+            st.info("Please ensure your email data includes these security tool fields for coverage analysis.")
+        elif not has_tessian:
+            st.warning("'tessian_policy' field not found in the dataset.")
+        elif not has_mimecast:
+            st.warning("'mimecast' field not found in the dataset.")
+        else:
+            # Analyze coverage
+            def has_data(value):
+                return pd.notna(value) and str(value).strip() not in ['', '0', 'nan', 'None']
+            
+            df['has_tessian_data'] = df['tessian_policy'].apply(has_data)
+            df['has_mimecast_data'] = df['mimecast'].apply(has_data)
+            
+            # Coverage statistics
+            total_emails = len(df)
+            tessian_coverage = df['has_tessian_data'].sum()
+            mimecast_coverage = df['has_mimecast_data'].sum()
+            both_coverage = (df['has_tessian_data'] & df['has_mimecast_data']).sum()
+            neither_coverage = (~df['has_tessian_data'] & ~df['has_mimecast_data']).sum()
+            
+            # Display overview metrics
+            st.subheader("📊 Coverage Overview")
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Total Emails", f"{total_emails:,}")
+            with col2:
+                tessian_pct = (tessian_coverage / total_emails * 100) if total_emails > 0 else 0
+                st.metric("Tessian Coverage", f"{tessian_coverage:,}", f"{tessian_pct:.1f}%")
+            with col3:
+                mimecast_pct = (mimecast_coverage / total_emails * 100) if total_emails > 0 else 0
+                st.metric("Mimecast Coverage", f"{mimecast_coverage:,}", f"{mimecast_pct:.1f}%")
+            with col4:
+                both_pct = (both_coverage / total_emails * 100) if total_emails > 0 else 0
+                st.metric("Both Tools", f"{both_coverage:,}", f"{both_pct:.1f}%")
+            
+            # Coverage gap analysis
+            st.subheader("🔍 Coverage Gap Analysis")
+            
+            # Emails with Tessian but not Mimecast
+            tessian_only = df[df['has_tessian_data'] & ~df['has_mimecast_data']]
+            mimecast_only = df[~df['has_tessian_data'] & df['has_mimecast_data']]
+            no_coverage = df[~df['has_tessian_data'] & ~df['has_mimecast_data']]
+            
+            tab1, tab2, tab3 = st.tabs(["Tessian Only", "Mimecast Only", "No Coverage"])
+            
+            with tab1:
+                st.write(f"**{len(tessian_only)} emails have Tessian Policy data but no Mimecast data**")
+                if not tessian_only.empty:
+                    # Create display table
+                    tessian_display = []
+                    for idx, (_, row) in enumerate(tessian_only.head(50).iterrows()):
+                        time_str = str(row.get('time', 'N/A'))
+                        if 'T' in time_str:
+                            time_str = time_str.split('T')[0] + ' ' + time_str.split('T')[1][:8]
+                        
+                        tessian_display.append({
+                            '#': idx + 1,
+                            'Date/Time': time_str,
+                            'Sender': str(row.get('sender', 'Unknown'))[:40] + ('...' if len(str(row.get('sender', ''))) > 40 else ''),
+                            'Subject': str(row.get('subject', 'No Subject'))[:50] + ('...' if len(str(row.get('subject', ''))) > 50 else ''),
+                            'Tessian Policy': str(row.get('tessian_policy', ''))[:60] + ('...' if len(str(row.get('tessian_policy', ''))) > 60 else ''),
+                            'Risk Score': f"{row.get('risk_score', 0):.1f}/100" if row.get('risk_score') else 'N/A'
+                        })
+                    
+                    tessian_df = pd.DataFrame(tessian_display)
+                    st.dataframe(tessian_df, use_container_width=True, height=400)
+                    
+                    # Summary stats for Tessian-only
+                    st.write("**Summary Statistics:**")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        avg_risk = tessian_only['risk_score'].mean() if 'risk_score' in tessian_only.columns else 0
+                        st.metric("Avg Risk Score", f"{avg_risk:.1f}/100")
+                    with col2:
+                        high_risk_count = len(tessian_only[tessian_only.get('risk_level', '') == 'High'])
+                        st.metric("High Risk Emails", high_risk_count)
+                    with col3:
+                        unique_senders = tessian_only['sender'].nunique()
+                        st.metric("Unique Senders", unique_senders)
+                else:
+                    st.info("No emails found with Tessian data only.")
+            
+            with tab2:
+                st.write(f"**{len(mimecast_only)} emails have Mimecast data but no Tessian Policy data**")
+                if not mimecast_only.empty:
+                    # Create display table
+                    mimecast_display = []
+                    for idx, (_, row) in enumerate(mimecast_only.head(50).iterrows()):
+                        time_str = str(row.get('time', 'N/A'))
+                        if 'T' in time_str:
+                            time_str = time_str.split('T')[0] + ' ' + time_str.split('T')[1][:8]
+                        
+                        mimecast_display.append({
+                            '#': idx + 1,
+                            'Date/Time': time_str,
+                            'Sender': str(row.get('sender', 'Unknown'))[:40] + ('...' if len(str(row.get('sender', ''))) > 40 else ''),
+                            'Subject': str(row.get('subject', 'No Subject'))[:50] + ('...' if len(str(row.get('subject', ''))) > 50 else ''),
+                            'Mimecast': str(row.get('mimecast', ''))[:60] + ('...' if len(str(row.get('mimecast', ''))) > 60 else ''),
+                            'Risk Score': f"{row.get('risk_score', 0):.1f}/100" if row.get('risk_score') else 'N/A'
+                        })
+                    
+                    mimecast_df = pd.DataFrame(mimecast_display)
+                    st.dataframe(mimecast_df, use_container_width=True, height=400)
+                    
+                    # Summary stats for Mimecast-only
+                    st.write("**Summary Statistics:**")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        avg_risk = mimecast_only['risk_score'].mean() if 'risk_score' in mimecast_only.columns else 0
+                        st.metric("Avg Risk Score", f"{avg_risk:.1f}/100")
+                    with col2:
+                        high_risk_count = len(mimecast_only[mimecast_only.get('risk_level', '') == 'High'])
+                        st.metric("High Risk Emails", high_risk_count)
+                    with col3:
+                        unique_senders = mimecast_only['sender'].nunique()
+                        st.metric("Unique Senders", unique_senders)
+                else:
+                    st.info("No emails found with Mimecast data only.")
+            
+            with tab3:
+                st.write(f"**{len(no_coverage)} emails have no security tool coverage**")
+                if not no_coverage.empty:
+                    # Create display table
+                    no_coverage_display = []
+                    for idx, (_, row) in enumerate(no_coverage.head(50).iterrows()):
+                        time_str = str(row.get('time', 'N/A'))
+                        if 'T' in time_str:
+                            time_str = time_str.split('T')[0] + ' ' + time_str.split('T')[1][:8]
+                        
+                        no_coverage_display.append({
+                            '#': idx + 1,
+                            'Date/Time': time_str,
+                            'Sender': str(row.get('sender', 'Unknown'))[:40] + ('...' if len(str(row.get('sender', ''))) > 40 else ''),
+                            'Subject': str(row.get('subject', 'No Subject'))[:60] + ('...' if len(str(row.get('subject', ''))) > 60 else ''),
+                            'Risk Score': f"{row.get('risk_score', 0):.1f}/100" if row.get('risk_score') else 'N/A',
+                            'Risk Level': str(row.get('risk_level', 'N/A'))
+                        })
+                    
+                    no_coverage_df = pd.DataFrame(no_coverage_display)
+                    
+                    # Color code by risk level
+                    def highlight_risk_level(val):
+                        if 'High' in str(val):
+                            return 'background-color: #ffebee; color: #c62828'
+                        elif 'Medium' in str(val):
+                            return 'background-color: #fff3e0; color: #ef6c00'
+                        return ''
+                    
+                    styled_no_coverage = no_coverage_df.style.map(highlight_risk_level)
+                    st.dataframe(styled_no_coverage, use_container_width=True, height=400)
+                    
+                    # Summary stats for no coverage
+                    st.write("**Summary Statistics:**")
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        avg_risk = no_coverage['risk_score'].mean() if 'risk_score' in no_coverage.columns else 0
+                        st.metric("Avg Risk Score", f"{avg_risk:.1f}/100")
+                    with col2:
+                        high_risk_count = len(no_coverage[no_coverage.get('risk_level', '') == 'High'])
+                        st.metric("High Risk Emails", high_risk_count)
+                    with col3:
+                        medium_risk_count = len(no_coverage[no_coverage.get('risk_level', '') == 'Medium'])
+                        st.metric("Medium Risk Emails", medium_risk_count)
+                    with col4:
+                        unique_senders = no_coverage['sender'].nunique()
+                        st.metric("Unique Senders", unique_senders)
+                    
+                    if high_risk_count > 0:
+                        st.warning(f"⚠️ {high_risk_count} high-risk emails lack security tool coverage!")
+                else:
+                    st.success("All emails have some form of security tool coverage.")
+            
+            # Recommendations section
+            st.subheader("💡 Security Coverage Recommendations")
+            
+            if neither_coverage > 0:
+                neither_pct = (neither_coverage / total_emails * 100)
+                st.error(f"**Critical Gap:** {neither_coverage:,} emails ({neither_pct:.1f}%) have no security tool coverage")
+            
+            if len(tessian_only) > 0:
+                tessian_only_pct = (len(tessian_only) / total_emails * 100)
+                st.warning(f"**Mimecast Gap:** {len(tessian_only):,} emails ({tessian_only_pct:.1f}%) only covered by Tessian")
+            
+            if len(mimecast_only) > 0:
+                mimecast_only_pct = (len(mimecast_only) / total_emails * 100)
+                st.warning(f"**Tessian Gap:** {len(mimecast_only):,} emails ({mimecast_only_pct:.1f}%) only covered by Mimecast")
+            
+            if both_coverage > 0:
+                st.success(f"**Good Coverage:** {both_coverage:,} emails ({both_pct:.1f}%) have dual tool protection")
 
     elif analysis_type == "Advanced Analytics - Low Risk BAU":
         from utils.bau_analyzer import BAUAnalyzer
