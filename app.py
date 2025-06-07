@@ -46,9 +46,9 @@ def main():
     
     # Sidebar navigation
     st.sidebar.title("Navigation")
-    page = st.sidebar.selectbox(
+    page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "⚙️ Whitelist Management", "📊 Dashboard", "📈 Analytics", "🌐 Network View", "📧 Follow-up Actions", "📋 Reports"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🌐 Network View", "📧 Follow-up Actions", "📋 Reports", "⚙️ Whitelist Management"]
     )
     
     if page == "📁 Data Upload":
