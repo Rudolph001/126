@@ -4156,13 +4156,207 @@ def find_the_needle_page(domain_classifier, visualizer):
             st.info(insight)
     
     with tab4:
-        st.subheader("Suspicious Domain Pattern Identification")
+        st.subheader("🔍 Suspicious Domain Intelligence & New Domain Detection")
         
         # Enhanced domain analysis using the domain classifier
         domain_analysis = domain_classifier.extract_and_classify_all_domains(df)
         
+        # New Domain Communications Flagging
+        st.subheader("🚨 New Domain Communications - Flag for Review")
+        
+        st.info("""
+        **Domain Intelligence Alert System**
+        
+        This analysis identifies communications to domains that haven't been contacted before by specific users or departments, 
+        which could indicate new business relationships, potential security risks, or policy violations requiring review.
+        """)
+        
+        # Analyze new domain communications by sender
+        new_domain_communications = []
+        
+        if 'sender' in df.columns and 'time' in df.columns:
+            # Sort by time to identify chronological communication patterns
+            df_sorted = df.sort_values('time').copy()
+            
+            # Track domains contacted by each sender over time
+            sender_domain_history = {}
+            
+            for idx, row in df_sorted.iterrows():
+                sender = row.get('sender', '')
+                recipient_domains = row.get('recipients', '')
+                timestamp = row.get('time', '')
+                department = row.get('department', 'Unknown')
+                bunit = row.get('bunit', 'Unknown')
+                subject = row.get('subject', 'No Subject')
+                
+                if not sender or not recipient_domains:
+                    continue
+                
+                # Extract recipient domains from the recipients field
+                import re
+                email_pattern = r'\b[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b'
+                domains = list(set(re.findall(email_pattern, str(recipient_domains))))
+                
+                # Initialize sender history if not exists
+                if sender not in sender_domain_history:
+                    sender_domain_history[sender] = set()
+                
+                # Check each domain
+                for domain in domains:
+                    if domain and domain.lower().strip():
+                        domain_clean = domain.lower().strip()
+                        
+                        # Check if this is a new domain for this sender
+                        if domain_clean not in sender_domain_history[sender]:
+                            # Flag as new domain communication
+                            new_domain_communications.append({
+                                'timestamp': timestamp,
+                                'sender': sender,
+                                'department': department,
+                                'business_unit': bunit,
+                                'new_domain': domain_clean,
+                                'subject': subject[:50] + ('...' if len(subject) > 50 else ''),
+                                'domain_category': domain_classifier._get_detailed_category(domain_clean),
+                                'risk_level': 'High' if domain_clean in domain_classifier.all_free_domains else 'Medium',
+                                'requires_review': True
+                            })
+                        
+                        # Add domain to sender's history
+                        sender_domain_history[sender].add(domain_clean)
+        
+        # Display new domain communications
+        if new_domain_communications:
+            st.subheader(f"⚠️ {len(new_domain_communications)} New Domain Communications Flagged for Review")
+            
+            # Create DataFrame for better display
+            new_domains_df = pd.DataFrame(new_domain_communications)
+            
+            # Summary metrics
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                unique_senders = new_domains_df['sender'].nunique()
+                st.metric("Unique Senders", unique_senders)
+            
+            with col2:
+                unique_domains = new_domains_df['new_domain'].nunique()
+                st.metric("New Domains Found", unique_domains)
+            
+            with col3:
+                high_risk_count = len(new_domains_df[new_domains_df['risk_level'] == 'High'])
+                st.metric("High Risk (Free Email)", high_risk_count)
+            
+            with col4:
+                affected_depts = new_domains_df['department'].nunique()
+                st.metric("Departments Affected", affected_depts)
+            
+            # Risk-based filtering
+            st.subheader("🎯 Filter New Domain Communications")
+            
+            filter_col1, filter_col2, filter_col3 = st.columns(3)
+            
+            with filter_col1:
+                risk_filter = st.selectbox(
+                    "Filter by Risk Level:",
+                    options=['All', 'High', 'Medium'],
+                    index=0
+                )
+            
+            with filter_col2:
+                dept_filter = st.selectbox(
+                    "Filter by Department:",
+                    options=['All'] + sorted(new_domains_df['department'].unique().tolist()),
+                    index=0
+                )
+            
+            with filter_col3:
+                category_filter = st.selectbox(
+                    "Filter by Domain Category:",
+                    options=['All'] + sorted(new_domains_df['domain_category'].unique().tolist()),
+                    index=0
+                )
+            
+            # Apply filters
+            filtered_df = new_domains_df.copy()
+            
+            if risk_filter != 'All':
+                filtered_df = filtered_df[filtered_df['risk_level'] == risk_filter]
+            
+            if dept_filter != 'All':
+                filtered_df = filtered_df[filtered_df['department'] == dept_filter]
+            
+            if category_filter != 'All':
+                filtered_df = filtered_df[filtered_df['domain_category'] == category_filter]
+            
+            # Display filtered results
+            st.write(f"**Showing {len(filtered_df)} flagged communications:**")
+            
+            # Style the dataframe based on risk level
+            def highlight_risk_level(row):
+                if row['risk_level'] == 'High':
+                    return ['background-color: #ffebee; color: #c62828; font-weight: bold'] * len(row)
+                elif row['risk_level'] == 'Medium':
+                    return ['background-color: #fff3e0; color: #ef6c00'] * len(row)
+                else:
+                    return [''] * len(row)
+            
+            if not filtered_df.empty:
+                # Reorder columns for better display
+                display_columns = ['timestamp', 'sender', 'department', 'business_unit', 'new_domain', 'domain_category', 'risk_level', 'subject']
+                filtered_display = filtered_df[display_columns].copy()
+                
+                # Format timestamp
+                if 'timestamp' in filtered_display.columns:
+                    filtered_display['timestamp'] = pd.to_datetime(filtered_display['timestamp']).dt.strftime('%Y-%m-%d %H:%M')
+                
+                # Rename columns for better readability
+                filtered_display.columns = ['Time', 'Sender', 'Department', 'Business Unit', 'New Domain', 'Category', 'Risk Level', 'Subject']
+                
+                styled_df = filtered_display.style.apply(highlight_risk_level, axis=1)
+                st.dataframe(styled_df, use_container_width=True, height=400)
+                
+                # Detailed analysis of flagged domains
+                st.subheader("📊 Detailed Analysis")
+                
+                # Top new domains by frequency
+                domain_freq = filtered_df['new_domain'].value_counts()
+                if not domain_freq.empty:
+                    st.write("**Most Frequently Contacted New Domains:**")
+                    freq_df = pd.DataFrame({
+                        'Domain': domain_freq.index[:10],
+                        'Contact Count': domain_freq.values[:10],
+                        'Category': [domain_classifier._get_detailed_category(d) for d in domain_freq.index[:10]]
+                    })
+                    st.dataframe(freq_df, use_container_width=True)
+                
+                # Department breakdown
+                dept_breakdown = filtered_df.groupby(['department', 'risk_level']).size().unstack(fill_value=0)
+                if not dept_breakdown.empty:
+                    st.write("**New Domain Communications by Department:**")
+                    st.dataframe(dept_breakdown, use_container_width=True)
+                
+                # Export functionality
+                st.subheader("📤 Export Flagged Communications")
+                
+                if st.button("Generate Review Report"):
+                    csv_data = filtered_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download New Domain Communications Report",
+                        data=csv_data,
+                        file_name=f"new_domain_communications_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+            else:
+                st.info("No new domain communications match the selected filters.")
+        else:
+            st.success("✅ No new domain communications detected.")
+            st.info("All communications are to previously contacted domains, indicating established business relationships.")
+        
+        # Additional Domain Intelligence
+        st.subheader("🧠 Additional Domain Intelligence")
+        
         # Suspicious domain indicators
-        st.subheader("Domain Risk Assessment")
+        st.write("### 🚩 Suspicious Domain Patterns")
         
         suspicious_patterns = []
         
@@ -4210,7 +4404,7 @@ def find_the_needle_page(domain_classifier, visualizer):
                 st.info("No domains with suspicious activity patterns detected.")
         
         # Domain statistics summary
-        st.subheader("Domain Statistics Summary")
+        st.subheader("📈 Domain Statistics Summary")
         
         domain_summary = {
             'Total Unique Sender Domains': df['sender_domain'].nunique() if 'sender_domain' in df.columns else 0,
@@ -4229,8 +4423,8 @@ def find_the_needle_page(domain_classifier, visualizer):
             for key, value in list(domain_summary.items())[2:]:
                 st.metric(key, value)
         
-        # New domain detection
-        st.subheader("New Domain Activity")
+        # Historical new domain detection
+        st.subheader("📅 Historical New Domain Activity")
         
         if 'time' in df.columns:
             # Analyze domains by time period to identify new ones
@@ -4244,7 +4438,7 @@ def find_the_needle_page(domain_classifier, visualizer):
             new_domains = late_domains - early_domains
             
             if new_domains:
-                st.write(f"**{len(new_domains)} new domains detected in recent activity:**")
+                st.write(f"**{len(new_domains)} new sender domains detected in recent activity:**")
                 new_domain_df = df[df['sender_domain'].isin(new_domains)].groupby('sender_domain').agg({
                     'sender': 'count',
                     'department': lambda x: ', '.join(x.unique()),
@@ -4253,6 +4447,8 @@ def find_the_needle_page(domain_classifier, visualizer):
                 
                 new_domain_df.columns = ['New Domain', 'Email Count', 'Departments', 'Business Units']
                 st.dataframe(new_domain_df, use_container_width=True)
+            else:
+                st.info("No new sender domains detected in recent period.")
     
     with tab4:
         st.subheader("Policy Recommendations for Business as Usual Monitoring")
