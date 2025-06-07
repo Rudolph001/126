@@ -256,6 +256,27 @@ class DomainClassifier:
     
     def classify_new_domain(self, domain, classification):
         """Manually classify a domain (for learning/updating)"""
-        # This could be extended to store manual classifications
-        # and use them for future classifications
-        pass
+        # Store manual classifications for future use
+        if not hasattr(self, 'manual_classifications'):
+            self.manual_classifications = {}
+        
+        self.manual_classifications[domain.lower()] = classification
+    
+    def get_manual_classification(self, domain):
+        """Get manual classification if available"""
+        if hasattr(self, 'manual_classifications'):
+            return self.manual_classifications.get(domain.lower())
+        return None
+    
+    def _classify_single_domain_with_manual(self, domain):
+        """Classify domain considering manual overrides first"""
+        if not domain:
+            return 'unknown'
+        
+        # Check for manual classification first
+        manual_class = self.get_manual_classification(domain)
+        if manual_class:
+            return manual_class
+        
+        # Fall back to automatic classification
+        return self._classify_single_domain(domain)
