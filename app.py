@@ -54,7 +54,7 @@ def main():
     elif page == "📊 Dashboard":
         dashboard_page(risk_engine, anomaly_detector, visualizer)
     elif page == "📈 Analytics":
-        analytics_page(visualizer, anomaly_detector)
+        analytics_page(visualizer, anomaly_detector, domain_classifier)
     elif page == "📧 Email Monitoring Sources":
         security_coverage_page()
     elif page == "🔄 App Workflow Overview":
@@ -1060,7 +1060,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
 
 
-def analytics_page(visualizer, anomaly_detector):
+def analytics_page(visualizer, anomaly_detector, domain_classifier):
     st.header("📈 Advanced Analytics")
 
     if st.session_state.processed_data is None:
