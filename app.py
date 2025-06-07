@@ -712,42 +712,389 @@ def analytics_page(visualizer, anomaly_detector):
 
     if st.session_state.risk_scores is not None:
         df['risk_score'] = st.session_state.risk_scores
+        df['risk_level'] = df['risk_score'].apply(lambda x: 
+            'High' if x >= 61 else 'Medium' if x >= 31 else 'Low'
+        )
 
-    # Anomaly detection
-    st.subheader("🔍 Anomaly Detection")
+    # Analytics options
+    analysis_type = st.selectbox(
+        "Select Analysis Type",
+        ["Overview", "Anomaly Detection", "Risk Analysis", "Domain Analysis", "Advanced Analytics - Low Risk BAU"]
+    )
+    
+    if analysis_type == "Overview":
+        # Anomaly detection
+        st.subheader("🔍 Anomaly Detection")
 
-    with st.spinner("Running anomaly detection..."):
+        with st.spinner("Running anomaly detection..."):
+            anomalies = anomaly_detector.detect_anomalies(df)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            anomaly_fig = visualizer.create_anomaly_chart(df, anomalies)
+            st.plotly_chart(anomaly_fig, use_container_width=True)
+
+        with col2:
+            behavior_fig = visualizer.create_behavior_analysis_chart(df)
+            st.plotly_chart(behavior_fig, use_container_width=True)
+
+        # Trend analysis
+        st.subheader("📊 Trend Analysis")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            volume_fig = visualizer.create_volume_trend_chart(df)
+            st.plotly_chart(volume_fig, use_container_width=True)
+
+        with col2:
+            domain_fig = visualizer.create_domain_analysis_chart(df)
+            st.plotly_chart(domain_fig, use_container_width=True)
+
+        # Top risk factors
+        st.subheader("⚠️ Top Risk Factors")
+
+        if 'risk_score' in df.columns:
+            risk_factors_fig = visualizer.create_risk_factors_chart(df)
+            st.plotly_chart(risk_factors_fig, use_container_width=True)
+    
+    elif analysis_type == "Anomaly Detection":
+        st.subheader("Anomaly Detection Results")
+        
+        # Detect anomalies
         anomalies = anomaly_detector.detect_anomalies(df)
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        anomaly_fig = visualizer.create_anomaly_chart(df, anomalies)
-        st.plotly_chart(anomaly_fig, use_container_width=True)
-
-    with col2:
-        behavior_fig = visualizer.create_behavior_analysis_chart(df)
-        st.plotly_chart(behavior_fig, use_container_width=True)
-
-    # Trend analysis
-    st.subheader("📊 Trend Analysis")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        volume_fig = visualizer.create_volume_trend_chart(df)
-        st.plotly_chart(volume_fig, use_container_width=True)
-
-    with col2:
-        domain_fig = visualizer.create_domain_analysis_chart(df)
-        st.plotly_chart(domain_fig, use_container_width=True)
-
-    # Top risk factors
-    st.subheader("⚠️ Top Risk Factors")
-
-    if 'risk_score' in df.columns:
-        risk_factors_fig = visualizer.create_risk_factors_chart(df)
-        st.plotly_chart(risk_factors_fig, use_container_width=True)
+        
+        if anomalies is not None and len(anomalies) > 0:
+            st.write(f"**Found {len(anomalies)} anomalous emails**")
+            
+            # Anomaly chart
+            anomaly_chart = visualizer.create_anomaly_chart(df, anomalies)
+            st.plotly_chart(anomaly_chart, use_container_width=True)
+            
+            # Anomaly details
+            st.subheader("Anomaly Details")
+            anomaly_emails = df[anomalies].copy()
+            anomaly_emails['anomaly_score'] = anomaly_detector.get_anomaly_score(df)[anomalies]
+            
+            # Display top anomalies
+            top_anomalies = anomaly_emails.nlargest(10, 'anomaly_score')
+            display_cols = ['time', 'sender', 'subject', 'anomaly_score']
+            available_cols = [col for col in display_cols if col in top_anomalies.columns]
+            st.dataframe(top_anomalies[available_cols])
+        else:
+            st.info("No significant anomalies detected in the data.")
+    
+    elif analysis_type == "Risk Analysis":
+        st.subheader("Risk Factor Analysis")
+        
+        if 'risk_score' in df.columns:
+            # Risk factors chart
+            risk_factors_chart = visualizer.create_risk_factors_chart(df)
+            st.plotly_chart(risk_factors_chart, use_container_width=True)
+            
+            # High risk emails
+            st.subheader("High Risk Emails")
+            high_risk = df[df.get('risk_level', '') == 'High']
+            if not high_risk.empty:
+                display_cols = ['time', 'sender', 'subject', 'risk_score', 'risk_level']
+                available_cols = [col for col in display_cols if col in high_risk.columns]
+                st.dataframe(high_risk[available_cols])
+            else:
+                st.info("No high-risk emails found.")
+        else:
+            st.warning("Risk analysis not available. Please ensure risk scores are calculated.")
+    
+    elif analysis_type == "Domain Analysis":
+        st.subheader("Domain Communication Analysis")
+        
+        # Domain analysis chart
+        domain_chart = visualizer.create_domain_analysis_chart(df)
+        st.plotly_chart(domain_chart, use_container_width=True)
+        
+        # Domain statistics
+        if 'recipient_domains' in df.columns:
+            st.subheader("Domain Statistics")
+            
+            # Extract all domains
+            all_domains = []
+            for domains_str in df['recipient_domains'].dropna():
+                if isinstance(domains_str, str):
+                    all_domains.extend([d.strip() for d in domains_str.split(',')])
+            
+            if all_domains:
+                from collections import Counter
+                domain_counts = Counter(all_domains)
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Unique Domains", len(domain_counts))
+                with col2:
+                    st.metric("Most Common Domain", domain_counts.most_common(1)[0][0])
+                
+                # Top domains table
+                st.subheader("Top Domains")
+                top_domains = pd.DataFrame(domain_counts.most_common(20), 
+                                         columns=['Domain', 'Email Count'])
+                st.dataframe(top_domains)
+    
+    elif analysis_type == "Advanced Analytics - Low Risk BAU":
+        from utils.bau_analyzer import BAUAnalyzer
+        
+        st.subheader("🔍 Low Risk Business-as-Usual Analysis")
+        st.info("Analyzing low-risk emails for BAU patterns and hidden threats including potential IP exfiltration in banking contexts")
+        
+        # Initialize BAU analyzer
+        bau_analyzer = BAUAnalyzer()
+        
+        # Perform analysis
+        with st.spinner("Analyzing low-risk email patterns..."):
+            analysis_results = bau_analyzer.analyze_low_risk_patterns(df)
+        
+        # Display results in tabs
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "BAU Overview", 
+            "Banking Context", 
+            "Hidden IP Risks", 
+            "Anomalies", 
+            "Recommendations"
+        ])
+        
+        with tab1:
+            st.subheader("Business-as-Usual Patterns")
+            
+            bau_patterns = analysis_results.get('bau_patterns', {})
+            
+            # Low risk email count
+            low_risk_count = len(df[df.get('risk_level', '') == 'Low'])
+            total_count = len(df)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Low Risk Emails", low_risk_count)
+            with col2:
+                st.metric("Low Risk %", f"{(low_risk_count/total_count)*100:.1f}%" if total_count > 0 else "0%")
+            with col3:
+                if bau_patterns.get('temporal', {}).get('business_hours_percentage'):
+                    st.metric("Business Hours %", f"{bau_patterns['temporal']['business_hours_percentage']:.1f}%")
+            
+            # Temporal patterns
+            if bau_patterns.get('temporal'):
+                temporal = bau_patterns['temporal']
+                st.subheader("Temporal Patterns")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if 'peak_hours' in temporal and temporal['peak_hours'] is not None:
+                        st.write(f"**Peak Activity Hour:** {temporal['peak_hours']}:00")
+                    if 'daily_volume' in temporal:
+                        st.write(f"**Daily Volume Stats:**")
+                        st.write(f"- Average: {temporal['daily_volume'].get('mean', 0):.1f} emails/day")
+                        st.write(f"- Max: {temporal['daily_volume'].get('max', 0):.0f} emails/day")
+                
+                with col2:
+                    if 'weekly_pattern' in temporal:
+                        st.write("**Weekly Distribution:**")
+                        days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                        for i, day in enumerate(days):
+                            count = temporal['weekly_pattern'].get(i, 0)
+                            st.write(f"- {day}: {count} emails")
+            
+            # Communication patterns
+            if bau_patterns.get('communication'):
+                comm = bau_patterns['communication']
+                st.subheader("Communication Patterns")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("**Top Regular Senders:**")
+                    for sender, count in list(comm.get('regular_senders', {}).items())[:5]:
+                        st.write(f"- {sender}: {count} emails")
+                
+                with col2:
+                    dist = comm.get('sender_distribution', {})
+                    st.write("**Sender Statistics:**")
+                    st.write(f"- Unique Senders: {dist.get('total_unique_senders', 0)}")
+                    st.write(f"- Avg Emails/Sender: {dist.get('avg_emails_per_sender', 0):.1f}")
+                    st.write(f"- Top Sender Dominance: {dist.get('top_sender_dominance', 0):.1f}%")
+        
+        with tab2:
+            st.subheader("Banking Sector Context Analysis")
+            
+            banking_analysis = analysis_results.get('banking_analysis', {})
+            
+            if banking_analysis.get('overview'):
+                overview = banking_analysis['overview']
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Banking Emails", overview.get('total_banking_emails', 0))
+                with col2:
+                    st.metric("Banking %", f"{overview.get('percentage_of_low_risk', 0):.1f}%")
+                with col3:
+                    keywords_found = len(overview.get('banking_keywords_found', []))
+                    st.metric("Banking Keywords", keywords_found)
+                
+                # Banking keywords found
+                if overview.get('banking_keywords_found'):
+                    st.subheader("Banking Keywords Detected")
+                    keywords = overview['banking_keywords_found']
+                    # Display in columns for better layout
+                    cols = st.columns(3)
+                    for i, keyword in enumerate(keywords):
+                        with cols[i % 3]:
+                            st.write(f"• {keyword}")
+                
+                # Banking patterns
+                if banking_analysis.get('patterns'):
+                    patterns = banking_analysis['patterns']
+                    st.subheader("Banking Email Patterns")
+                    
+                    if patterns.get('temporal'):
+                        temp = patterns['temporal']
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Business Hours Compliance:** {temp.get('business_hours_compliance', 0):.1f}%")
+                            st.write(f"**Peak Banking Hour:** {temp.get('peak_banking_hours', 'N/A')}:00")
+                        with col2:
+                            st.write(f"**Weekend Activity:** {temp.get('weekend_banking_activity', 0)} emails")
+                    
+                    if patterns.get('senders'):
+                        send = patterns['senders']
+                        st.write(f"**Unique Banking Senders:** {send.get('unique_banking_senders', 0)}")
+            else:
+                st.info("No banking-related content detected in low-risk emails")
+        
+        with tab3:
+            st.subheader("Hidden IP Risk Detection")
+            
+            ip_risks_df = analysis_results.get('ip_risks', pd.DataFrame())
+            
+            if not ip_risks_df.empty:
+                st.warning(f"Found {len(ip_risks_df)} potentially sensitive emails in low-risk category")
+                
+                # Risk score distribution
+                risk_scores = ip_risks_df['risk_score']
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Avg Risk Score", f"{risk_scores.mean():.1f}")
+                with col2:
+                    st.metric("Max Risk Score", f"{risk_scores.max():.0f}")
+                with col3:
+                    st.metric("High Risk (>7)", len(ip_risks_df[ip_risks_df['risk_score'] > 7]))
+                
+                # Top risky emails
+                st.subheader("Top Risk Emails")
+                display_cols = ['sender', 'subject', 'risk_score', 'banking_keywords', 'ip_keywords']
+                available_cols = [col for col in display_cols if col in ip_risks_df.columns]
+                
+                top_risks = ip_risks_df.nlargest(10, 'risk_score')[available_cols]
+                st.dataframe(top_risks, use_container_width=True)
+                
+                # Risk factors analysis
+                st.subheader("Common Risk Factors")
+                all_factors = []
+                for factors_list in ip_risks_df['risk_factors']:
+                    if isinstance(factors_list, list):
+                        all_factors.extend(factors_list)
+                
+                if all_factors:
+                    from collections import Counter
+                    factor_counts = Counter(all_factors)
+                    
+                    for factor, count in factor_counts.most_common(5):
+                        st.write(f"• {factor}: {count} occurrences")
+            else:
+                st.success("No hidden IP risks detected in low-risk emails")
+        
+        with tab4:
+            st.subheader("Low-Risk Anomalies")
+            
+            anomalies_df = analysis_results.get('anomalies', pd.DataFrame())
+            
+            if not anomalies_df.empty:
+                st.write(f"**Found {len(anomalies_df)} anomalies in low-risk emails**")
+                
+                # Group by type
+                anomaly_types = anomalies_df['type'].value_counts()
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("**Anomaly Types:**")
+                    for anom_type, count in anomaly_types.items():
+                        st.write(f"• {anom_type}: {count}")
+                
+                with col2:
+                    severity_counts = anomalies_df['severity'].value_counts()
+                    st.write("**Severity Distribution:**")
+                    for severity, count in severity_counts.items():
+                        st.write(f"• {severity}: {count}")
+                
+                # Anomaly details
+                st.subheader("Anomaly Details")
+                display_cols = ['type', 'description', 'severity']
+                available_cols = [col for col in display_cols if col in anomalies_df.columns]
+                st.dataframe(anomalies_df[available_cols], use_container_width=True)
+            else:
+                st.info("No anomalies detected in low-risk emails")
+        
+        with tab5:
+            st.subheader("Recommendations & Actions")
+            
+            recommendations = analysis_results.get('recommendations', [])
+            
+            if recommendations:
+                for i, rec in enumerate(recommendations):
+                    with st.expander(f"{rec.get('category', 'General')} - {rec.get('priority', 'Medium')} Priority"):
+                        st.write(f"**Issue:** {rec.get('recommendation', '')}")
+                        st.write(f"**Suggested Action:** {rec.get('action', '')}")
+            else:
+                st.success("No immediate actions required based on current analysis")
+            
+            # Additional suggestions
+            st.subheader("Additional Enhancement Ideas")
+            st.write("""
+            **Consider implementing these features:**
+            
+            1. **Machine Learning Classification**
+               - Train models on banking email patterns
+               - Implement content-based risk scoring
+               - Use natural language processing for IP detection
+            
+            2. **Advanced Behavioral Analysis**
+               - User baseline profiling for banking employees
+               - Peer group comparison analysis
+               - Seasonal pattern recognition
+            
+            3. **Real-time Monitoring**
+               - Live dashboard for banking sector activity
+               - Automated alerts for IP keyword combinations
+               - Integration with compliance systems
+            
+            4. **Content Deep Dive**
+               - Attachment content analysis
+               - Email thread reconstruction
+               - Communication pattern mapping
+            
+            5. **Compliance Integration**
+               - SOX compliance checking
+               - Basel III regulatory alignment
+               - GDPR data protection verification
+            """)
+        
+        # Create and display charts
+        charts = bau_analyzer.create_bau_dashboard_charts(analysis_results)
+        
+        if charts:
+            st.subheader("📈 Visual Analytics")
+            
+            chart_cols = st.columns(2)
+            chart_idx = 0
+            
+            for chart_name, chart in charts.items():
+                with chart_cols[chart_idx % 2]:
+                    st.plotly_chart(chart, use_container_width=True)
+                chart_idx += 1
 
 def network_view_page(visualizer):
     st.header("🌐 Network Visualization")
