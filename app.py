@@ -1904,7 +1904,8 @@ def analytics_page(visualizer, anomaly_detector):
                         st.metric("High Risk Anomalies", high_risk_anomalies)
                     
                     with col2:
-                        avg_risk = sum([float(d['Risk Score'].split('/')[0]) for d in display_data if d['Risk Score'] != 'N/A']) / len([d for d in display_data if d['Risk Score'] != 'N/A'])
+                        risk_scores = [float(d['Risk Score'].split('/')[0]) for d in display_data if d['Risk Score'] != 'N/A']
+                        avg_risk = sum(risk_scores) / len(risk_scores) if len(risk_scores) > 0 else 0
                         st.metric("Avg Risk Score", f"{avg_risk:.1f}/100")
                     
                     with col3:
