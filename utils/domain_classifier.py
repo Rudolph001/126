@@ -244,17 +244,16 @@ class DomainClassifier:
         if 'sender_domain' not in df_copy.columns:
             df_copy['sender_domain'] = df_copy['email_domain']
 
-        # Extract recipient domains if not present - use recipient_domain field if available
-        if 'recipient_domains' not in df_copy.columns:
-            if 'recipient_domain' in df_copy.columns:
-                # Convert single recipient_domain to list format for consistency
-                df_copy['recipient_domains'] = df_copy['recipient_domain'].apply(lambda x: [x] if pd.notna(x) and x != '' else [])
-            elif 'recipients' in df_copy.columns:
-                df_copy['recipient_domains'] = df_copy['recipients'].apply(self._extract_recipient_domains)
+        # Ensure recipient_domain field exists for internal classification
+        if 'recipient_domain' not in df_copy.columns and 'recipients' in df_copy.columns:
+            df_copy['recipient_domain'] = df_copy['recipients'].apply(self._extract_first_recipient_domain)
 
-        # Extract recipient domains for enhanced internal detection
-        if 'recipients' in df_copy.columns:
-            df_copy['recipient_domains'] = df_copy['recipients'].apply(self._extract_recipient_domains)
+        # Extract recipient domains list for analysis
+        if 'recipient_domains' not in df_copy.columns:
+            if 'recipients' in df_copy.columns:
+                df_copy['recipient_domains'] = df_copy['recipients'].apply(self._extract_recipient_domains)
+            elif 'recipient_domain' in df_copy.columns:
+                df_copy['recipient_domains'] = df_copy['recipient_domain'].apply(lambda x: [x] if pd.notna(x) and x != '' else [])
 
         # Classify email domains with internal domain detection
         df_copy['email_domain_type'] = df_copy.apply(self._classify_domain_with_internal_check, axis=1)
@@ -309,6 +308,18 @@ class DomainClassifier:
             if domain:
                 domains.append(domain)
         return list(set(domains))  # Remove duplicates
+
+    def _extract_first_recipient_domain(self, recipients):
+        """Extract first recipient domain from recipients string"""
+        if pd.isna(recipients) or recipients == '':
+            return ''
+
+        import re
+        # Find first email address in the recipients string
+        emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', str(recipients))
+        if emails:
+            return self._extract_domain(emails[0])
+        return ''
 
     def _classify_domain_with_internal_check(self, row):
         """Classify domain considering sender-recipient domain matching for internal detection"""
