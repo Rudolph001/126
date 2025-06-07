@@ -1697,15 +1697,8 @@ def analytics_page(visualizer, anomaly_detector):
         # Trend analysis
         st.subheader("📊 Trend Analysis")
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-            volume_fig = visualizer.create_volume_trend_chart(df)
-            st.plotly_chart(volume_fig, use_container_width=True)
-
-        with col2:
-            domain_fig = visualizer.create_domain_analysis_chart(df)
-            st.plotly_chart(domain_fig, use_container_width=True)
+        volume_fig = visualizer.create_volume_trend_chart(df)
+        st.plotly_chart(volume_fig, use_container_width=True)
 
         # Top risk factors
         st.subheader("⚠️ Top Risk Factors")
