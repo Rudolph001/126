@@ -47,7 +47,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🌐 Network View", "📧 Follow-up Actions", "📋 Reports", "⚙️ Whitelist Management"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🌐 Network View", "📧 Follow-up Actions", "⚙️ Whitelist Management"]
     )
 
     if page == "📁 Data Upload":
@@ -62,8 +62,6 @@ def main():
         network_view_page(visualizer)
     elif page == "📧 Follow-up Actions":
         follow_up_actions_page(email_generator)
-    elif page == "📋 Reports":
-        reports_page()
 
 def network_view_page(visualizer):
     st.header("🌐 Network View - Domain Analysis")
