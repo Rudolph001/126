@@ -327,8 +327,9 @@ class DomainClassifier:
                 else:
                     return 'free'
 
-        # Fall back to standard classification
-        return self._classify_single_domain(sender_domain)
+        # Use standard classification but NEVER use _is_internal_domain heuristics alone
+        # Only classify as internal if there's actual sender-recipient domain matching
+        return self._classify_single_domain_strict(sender_domain)
 
     def _classify_single_domain(self, domain):
         """Classify a single domain"""
@@ -345,6 +346,28 @@ class DomainClassifier:
         if self._is_internal_domain(domain):
             return 'internal'
 
+        # Check for business domain patterns
+        if self._is_business_domain(domain):
+            return 'business'
+
+        # Default to business if it has business-like characteristics
+        if self._has_business_characteristics(domain):
+            return 'business'
+
+        return 'public'
+
+    def _classify_single_domain_strict(self, domain):
+        """Classify a single domain without internal heuristics - only use actual sender-recipient matching"""
+        if not domain:
+            return 'unknown'
+
+        domain = domain.lower().strip()
+
+        # Check if it's a free email provider
+        if domain in self.free_email_domains:
+            return 'free'
+
+        # Skip internal domain pattern checking - only use actual sender-recipient matching
         # Check for business domain patterns
         if self._is_business_domain(domain):
             return 'business'
@@ -461,14 +484,35 @@ class DomainClassifier:
         return domain_type_list[0]  # Fallback to first item
 
     def _is_internal_domain(self, domain):
-        """Check if domain appears to be internal"""
-        # Simple heuristics for internal domains
-        internal_indicators = [
-            '.local', '.internal', '.corp', '.company',
-            'localhost', '192.168.', '10.', '172.'
+        """Check if domain appears to be internal - very restrictive to avoid false positives"""
+        # Only classify as internal if it's clearly an internal infrastructure domain
+        # Domains with "internal" in the name but with public TLDs are likely business domains
+        strict_internal_indicators = [
+            '.local',           # True local domains
+            'localhost',        # Localhost
+            '192.168.',         # Private IP ranges
+            '10.',              # Private IP ranges  
+            '172.16.',          # Private IP ranges (more specific)
+            '172.17.',          # Private IP ranges (more specific)
+            '172.18.',          # Private IP ranges (more specific)
+            '172.19.',          # Private IP ranges (more specific)
+            '172.20.',          # Private IP ranges (more specific)
+            '172.21.',          # Private IP ranges (more specific)
+            '172.22.',          # Private IP ranges (more specific)
+            '172.23.',          # Private IP ranges (more specific)
+            '172.24.',          # Private IP ranges (more specific)
+            '172.25.',          # Private IP ranges (more specific)
+            '172.26.',          # Private IP ranges (more specific)
+            '172.27.',          # Private IP ranges (more specific)
+            '172.28.',          # Private IP ranges (more specific)
+            '172.29.',          # Private IP ranges (more specific)
+            '172.30.',          # Private IP ranges (more specific)
+            '172.31.',          # Private IP ranges (more specific)
         ]
 
-        return any(indicator in domain for indicator in internal_indicators)
+        # Check for exact matches only - don't classify domains like "internal.company.com" as internal
+        # unless they actually match sender-recipient domains
+        return any(domain.startswith(indicator) or domain == indicator.rstrip('.') for indicator in strict_internal_indicators)
 
     def _is_business_domain(self, domain):
         """Check if domain has business characteristics"""
