@@ -124,7 +124,8 @@ class RiskEngine:
             return False
         
         # Calculate daily email counts
-        sender_emails['date'] = sender_emails['time'].dt.date
+        sender_emails = sender_emails.copy()
+        sender_emails.loc[:, 'date'] = sender_emails['time'].dt.date
         daily_counts = sender_emails.groupby('date').size()
         
         if len(daily_counts) < 3:  # Need minimum days of history

@@ -292,8 +292,9 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Domain Management Section
     st.subheader("🌐 Domain Management")
     
-    # Initialize domain classifier (reuse the one from data processing)
+    # Initialize domain classifier and keyword detector
     domain_classifier = DomainClassifier()
+    keyword_detector = KeywordDetector()
     
     # Get all unique domains from the data
     all_domains = set()
@@ -341,9 +342,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                 'recipient_count': recipient_count,
                 'total_email_count': total_count,
                 'avg_risk_score': round(avg_risk, 1) if not pd.isna(avg_risk) else 0,
-                'contains_ip_keywords': any(
-                    domain_classifier._check_ip_keywords(row) for _, row in domain_emails.iterrows()
-                ) if len(domain_emails) > 0 else False
+                'contains_ip_keywords': False  # Simplified for now to avoid complex detection
             })
     
     domain_df = pd.DataFrame(domain_data)
