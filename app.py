@@ -841,7 +841,7 @@ def analytics_page(visualizer, anomaly_detector):
                         return ''
                     
                     # Apply styling and display
-                    styled_df = anomaly_display_df.style.applymap(highlight_anomalies)
+                    styled_df = anomaly_display_df.style.map(highlight_anomalies)
                     st.dataframe(styled_df, use_container_width=True, height=400)
                     
                     # Add summary statistics
@@ -921,12 +921,122 @@ def analytics_page(visualizer, anomaly_detector):
             # High risk emails
             st.subheader("High Risk Emails")
             high_risk = df[df.get('risk_level', '') == 'High']
+            
             if not high_risk.empty:
-                display_cols = ['time', 'sender', 'subject', 'risk_score', 'risk_level']
-                available_cols = [col for col in display_cols if col in high_risk.columns]
-                st.dataframe(high_risk[available_cols])
+                st.write(f"**{len(high_risk)} High-Risk Emails Detected**")
+                st.write("These emails have been flagged as high-risk based on multiple security indicators including:")
+                st.write("• IP-sensitive keywords in content • Free email domains • Large attachments • Unusual timing • Volume spikes")
+                
+                # Create enhanced display for high-risk emails
+                high_risk_display = []
+                for idx, (_, row) in enumerate(high_risk.iterrows()):
+                    # Format time
+                    time_str = str(row.get('time', 'N/A'))
+                    if 'T' in time_str:
+                        time_str = time_str.split('T')[0] + ' ' + time_str.split('T')[1][:8]
+                    
+                    # Get risk factors
+                    risk_factors = []
+                    if row.get('word_list_match') and str(row.get('word_list_match')) not in ['0', 'nan', '']:
+                        risk_factors.append("IP Keywords")
+                    if row.get('email_domain') and any(domain in str(row.get('email_domain')).lower() for domain in ['gmail', 'yahoo', 'hotmail']):
+                        risk_factors.append("Free Email Domain")
+                    if row.get('attachments') and str(row.get('attachments')) not in ['0', '']:
+                        risk_factors.append("Has Attachments")
+                    if row.get('recipient_count', 0) > 5:
+                        risk_factors.append("Multiple Recipients")
+                    
+                    high_risk_display.append({
+                        'Priority': f"#{idx+1}",
+                        'Date/Time': time_str,
+                        'Sender': str(row.get('sender', 'Unknown'))[:35] + ('...' if len(str(row.get('sender', ''))) > 35 else ''),
+                        'Subject': str(row.get('subject', 'No Subject'))[:45] + ('...' if len(str(row.get('subject', ''))) > 45 else ''),
+                        'Risk Score': f"{row.get('risk_score', 0):.1f}/100",
+                        'Recipients': str(row.get('recipient_count', 'N/A')),
+                        'Risk Factors': ' • '.join(risk_factors) if risk_factors else 'General Risk Indicators',
+                        'Keywords Found': str(row.get('word_list_match', 'None'))[:30] + ('...' if len(str(row.get('word_list_match', ''))) > 30 else '')
+                    })
+                
+                # Display enhanced high-risk table
+                high_risk_df = pd.DataFrame(high_risk_display)
+                
+                # Color coding for high-risk emails
+                def highlight_high_risk(val):
+                    if 'Risk Score' in str(val):
+                        try:
+                            score = float(str(val).split('/')[0])
+                            if score >= 90:
+                                return 'background-color: #ffcdd2; color: #b71c1c; font-weight: bold'
+                            elif score >= 80:
+                                return 'background-color: #ffebee; color: #c62828'
+                        except:
+                            pass
+                    return ''
+                
+                styled_high_risk = high_risk_df.style.map(highlight_high_risk)
+                st.dataframe(styled_high_risk, use_container_width=True, height=400)
+                
+                # High-risk summary statistics
+                st.subheader("High-Risk Email Summary")
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    critical_risk = len([d for d in high_risk_display if float(d['Risk Score'].split('/')[0]) >= 90])
+                    st.metric("Critical Risk (90+)", critical_risk)
+                
+                with col2:
+                    ip_keywords = len([d for d in high_risk_display if 'IP Keywords' in d['Risk Factors']])
+                    st.metric("With IP Keywords", ip_keywords)
+                
+                with col3:
+                    free_domains = len([d for d in high_risk_display if 'Free Email Domain' in d['Risk Factors']])
+                    st.metric("Free Email Domains", free_domains)
+                
+                with col4:
+                    with_attachments = len([d for d in high_risk_display if 'Has Attachments' in d['Risk Factors']])
+                    st.metric("With Attachments", with_attachments)
+                
+                # Detailed view for high-risk emails
+                st.subheader("Detailed Risk Analysis")
+                selected_high_risk = st.selectbox(
+                    "Select a high-risk email for detailed analysis:",
+                    options=range(len(high_risk_display)),
+                    format_func=lambda x: f"#{x+1}: {high_risk_display[x]['Sender']} - Score: {high_risk_display[x]['Risk Score']}"
+                )
+                
+                if selected_high_risk is not None:
+                    selected_row = high_risk.iloc[selected_high_risk]
+                    
+                    col1, col2 = st.columns([1, 1])
+                    
+                    with col1:
+                        st.write("**Email Information:**")
+                        st.write(f"**Sender:** {selected_row.get('sender', 'N/A')}")
+                        st.write(f"**Subject:** {selected_row.get('subject', 'N/A')}")
+                        st.write(f"**Time:** {selected_row.get('time', 'N/A')}")
+                        st.write(f"**Recipients:** {selected_row.get('recipient_count', 'N/A')}")
+                        st.write(f"**Email Domain:** {selected_row.get('email_domain', 'N/A')}")
+                        st.write(f"**External Domains:** {selected_row.get('external_domains', 'None')}")
+                        
+                    with col2:
+                        st.write("**Risk Assessment:**")
+                        st.write(f"**Risk Score:** {selected_row.get('risk_score', 0):.1f}/100")
+                        st.write(f"**Risk Level:** {selected_row.get('risk_level', 'N/A')}")
+                        st.write(f"**IP Keywords:** {selected_row.get('word_list_match', 'None')}")
+                        st.write(f"**Attachments:** {selected_row.get('attachments', 'None')}")
+                        st.write(f"**File Types:** {selected_row.get('file_types', 'None')}")
+                        
+                        st.write("**Security Recommendations:**")
+                        if selected_row.get('word_list_match') and str(selected_row.get('word_list_match')) not in ['0', 'nan', '']:
+                            st.write("⚠️ Review content for IP data leakage")
+                        if selected_row.get('email_domain') and any(domain in str(selected_row.get('email_domain')).lower() for domain in ['gmail', 'yahoo', 'hotmail']):
+                            st.write("⚠️ Verify sender identity - using free email")
+                        if selected_row.get('attachments'):
+                            st.write("⚠️ Scan attachments before opening")
+                        st.write("⚠️ Consider blocking or monitoring this sender")
+                
             else:
-                st.info("No high-risk emails found.")
+                st.info("No high-risk emails found in the current dataset.")
         else:
             st.warning("Risk analysis not available. Please ensure risk scores are calculated.")
 
