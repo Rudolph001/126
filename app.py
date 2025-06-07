@@ -47,7 +47,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📊 Email Volume Metrics: Mimecast vs Tessian", "🏢 Enhanced Domain Analysis", "📧 Follow-up Actions", "🔄 App Flow Dashboard"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📧 Email Monitoring Sources", "🏢 Enhanced Domain Analysis", "📧 Follow-up Actions", "🔄 App Flow Dashboard"]
     )
 
     if page == "📁 Data Upload":
@@ -56,7 +56,7 @@ def main():
         dashboard_page(risk_engine, anomaly_detector, visualizer)
     elif page == "📈 Analytics":
         analytics_page(visualizer, anomaly_detector)
-    elif page == "📊 Email Volume Metrics: Mimecast vs Tessian":
+    elif page == "📧 Email Monitoring Sources":
         security_coverage_page()
     elif page == "🏢 Enhanced Domain Analysis":
         enhanced_domain_analysis_page(domain_classifier)
@@ -66,7 +66,7 @@ def main():
         follow_up_actions_page(email_generator)
 
 def security_coverage_page():
-    st.header("📊 Email Volume Metrics: Mimecast vs Tessian")
+    st.header("📧 Email Monitoring Sources")
     
     if st.session_state.processed_data is None:
         st.warning("Please upload email data first in the Data Upload page.")
@@ -74,18 +74,19 @@ def security_coverage_page():
     
     df = st.session_state.processed_data.copy()
     
-    # Add explanatory note about security tool coverage
+    # Add explanatory note about email monitoring sources
     st.info("""
-    📋 **Security Tool Coverage Information**
+    📋 **Email Monitoring Sources Information**
     
-    This analysis shows email security coverage based on two key protection systems:
-    - **Tessian**: Email security solution for threat detection and data loss prevention
-    - **Mimecast**: Email security platform providing comprehensive email protection
+    This analysis shows email monitoring coverage from two different security systems:
+    - **Mimecast**: Captures and monitors all outgoing emails as a comprehensive email gateway solution
+    - **Tessian**: Policy-based monitoring system that triggers alerts only when specific security policies are matched
     
-    The coverage categories are:
-    - **Full Coverage**: Protected by both Tessian and Mimecast
-    - **Partial Coverage**: Protected by either Tessian or Mimecast (but not both)
-    - **No Coverage**: Not protected by either security tool
+    The monitoring categories are:
+    - **Dual Monitoring**: Emails captured by Mimecast and also triggered Tessian policies
+    - **Mimecast Only**: Emails captured by Mimecast but did not trigger any Tessian policies
+    - **Tessian Only**: Emails that triggered Tessian policies (less common scenario)
+    - **No Monitoring**: Emails not captured by either system (indicates potential gaps)
     """)
     
     # Security Tool Coverage Analysis
