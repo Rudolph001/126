@@ -314,9 +314,20 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     
     available_cols = [col for col in display_cols if col in filtered_df.columns]
     
-    # Show filtered dataframe
+    # Show filtered dataframe with conditional styling
     sorted_df = filtered_df[available_cols].sort_values('risk_score', ascending=False)
-    st.dataframe(sorted_df, use_container_width=True)
+    
+    # Apply styling to highlight leaver emails
+    def highlight_leavers(row):
+        # Check if this email is from a leaver
+        if hasattr(row, 'name') and row.name in filtered_df.index:
+            original_row = filtered_df.loc[row.name]
+            if original_row.get('is_leaver', False):
+                return ['background-color: #ffcccc'] * len(row)  # Light red
+        return [''] * len(row)
+    
+    styled_df = sorted_df.style.apply(highlight_leavers, axis=1)
+    st.dataframe(styled_df, use_container_width=True)
     
     # Risk breakdown section
     st.subheader("📊 Risk Factor Analysis")
