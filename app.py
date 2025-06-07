@@ -3552,25 +3552,22 @@ def app_flow_dashboard_page():
     <style>
     /* Main page styles */
     .main-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
+        background: linear-gradient(135deg, #3e5249 0%, #4a5d52 100%);
+        color: #f5f5f0;
         padding: 2.5rem 2rem;
         border-radius: 15px;
         text-align: center;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 8px 24px rgba(62, 82, 73, 0.3);
+        border: 1px solid rgba(245, 245, 240, 0.1);
     }
     
     .main-title {
         font-size: 2.8rem;
         font-weight: 700;
         margin: 0;
-        background: linear-gradient(45deg, #fff, #e8f4fd);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-shadow: none;
+        color: #f5f5f0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     
     .main-subtitle {
@@ -3578,19 +3575,20 @@ def app_flow_dashboard_page():
         margin: 0.5rem 0 0 0;
         opacity: 0.9;
         font-weight: 300;
+        color: #e8e8e0;
     }
 
-    /* Enhanced box styles */
+    /* Enhanced box styles with earthy colors */
     .flow-box {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: linear-gradient(135deg, #7d8471 0%, #6b7360 100%);
+        color: #f5f5f0;
         padding: 1.5rem;
         border-radius: 12px;
         margin: 1rem 0;
         text-align: center;
         font-weight: 600;
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 6px 20px rgba(125, 132, 113, 0.25);
+        border: 1px solid rgba(245, 245, 240, 0.1);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         position: relative;
         overflow: hidden;
@@ -3603,7 +3601,7 @@ def app_flow_dashboard_page():
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        background: linear-gradient(90deg, transparent, rgba(245, 245, 240, 0.1), transparent);
         transition: left 0.5s;
     }
     
@@ -3612,20 +3610,20 @@ def app_flow_dashboard_page():
     }
     
     .flow-box:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(125, 132, 113, 0.35);
     }
 
     .process-box {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
+        background: linear-gradient(135deg, #8b7765 0%, #7a6b59 100%);
+        color: #f5f5f0;
         padding: 1.5rem;
         border-radius: 12px;
         margin: 1rem 0;
         text-align: center;
         font-weight: 600;
-        box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3);
-        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 6px 20px rgba(139, 119, 101, 0.25);
+        border: 1px solid rgba(245, 245, 240, 0.1);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         position: relative;
         overflow: hidden;
@@ -3638,7 +3636,7 @@ def app_flow_dashboard_page():
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+        background: linear-gradient(90deg, transparent, rgba(245, 245, 240, 0.15), transparent);
         transition: left 0.5s;
     }
     
@@ -3647,20 +3645,20 @@ def app_flow_dashboard_page():
     }
     
     .process-box:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(240, 147, 251, 0.4);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(139, 119, 101, 0.35);
     }
 
     .output-box {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
+        background: linear-gradient(135deg, #6d7f8b 0%, #5f7179 100%);
+        color: #f5f5f0;
         padding: 1.5rem;
         border-radius: 12px;
         margin: 1rem 0;
         text-align: center;
         font-weight: 600;
-        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
-        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 6px 20px rgba(109, 127, 139, 0.25);
+        border: 1px solid rgba(245, 245, 240, 0.1);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         position: relative;
         overflow: hidden;
@@ -3673,7 +3671,7 @@ def app_flow_dashboard_page():
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+        background: linear-gradient(90deg, transparent, rgba(245, 245, 240, 0.15), transparent);
         transition: left 0.5s;
     }
     
@@ -3682,20 +3680,20 @@ def app_flow_dashboard_page():
     }
     
     .output-box:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(79, 172, 254, 0.4);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(109, 127, 139, 0.35);
     }
 
     .analysis-box {
-        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        color: white;
+        background: linear-gradient(135deg, #6a7c69 0%, #5d6f5c 100%);
+        color: #f5f5f0;
         padding: 1.5rem;
         border-radius: 12px;
         margin: 1rem 0;
         text-align: center;
         font-weight: 600;
-        box-shadow: 0 8px 25px rgba(67, 233, 123, 0.3);
-        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 6px 20px rgba(106, 124, 105, 0.25);
+        border: 1px solid rgba(245, 245, 240, 0.1);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         position: relative;
         overflow: hidden;
@@ -3708,7 +3706,7 @@ def app_flow_dashboard_page():
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+        background: linear-gradient(90deg, transparent, rgba(245, 245, 240, 0.15), transparent);
         transition: left 0.5s;
     }
     
@@ -3717,14 +3715,14 @@ def app_flow_dashboard_page():
     }
     
     .analysis-box:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(67, 233, 123, 0.4);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(106, 124, 105, 0.35);
     }
 
     .arrow {
         text-align: center;
         font-size: 2.5rem;
-        color: #4a5568;
+        color: #6b6b47;
         margin: 1rem 0;
         text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         animation: bounce 2s infinite;
@@ -3743,16 +3741,16 @@ def app_flow_dashboard_page():
     }
 
     .section-header {
-        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-        color: white;
+        background: linear-gradient(135deg, #4a5249 0%, #5d6356 100%);
+        color: #f5f5f0;
         padding: 2rem;
         border-radius: 15px;
         text-align: center;
         font-size: 1.8rem;
         font-weight: 700;
         margin: 2rem 0;
-        box-shadow: 0 10px 25px rgba(45, 55, 72, 0.3);
-        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 8px 20px rgba(74, 82, 73, 0.3);
+        border: 1px solid rgba(245, 245, 240, 0.1);
         position: relative;
         overflow: hidden;
     }
@@ -3764,7 +3762,7 @@ def app_flow_dashboard_page():
         left: 0;
         right: 0;
         height: 3px;
-        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #4facfe, #43e97b);
+        background: linear-gradient(90deg, #7d8471, #8b7765, #6d7f8b, #6a7c69);
         animation: rainbow 3s linear infinite;
     }
     
@@ -3775,27 +3773,27 @@ def app_flow_dashboard_page():
 
     /* Professional card styles */
     .card {
-        background: white;
+        background: #faf9f6;
         border-radius: 15px;
         padding: 2rem;
         margin: 1rem 0;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        border: 1px solid #e2e8f0;
+        box-shadow: 0 6px 20px rgba(74, 82, 73, 0.15);
+        border: 1px solid #e6e4df;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     
     .card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 28px rgba(74, 82, 73, 0.22);
     }
 
     .card-header {
         font-size: 1.4rem;
         font-weight: 700;
-        color: #2d3748;
+        color: #3e4b3e;
         margin-bottom: 1rem;
         padding-bottom: 0.5rem;
-        border-bottom: 2px solid #e2e8f0;
+        border-bottom: 2px solid #d4d0c4;
     }
 
     /* Enhanced text styles */
@@ -3808,13 +3806,14 @@ def app_flow_dashboard_page():
         padding: 0.5rem 0;
         padding-left: 1.5rem;
         position: relative;
+        color: #5a5a4a;
     }
     
     .feature-list li::before {
         content: '▶';
         position: absolute;
         left: 0;
-        color: #667eea;
+        color: #7d8471;
         font-weight: bold;
     }
 
@@ -3842,16 +3841,17 @@ def app_flow_dashboard_page():
     .stTabs [data-baseweb="tab"] {
         height: 60px;
         padding: 0 24px;
-        background-color: #f7fafc;
+        background-color: #f5f3ef;
         border-radius: 10px;
-        border: 2px solid #e2e8f0;
+        border: 2px solid #d4d0c4;
         font-weight: 600;
+        color: #5a5a4a;
     }
     
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-color: #667eea;
+        background: linear-gradient(135deg, #7d8471 0%, #6b7360 100%);
+        color: #f5f5f0;
+        border-color: #7d8471;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -4388,7 +4388,7 @@ def app_flow_dashboard_page():
                 <h4 class="card-header">🔧 Core Processing Modules</h4>
                 
                 <div style="margin: 1rem 0;">
-                    <h5 style="color: #2d3748;">📦 utils/data_processor.py</h5>
+                    <h5 style="color: #3e4b3e;">📦 utils/data_processor.py</h5>
                     <ul class="feature-list">
                         <li>Multi-format email data validation</li>
                         <li>Advanced temporal analysis & parsing</li>
@@ -4399,7 +4399,7 @@ def app_flow_dashboard_page():
                 </div>
                 
                 <div style="margin: 1rem 0;">
-                    <h5 style="color: #2d3748;">🏢 utils/domain_classifier.py</h5>
+                    <h5 style="color: #3e4b3e;">🏢 utils/domain_classifier.py</h5>
                     <ul class="feature-list">
                         <li>Enterprise domain identification</li>
                         <li>Free email provider detection</li>
@@ -4410,7 +4410,7 @@ def app_flow_dashboard_page():
                 </div>
                 
                 <div style="margin: 1rem 0;">
-                    <h5 style="color: #2d3748;">🧠 utils/risk_engine.py</h5>
+                    <h5 style="color: #3e4b3e;">🧠 utils/risk_engine.py</h5>
                     <ul class="feature-list">
                         <li>Weighted multi-factor scoring</li>
                         <li>Leaver activity detection (70 pts)</li>
@@ -4428,7 +4428,7 @@ def app_flow_dashboard_page():
                 <h4 class="card-header">📊 Analytics & Intelligence Modules</h4>
                 
                 <div style="margin: 1rem 0;">
-                    <h5 style="color: #2d3748;">🔍 utils/anomaly_detector.py</h5>
+                    <h5 style="color: #3e4b3e;">🔍 utils/anomaly_detector.py</h5>
                     <ul class="feature-list">
                         <li>Unsupervised ML anomaly detection</li>
                         <li>Behavioral baseline establishment</li>
@@ -4439,7 +4439,7 @@ def app_flow_dashboard_page():
                 </div>
                 
                 <div style="margin: 1rem 0;">
-                    <h5 style="color: #2d3748;">📈 utils/visualization.py</h5>
+                    <h5 style="color: #3e4b3e;">📈 utils/visualization.py</h5>
                     <ul class="feature-list">
                         <li>Interactive Plotly dashboards</li>
                         <li>Network relationship graphs</li>
@@ -4450,7 +4450,7 @@ def app_flow_dashboard_page():
                 </div>
                 
                 <div style="margin: 1rem 0;">
-                    <h5 style="color: #2d3748;">📧 utils/email_generator.py</h5>
+                    <h5 style="color: #3e4b3e;">📧 utils/email_generator.py</h5>
                     <ul class="feature-list">
                         <li>Automated security alert generation</li>
                         <li>Incident response templates</li>
@@ -4476,7 +4476,7 @@ def app_flow_dashboard_page():
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;">
                 <div>
-                    <h5 style="color: #2d3748;">🔒 Security-First Design</h5>
+                    <h5 style="color: #3e4b3e;">🔒 Security-First Design</h5>
                     <ul class="feature-list">
                         <li><strong>Data Ingestion:</strong> Secure multi-format email data processing</li>
                         <li><strong>Content Analysis:</strong> Deep inspection with privacy protection</li>
@@ -4486,7 +4486,7 @@ def app_flow_dashboard_page():
                 </div>
                 
                 <div>
-                    <h5 style="color: #2d3748;">⚡ Real-Time Operations</h5>
+                    <h5 style="color: #3e4b3e;">⚡ Real-Time Operations</h5>
                     <ul class="feature-list">
                         <li><strong>Threat Detection:</strong> Immediate high-risk identification</li>
                         <li><strong>Visualization:</strong> Interactive security dashboards</li>
@@ -4496,9 +4496,9 @@ def app_flow_dashboard_page():
                 </div>
             </div>
             
-            <div style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); padding: 1.5rem; border-radius: 10px; margin: 1rem 0;">
-                <h5 style="color: #2e7d32; margin-bottom: 0.5rem;">🎯 Mission-Critical Objective</h5>
-                <p style="margin: 0; color: #2e7d32; font-weight: 500;">
+            <div style="background: linear-gradient(135deg, #ebe8e0 0%, #d9d5c7 100%); padding: 1.5rem; border-radius: 10px; margin: 1rem 0;">
+                <h5 style="color: #4a5249; margin-bottom: 0.5rem;">🎯 Mission-Critical Objective</h5>
+                <p style="margin: 0; color: #4a5249; font-weight: 500;">
                     Detect and prevent data exfiltration attempts and insider threats before they impact 
                     the organization, providing security teams with actionable intelligence and automated 
                     response capabilities for comprehensive email security monitoring.
