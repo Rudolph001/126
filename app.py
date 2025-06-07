@@ -46,7 +46,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "📧 Email Monitoring Sources", "🔄 App Workflow Overview"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🔍 Find the Needle", "📧 Email Monitoring Sources", "🔄 App Workflow Overview"]
     )
 
     if page == "📁 Data Upload":
@@ -55,6 +55,8 @@ def main():
         dashboard_page(risk_engine, anomaly_detector, visualizer)
     elif page == "📈 Analytics":
         analytics_page(visualizer, anomaly_detector, domain_classifier)
+    elif page == "🔍 Find the Needle":
+        find_the_needle_page(domain_classifier, visualizer)
     elif page == "📧 Email Monitoring Sources":
         security_coverage_page()
     elif page == "🔄 App Workflow Overview":
@@ -3527,8 +3529,364 @@ def app_workflow_overview_page():
         </div>
         """, unsafe_allow_html=True)
 
-
+def find_the_needle_page(domain_classifier, visualizer):
+    """Advanced analytics dashboard for department/business unit patterns and suspicious domain identification"""
+    st.header("🔍 Find the Needle - Advanced Business Intelligence")
+    
+    if st.session_state.processed_data is None:
+        st.warning("Please upload email data first in the Data Upload page.")
+        return
+    
+    df = st.session_state.processed_data.copy()
+    
+    # Check for required fields
+    required_fields = ['department', 'bunit']
+    missing_fields = [field for field in required_fields if field not in df.columns]
+    
+    if missing_fields:
+        st.error(f"Required fields missing from data: {', '.join(missing_fields)}")
+        st.info("This dashboard requires 'department' and 'bunit' fields in your email data.")
+        return
+    
+    st.markdown("""
+    **Advanced Analytics for Business Intelligence and Policy Development**
+    
+    This dashboard provides deep insights into organizational email patterns across departments and business units,
+    helping identify suspicious domain activities and establish new monitoring policies.
+    """)
+    
+    # Create tabs for different analyses
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🏢 Department Analytics", 
+        "🏬 Business Unit Insights", 
+        "🚨 Suspicious Domains", 
+        "📊 Policy Recommendations"
+    ])
+    
+    with tab1:
+        st.subheader("Department Email Behavior Analysis")
         
+        # Department overview metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            unique_depts = df['department'].nunique()
+            st.metric("Unique Departments", unique_depts)
+        
+        with col2:
+            avg_emails_per_dept = df.groupby('department').size().mean()
+            st.metric("Avg Emails/Dept", f"{avg_emails_per_dept:.1f}")
+        
+        with col3:
+            high_risk_depts = df[df.get('risk_level', 'Low') == 'High']['department'].nunique()
+            st.metric("Depts with High Risk", high_risk_depts)
+        
+        with col4:
+            external_comm_depts = df[df.get('sender_domain_category', '') != 'Internal']['department'].nunique()
+            st.metric("Depts with External Comm", external_comm_depts)
+        
+        # Department risk distribution
+        st.subheader("Risk Distribution by Department")
+        
+        dept_risk_analysis = df.groupby(['department', df.get('risk_level', 'Low')]).size().unstack(fill_value=0)
+        
+        if not dept_risk_analysis.empty:
+            import plotly.express as px
+            import plotly.graph_objects as go
+            
+            # Create stacked bar chart
+            fig = go.Figure()
+            
+            risk_colors = {'High': '#ff4444', 'Medium': '#ff8800', 'Low': '#44ff44'}
+            
+            for risk_level in dept_risk_analysis.columns:
+                if risk_level in risk_colors:
+                    fig.add_trace(go.Bar(
+                        name=risk_level,
+                        x=dept_risk_analysis.index,
+                        y=dept_risk_analysis[risk_level],
+                        marker_color=risk_colors[risk_level]
+                    ))
+            
+            fig.update_layout(
+                title="Email Risk Distribution by Department",
+                xaxis_title="Department",
+                yaxis_title="Number of Emails",
+                barmode='stack',
+                height=500
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Department external communication patterns
+        st.subheader("External Communication Patterns")
+        
+        external_df = df[df.get('sender_domain_category', '') != 'Internal'].copy()
+        if not external_df.empty:
+            dept_external_stats = external_df.groupby('department').agg({
+                'sender': 'count',
+                'recipients': lambda x: x.str.split(',').str.len().sum(),
+                'attachments': lambda x: (x.notna() & (x != '')).sum()
+            }).round(2)
+            
+            dept_external_stats.columns = ['External Emails', 'Total Recipients', 'Emails with Attachments']
+            dept_external_stats = dept_external_stats.sort_values('External Emails', ascending=False)
+            
+            st.dataframe(dept_external_stats, use_container_width=True)
+        
+        # Top departments by IP keyword detection
+        if 'ip_keywords_detected' in df.columns:
+            st.subheader("IP Keywords by Department")
+            
+            ip_by_dept = df[df['ip_keywords_detected'] > 0].groupby('department').agg({
+                'ip_keywords_detected': ['count', 'sum', 'mean']
+            }).round(2)
+            
+            ip_by_dept.columns = ['Emails with IP Keywords', 'Total IP Keywords', 'Avg IP Keywords/Email']
+            ip_by_dept = ip_by_dept.sort_values('Total IP Keywords', ascending=False)
+            
+            st.dataframe(ip_by_dept, use_container_width=True)
+    
+    with tab2:
+        st.subheader("Business Unit Intelligence Dashboard")
+        
+        # Business unit overview metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            unique_bunits = df['bunit'].nunique()
+            st.metric("Unique Business Units", unique_bunits)
+        
+        with col2:
+            avg_emails_per_bunit = df.groupby('bunit').size().mean()
+            st.metric("Avg Emails/BUnit", f"{avg_emails_per_bunit:.1f}")
+        
+        with col3:
+            high_risk_bunits = df[df.get('risk_level', 'Low') == 'High']['bunit'].nunique()
+            st.metric("BUnits with High Risk", high_risk_bunits)
+        
+        with col4:
+            if 'anomaly_score' in df.columns:
+                anomalous_bunits = df[df['anomaly_score'] > 0]['bunit'].nunique()
+                st.metric("BUnits with Anomalies", anomalous_bunits)
+        
+        # Business unit communication matrix
+        st.subheader("Cross-Business Unit Communication Analysis")
+        
+        # Create communication matrix between business units
+        bunit_comm_data = []
+        for _, row in df.iterrows():
+            sender_bunit = row['bunit']
+            if pd.notna(row.get('recipients', '')):
+                # This is simplified - in real implementation, you'd map recipient emails to business units
+                bunit_comm_data.append({
+                    'Source BUnit': sender_bunit,
+                    'Email Count': 1,
+                    'Risk Level': row.get('risk_level', 'Low'),
+                    'Has Attachments': pd.notna(row.get('attachments', '')) and row.get('attachments', '') != ''
+                })
+        
+        if bunit_comm_data:
+            bunit_df = pd.DataFrame(bunit_comm_data)
+            bunit_summary = bunit_df.groupby(['Source BUnit', 'Risk Level']).size().unstack(fill_value=0)
+            
+            if not bunit_summary.empty:
+                st.dataframe(bunit_summary, use_container_width=True)
+        
+        # Business unit anomaly analysis
+        if 'anomaly_score' in df.columns:
+            st.subheader("Business Unit Anomaly Patterns")
+            
+            bunit_anomalies = df[df['anomaly_score'] > 0].groupby('bunit').agg({
+                'anomaly_score': ['count', 'mean', 'max'],
+                'sender': 'nunique'
+            }).round(2)
+            
+            bunit_anomalies.columns = ['Anomalous Emails', 'Avg Anomaly Score', 'Max Anomaly Score', 'Unique Senders']
+            bunit_anomalies = bunit_anomalies.sort_values('Avg Anomaly Score', ascending=False)
+            
+            st.dataframe(bunit_anomalies, use_container_width=True)
+    
+    with tab3:
+        st.subheader("Suspicious Domain Pattern Identification")
+        
+        # Enhanced domain analysis using the domain classifier
+        domain_analysis = domain_classifier.extract_and_classify_all_domains(df)
+        
+        # Suspicious domain indicators
+        st.subheader("Domain Risk Assessment")
+        
+        suspicious_patterns = []
+        
+        # Analyze sender domains
+        if 'sender_domain' in df.columns:
+            sender_domain_stats = df.groupby(['sender_domain', 'department', 'bunit']).agg({
+                'sender': 'count',
+                'risk_level': lambda x: (x == 'High').sum() if 'risk_level' in df.columns else 0,
+                'ip_keywords_detected': 'sum' if 'ip_keywords_detected' in df.columns else lambda x: 0
+            }).reset_index()
+            
+            sender_domain_stats.columns = ['Domain', 'Department', 'Business Unit', 'Email Count', 'High Risk Emails', 'IP Keywords']
+            
+            # Flag suspicious patterns
+            suspicious_domains = sender_domain_stats[
+                (sender_domain_stats['High Risk Emails'] > 0) | 
+                (sender_domain_stats['IP Keywords'] > 0)
+            ].sort_values(['High Risk Emails', 'IP Keywords'], ascending=False)
+            
+            if not suspicious_domains.empty:
+                st.write("**Domains with Suspicious Activity:**")
+                st.dataframe(suspicious_domains, use_container_width=True)
+        
+        # Domain statistics summary
+        st.subheader("Domain Statistics Summary")
+        
+        domain_summary = {
+            'Total Unique Sender Domains': df['sender_domain'].nunique() if 'sender_domain' in df.columns else 0,
+            'Internal Domains': len([d for d in df.get('sender_domain', []) if 'Internal' in str(df.get('sender_domain_category', ''))]),
+            'Free Email Domains': len([d for d in df.get('sender_domain', []) if 'Free Email' in str(df.get('sender_domain_category', ''))]),
+            'Business Domains': len([d for d in df.get('sender_domain', []) if 'Business' in str(df.get('sender_domain_category', ''))])
+        }
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            for key, value in list(domain_summary.items())[:2]:
+                st.metric(key, value)
+        
+        with col2:
+            for key, value in list(domain_summary.items())[2:]:
+                st.metric(key, value)
+        
+        # New domain detection
+        st.subheader("New Domain Activity")
+        
+        if 'time' in df.columns:
+            # Analyze domains by time period to identify new ones
+            df_sorted = df.sort_values('time')
+            
+            # Split data into time periods (e.g., first half vs second half)
+            midpoint = len(df_sorted) // 2
+            early_domains = set(df_sorted.iloc[:midpoint]['sender_domain'].dropna()) if 'sender_domain' in df.columns else set()
+            late_domains = set(df_sorted.iloc[midpoint:]['sender_domain'].dropna()) if 'sender_domain' in df.columns else set()
+            
+            new_domains = late_domains - early_domains
+            
+            if new_domains:
+                st.write(f"**{len(new_domains)} new domains detected in recent activity:**")
+                new_domain_df = df[df['sender_domain'].isin(new_domains)].groupby('sender_domain').agg({
+                    'sender': 'count',
+                    'department': lambda x: ', '.join(x.unique()),
+                    'bunit': lambda x: ', '.join(x.unique())
+                }).reset_index()
+                
+                new_domain_df.columns = ['New Domain', 'Email Count', 'Departments', 'Business Units']
+                st.dataframe(new_domain_df, use_container_width=True)
+    
+    with tab4:
+        st.subheader("Policy Recommendations for Business as Usual Monitoring")
+        
+        # Generate recommendations based on analysis
+        recommendations = []
+        
+        # Department-based recommendations
+        if 'department' in df.columns:
+            high_risk_depts = df[df.get('risk_level', 'Low') == 'High']['department'].value_counts()
+            if not high_risk_depts.empty:
+                top_risk_dept = high_risk_depts.index[0]
+                recommendations.append({
+                    'Category': 'Department Monitoring',
+                    'Priority': 'High',
+                    'Recommendation': f'Implement enhanced monitoring for {top_risk_dept} department due to high-risk email activity',
+                    'Rationale': f'{high_risk_depts.iloc[0]} high-risk emails detected'
+                })
+        
+        # Business unit recommendations
+        if 'bunit' in df.columns and 'anomaly_score' in df.columns:
+            anomalous_bunits = df[df['anomaly_score'] > 0]['bunit'].value_counts()
+            if not anomalous_bunits.empty:
+                top_anomaly_bunit = anomalous_bunits.index[0]
+                recommendations.append({
+                    'Category': 'Business Unit Policy',
+                    'Priority': 'Medium',
+                    'Recommendation': f'Review email policies for {top_anomaly_bunit} business unit',
+                    'Rationale': f'{anomalous_bunits.iloc[0]} anomalous emails detected'
+                })
+        
+        # Domain-based recommendations
+        if 'sender_domain_category' in df.columns:
+            free_email_usage = (df['sender_domain_category'] == 'Free Email').sum()
+            if free_email_usage > 0:
+                recommendations.append({
+                    'Category': 'Domain Policy',
+                    'Priority': 'Medium',
+                    'Recommendation': 'Consider restricting or monitoring free email domain usage for business communications',
+                    'Rationale': f'{free_email_usage} emails sent from free email domains detected'
+                })
+        
+        # IP keyword recommendations
+        if 'ip_keywords_detected' in df.columns:
+            ip_keyword_count = (df['ip_keywords_detected'] > 0).sum()
+            if ip_keyword_count > 0:
+                recommendations.append({
+                    'Category': 'Content Monitoring',
+                    'Priority': 'High',
+                    'Recommendation': 'Implement automated flagging for emails containing IP-related keywords',
+                    'Rationale': f'{ip_keyword_count} emails with IP keywords detected'
+                })
+        
+        # Display recommendations
+        if recommendations:
+            st.write("**Automated Policy Recommendations:**")
+            
+            for i, rec in enumerate(recommendations):
+                priority_color = {'High': '🔴', 'Medium': '🟡', 'Low': '🟢'}
+                
+                with st.expander(f"{priority_color.get(rec['Priority'], '⚪')} {rec['Category']} - {rec['Priority']} Priority"):
+                    st.write(f"**Recommendation:** {rec['Recommendation']}")
+                    st.write(f"**Rationale:** {rec['Rationale']}")
+        else:
+            st.info("No specific policy recommendations generated. Your email patterns appear to be within normal parameters.")
+        
+        # BAU monitoring suggestions
+        st.subheader("Business as Usual (BAU) Monitoring Setup")
+        
+        st.markdown("""
+        **Suggested ongoing monitoring policies based on your data:**
+        
+        1. **Department-Level Monitoring:**
+           - Set baseline thresholds for each department's email volume
+           - Monitor cross-departmental communication patterns
+           - Flag unusual attachment types by department
+        
+        2. **Business Unit Intelligence:**
+           - Track external domain communication by business unit
+           - Monitor IP keyword usage patterns per business unit
+           - Set up alerts for new external communications
+        
+        3. **Domain Intelligence:**
+           - Maintain whitelist of approved business domains
+           - Flag new domain communications for review
+           - Monitor free email domain usage trends
+        
+        4. **Behavioral Baselines:**
+           - Establish normal communication patterns per department/business unit
+           - Set up anomaly detection thresholds
+           - Monitor deviation from established patterns
+        """)
+        
+        # Export recommendations
+        if st.button("Export Policy Recommendations"):
+            if recommendations:
+                rec_df = pd.DataFrame(recommendations)
+                csv = rec_df.to_csv(index=False)
+                st.download_button(
+                    label="Download Recommendations CSV",
+                    data=csv,
+                    file_name=f"policy_recommendations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+
 
 if __name__ == "__main__":
     main()
