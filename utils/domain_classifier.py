@@ -314,7 +314,7 @@ class DomainClassifier:
         return ''
 
     def _classify_domain_with_internal_check(self, row):
-        """Classify domain based on sender domain only, then check for internal communication"""
+        """Classify domain based on sender domain with strict rules"""
         # Get sender domain
         sender_domain = row.get('sender_domain', '') or row.get('email_domain', '')
         recipient_domain = row.get('recipient_domain', '')
@@ -324,22 +324,24 @@ class DomainClassifier:
 
         sender_clean = sender_domain.lower().strip()
         
-        # First: Always classify free email domains as 'free' regardless of recipient
+        # Rule 1: Free email domains are always classified as 'free'
         if sender_clean in self.free_email_domains:
             return 'free'
         
-        # Second: Check for internal communication (both domains non-free and matching)
+        # Rule 2: Internal communication - only when sender_domain exactly matches recipient_domain
+        # and both are non-free domains
         if recipient_domain and pd.notna(recipient_domain) and str(recipient_domain).strip() != '':
             recipient_clean = str(recipient_domain).lower().strip()
             
-            # If both sender and recipient are the same NON-FREE domain, it's internal
+            # Both must be non-free and exactly matching
             if (sender_clean == recipient_clean and 
                 sender_clean not in self.free_email_domains and 
                 recipient_clean not in self.free_email_domains):
                 return 'internal'
         
-        # Third: For all other cases, classify based on domain characteristics
-        return self._classify_single_domain_strict(sender_clean)
+        # Rule 3: All other non-free domains are classified as 'business'
+        # This includes all legitimate business domains that are not free email providers
+        return 'business'
 
     def _classify_single_domain(self, domain):
         """Classify a single domain"""
@@ -367,26 +369,19 @@ class DomainClassifier:
         return 'public'
 
     def _classify_single_domain_strict(self, domain):
-        """Classify a single domain without internal heuristics - only use actual sender-recipient matching"""
+        """Classify a single domain with strict rules - only free vs business"""
         if not domain:
             return 'unknown'
 
         domain = domain.lower().strip()
 
-        # Check if it's a free email provider
+        # Rule 1: Check if it's a free email provider
         if domain in self.free_email_domains:
             return 'free'
 
-        # Skip internal domain pattern checking - only use actual sender-recipient matching
-        # Check for business domain patterns
-        if self._is_business_domain(domain):
-            return 'business'
-
-        # Default to business if it has business-like characteristics
-        if self._has_business_characteristics(domain):
-            return 'business'
-
-        return 'public'
+        # Rule 2: All other domains are business domains
+        # This includes legitimate business domains, organizations, etc.
+        return 'business'
 
     def _check_internal_communication(self, row):
         """Check if email represents internal communication based on sender-recipient domain matching"""
@@ -490,13 +485,13 @@ class DomainClassifier:
         return False
 
     def _classify_domain_list(self, domain_list):
-        """Classify a list of domains"""
+        """Classify a list of domains using strict classification"""
         if not isinstance(domain_list, list):
             return []
 
         classifications = []
         for domain in domain_list:
-            classification = self._classify_single_domain(domain)
+            classification = self._classify_single_domain_strict(domain)
             classifications.append(classification)
 
         return classifications
