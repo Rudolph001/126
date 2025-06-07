@@ -65,6 +65,111 @@ def main():
     elif page == "📋 Reports":
         reports_page()
 
+def network_view_page(visualizer):
+    st.header("🌐 Network View")
+    
+    if st.session_state.processed_data is None:
+        st.warning("Please upload email data first in the Data Upload page.")
+        return
+    
+    df = st.session_state.processed_data.copy()
+    
+    if st.session_state.risk_scores is not None:
+        df['risk_score'] = st.session_state.risk_scores
+        df['risk_level'] = df['risk_score'].apply(lambda x: 
+            'High' if x >= 61 else 'Medium' if x >= 31 else 'Low'
+        )
+    
+    st.subheader("Email Communication Network")
+    
+    # Network graph options
+    col1, col2 = st.columns(2)
+    with col1:
+        max_nodes = st.slider("Maximum Nodes", 20, 100, 50)
+    with col2:
+        layout_type = st.selectbox("Layout Type", ["spring", "circular", "random"])
+    
+    # Create network graph
+    with st.spinner("Generating network visualization..."):
+        network_fig = visualizer.create_network_graph(df, max_nodes=max_nodes, layout_type=layout_type)
+        st.plotly_chart(network_fig, use_container_width=True)
+    
+    # Network statistics
+    st.subheader("Network Statistics")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        unique_senders = df['sender'].nunique()
+        st.metric("Unique Senders", unique_senders)
+    with col2:
+        total_emails = len(df)
+        st.metric("Total Communications", total_emails)
+    with col3:
+        if 'recipient_domains' in df.columns:
+            all_domains = set()
+            for domains in df['recipient_domains'].dropna():
+                if isinstance(domains, list):
+                    all_domains.update(domains)
+            st.metric("Unique Recipient Domains", len(all_domains))
+
+def reports_page():
+    st.header("📋 Reports")
+    
+    if st.session_state.processed_data is None:
+        st.warning("Please upload email data first in the Data Upload page.")
+        return
+    
+    df = st.session_state.processed_data.copy()
+    
+    st.subheader("Generate Reports")
+    
+    # Report type selection
+    report_type = st.selectbox(
+        "Select Report Type",
+        ["Executive Summary", "Detailed Risk Analysis", "Domain Analysis", "Security Coverage Report"]
+    )
+    
+    if st.button("Generate Report"):
+        if report_type == "Executive Summary":
+            st.subheader("Executive Summary Report")
+            
+            total_emails = len(df)
+            high_risk = len(df[df.get('risk_level', '') == 'High']) if 'risk_level' in df.columns else 0
+            
+            st.write(f"**Total Emails Analyzed:** {total_emails:,}")
+            st.write(f"**High Risk Emails:** {high_risk:,}")
+            st.write(f"**Risk Percentage:** {(high_risk/total_emails*100):.1f}%" if total_emails > 0 else "0%")
+            
+        elif report_type == "Detailed Risk Analysis":
+            st.subheader("Detailed Risk Analysis Report")
+            
+            if 'risk_score' in df.columns:
+                st.write("**Risk Score Distribution:**")
+                risk_summary = df['risk_score'].describe()
+                st.dataframe(risk_summary)
+            else:
+                st.info("Risk scores not available")
+                
+        elif report_type == "Domain Analysis":
+            st.subheader("Domain Analysis Report")
+            
+            if 'email_domain' in df.columns:
+                domain_counts = df['email_domain'].value_counts().head(20)
+                st.write("**Top 20 Email Domains:**")
+                st.dataframe(domain_counts)
+            else:
+                st.info("Domain data not available")
+                
+        elif report_type == "Security Coverage Report":
+            st.subheader("Security Coverage Report")
+            
+            if 'security_coverage' in df.columns:
+                coverage_counts = df['security_coverage'].value_counts()
+                st.write("**Security Tool Coverage:**")
+                st.dataframe(coverage_counts)
+            else:
+                st.info("Security coverage data not available")
+
 def data_upload_page(data_processor, domain_classifier, keyword_detector):
     st.header("📁 Data Upload")
 
@@ -1190,11 +1295,17 @@ def analytics_page(visualizer, anomaly_detector):
 
     elif analysis_type == "Security Tool Coverage":
         st.subheader("🛡️ Security Tool Coverage Analysis")
-        st.write("Analysis of Tessian Policy and Mimecast security tool coverage across email events")
+        st.write("**Complete Dataset Analysis** - Analysis of Tessian Policy and Mimecast security tool coverage across ALL email events in the dataset")
+        
+        # Use complete dataset for analysis (no filtering)
+        analysis_df = df.copy()
+        
+        # Display dataset scope
+        st.info(f"📊 **Analysis Scope:** Using complete dataset of {len(analysis_df):,} emails for comprehensive security tool coverage analysis")
         
         # Check if the required fields exist
-        has_tessian = 'tessian_policy' in df.columns
-        has_mimecast = 'mimecast' in df.columns
+        has_tessian = 'tessian_policy' in analysis_df.columns
+        has_mimecast = 'mimecast' in analysis_df.columns
         
         if not has_tessian and not has_mimecast:
             st.warning("Neither 'tessian_policy' nor 'mimecast' fields found in the dataset.")
@@ -1204,19 +1315,19 @@ def analytics_page(visualizer, anomaly_detector):
         elif not has_mimecast:
             st.warning("'mimecast' field not found in the dataset.")
         else:
-            # Analyze coverage
+            # Analyze coverage using complete dataset
             def has_data(value):
                 return pd.notna(value) and str(value).strip() not in ['', '0', 'nan', 'None']
             
-            df['has_tessian_data'] = df['tessian_policy'].apply(has_data)
-            df['has_mimecast_data'] = df['mimecast'].apply(has_data)
+            analysis_df['has_tessian_data'] = analysis_df['tessian_policy'].apply(has_data)
+            analysis_df['has_mimecast_data'] = analysis_df['mimecast'].apply(has_data)
             
-            # Coverage statistics
-            total_emails = len(df)
-            tessian_coverage = df['has_tessian_data'].sum()
-            mimecast_coverage = df['has_mimecast_data'].sum()
-            both_coverage = (df['has_tessian_data'] & df['has_mimecast_data']).sum()
-            neither_coverage = (~df['has_tessian_data'] & ~df['has_mimecast_data']).sum()
+            # Coverage statistics from complete dataset
+            total_emails = len(analysis_df)
+            tessian_coverage = analysis_df['has_tessian_data'].sum()
+            mimecast_coverage = analysis_df['has_mimecast_data'].sum()
+            both_coverage = (analysis_df['has_tessian_data'] & analysis_df['has_mimecast_data']).sum()
+            neither_coverage = (~analysis_df['has_tessian_data'] & ~analysis_df['has_mimecast_data']).sum()
             
             # Display overview metrics
             st.subheader("📊 Coverage Overview")
@@ -1237,10 +1348,10 @@ def analytics_page(visualizer, anomaly_detector):
             # Coverage gap analysis
             st.subheader("🔍 Coverage Gap Analysis")
             
-            # Emails with Tessian but not Mimecast
-            tessian_only = df[df['has_tessian_data'] & ~df['has_mimecast_data']]
-            mimecast_only = df[~df['has_tessian_data'] & df['has_mimecast_data']]
-            no_coverage = df[~df['has_tessian_data'] & ~df['has_mimecast_data']]
+            # Coverage gap analysis using complete dataset
+            tessian_only = analysis_df[analysis_df['has_tessian_data'] & ~analysis_df['has_mimecast_data']]
+            mimecast_only = analysis_df[~analysis_df['has_tessian_data'] & analysis_df['has_mimecast_data']]
+            no_coverage = analysis_df[~analysis_df['has_tessian_data'] & ~analysis_df['has_mimecast_data']]
             
             tab1, tab2, tab3 = st.tabs(["Tessian Only", "Mimecast Only", "No Coverage"])
             
