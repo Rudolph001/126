@@ -24,8 +24,6 @@ st.set_page_config(
 # Initialize session state
 if 'email_data' not in st.session_state:
     st.session_state.email_data = None
-if 'whitelist_data' not in st.session_state:
-    st.session_state.whitelist_data = pd.DataFrame(columns=['email_address', 'domain'])
 if 'processed_data' not in st.session_state:
     st.session_state.processed_data = None
 if 'risk_scores' not in st.session_state:
@@ -47,13 +45,11 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🌐 Network View", "📧 Follow-up Actions", "📋 Reports", "⚙️ Whitelist Management"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🌐 Network View", "📧 Follow-up Actions"]
     )
 
     if page == "📁 Data Upload":
         data_upload_page(data_processor, domain_classifier, keyword_detector)
-    elif page == "⚙️ Whitelist Management":
-        whitelist_management_page()
     elif page == "📊 Dashboard":
         dashboard_page(risk_engine, anomaly_detector, visualizer)
     elif page == "📈 Analytics":
@@ -62,8 +58,6 @@ def main():
         network_view_page(visualizer)
     elif page == "📧 Follow-up Actions":
         follow_up_actions_page(email_generator)
-    elif page == "📋 Reports":
-        reports_page()
 
 def network_view_page(visualizer):
     st.header("🌐 Network View - Domain Analysis")
@@ -810,209 +804,61 @@ def network_view_page(visualizer):
         with col2:
             st.metric("Free Email Communications", free_emails)
 
-def reports_page():
-    st.header("📋 Reports")
-    
-    if st.session_state.processed_data is None:
-        st.warning("Please upload email data first in the Data Upload page.")
-        return
-    
-    df = st.session_state.processed_data.copy()
-    
-    st.subheader("Generate Reports")
-    
-    # Report type selection
-    report_type = st.selectbox(
-        "Select Report Type",
-        ["Executive Summary", "Detailed Risk Analysis", "Domain Analysis", "Security Coverage Report"]
-    )
-    
-    if st.button("Generate Report"):
-        if report_type == "Executive Summary":
-            st.subheader("Executive Summary Report")
-            
-            total_emails = len(df)
-            high_risk = len(df[df.get('risk_level', '') == 'High']) if 'risk_level' in df.columns else 0
-            
-            st.write(f"**Total Emails Analyzed:** {total_emails:,}")
-            st.write(f"**High Risk Emails:** {high_risk:,}")
-            st.write(f"**Risk Percentage:** {(high_risk/total_emails*100):.1f}%" if total_emails > 0 else "0%")
-            
-        elif report_type == "Detailed Risk Analysis":
-            st.subheader("Detailed Risk Analysis Report")
-            
-            if 'risk_score' in df.columns:
-                st.write("**Risk Score Distribution:**")
-                risk_summary = df['risk_score'].describe()
-                st.dataframe(risk_summary)
-            else:
-                st.info("Risk scores not available")
-                
-        elif report_type == "Domain Analysis":
-            st.subheader("Domain Analysis Report")
-            
-            if 'email_domain' in df.columns:
-                domain_counts = df['email_domain'].value_counts().head(20)
-                st.write("**Top 20 Email Domains:**")
-                st.dataframe(domain_counts)
-            else:
-                st.info("Domain data not available")
-                
-        elif report_type == "Security Coverage Report":
-            st.subheader("Security Coverage Report")
-            
-            if 'security_coverage' in df.columns:
-                coverage_counts = df['security_coverage'].value_counts()
-                st.write("**Security Tool Coverage:**")
-                st.dataframe(coverage_counts)
-            else:
-                st.info("Security coverage data not available")
+
 
 def data_upload_page(data_processor, domain_classifier, keyword_detector):
     st.header("📁 Data Upload")
 
-    col1, col2 = st.columns(2)
+    st.subheader("Email Data Upload")
+    uploaded_file = st.file_uploader(
+        "Upload Email Data (CSV)",
+        type=['csv'],
+        help="Required fields: time, sender, sender_domain, recipients, recipient_domain, email_domain, word_list_match, recipient_status, subject, attachments, act, delivered, deliveryErrors, direction, eventtype, aggreatedid, tessian, tessian_response, mimecast, tessian_outcome, tessian_policy, last_working_day, bunit, department, businessPillar"
+    )
 
-    with col1:
-        st.subheader("Email Data Upload")
-        uploaded_file = st.file_uploader(
-            "Upload Email Data (CSV)",
-            type=['csv'],
-            help="Required fields: time, sender, sender_domain, recipients, recipient_domain, email_domain, word_list_match, recipient_status, subject, attachments, act, delivered, deliveryErrors, direction, eventtype, aggreatedid, tessian, tessian_response, mimecast, tessian_outcome, tessian_policy, last_working_day, bunit, department, businessPillar"
-        )
+    if uploaded_file is not None:
+        try:
+            # Load and validate data
+            df = pd.read_csv(uploaded_file)
 
-        if uploaded_file is not None:
-            try:
-                # Load and validate data
-                df = pd.read_csv(uploaded_file)
+            # Check required fields
+            required_fields = [
+                'time', 'sender', 'sender_domain', 'recipients', 'recipient_domain', 'email_domain', 'word_list_match',
+                'recipient_status', 'subject', 'attachments', 'act', 'delivered',
+                'deliveryErrors', 'direction', 'eventtype', 'aggreatedid', 'tessian',
+                'tessian_response', 'mimecast', 'tessian_outcome', 'tessian_policy',
+                'last_working_day', 'bunit', 'department', 'businessPillar'
+            ]
 
-                # Check required fields
-                required_fields = [
-                    'time', 'sender', 'sender_domain', 'recipients', 'recipient_domain', 'email_domain', 'word_list_match',
-                    'recipient_status', 'subject', 'attachments', 'act', 'delivered',
-                    'deliveryErrors', 'direction', 'eventtype', 'aggreatedid', 'tessian',
-                    'tessian_response', 'mimecast', 'tessian_outcome', 'tessian_policy',
-                    'last_working_day', 'bunit', 'department', 'businessPillar'
-                ]
+            missing_fields = [field for field in required_fields if field not in df.columns]
 
-                missing_fields = [field for field in required_fields if field not in df.columns]
+            if missing_fields:
+                st.error(f"Missing required fields: {', '.join(missing_fields)}")
+            else:
+                # Process the data
+                processed_df = data_processor.process_email_data(df)
 
-                if missing_fields:
-                    st.error(f"Missing required fields: {', '.join(missing_fields)}")
-                else:
-                    # Process the data
-                    processed_df = data_processor.process_email_data(df)
+                # Apply domain classification
+                processed_df = domain_classifier.classify_domains(processed_df)
 
-                    # Apply domain classification
-                    processed_df = domain_classifier.classify_domains(processed_df)
+                # Apply keyword detection
+                processed_df = keyword_detector.detect_keywords(processed_df)
 
-                    # Apply keyword detection
-                    processed_df = keyword_detector.detect_keywords(processed_df)
+                # Store in session state
+                st.session_state.email_data = df
+                st.session_state.processed_data = processed_df
 
-                    # Store in session state
-                    st.session_state.email_data = df
-                    st.session_state.processed_data = processed_df
+                st.success(f"Successfully loaded {len(df)} email records")
+                st.info(f"Data shape: {df.shape}")
 
-                    st.success(f"Successfully loaded {len(df)} email records")
-                    st.info(f"Data shape: {df.shape}")
+                # Show preview
+                st.subheader("Data Preview")
+                st.dataframe(processed_df.head())
 
-                    # Show preview
-                    st.subheader("Data Preview")
-                    st.dataframe(processed_df.head())
+        except Exception as e:
+            st.error(f"Error processing file: {str(e)}")
 
-            except Exception as e:
-                st.error(f"Error processing file: {str(e)}")
 
-    with col2:
-        st.subheader("BAU Whitelist Upload")
-        whitelist_file = st.file_uploader(
-            "Upload Whitelist (CSV)",
-            type=['csv'],
-            key="whitelist_upload",
-            help="Fields: email_address, domain"
-        )
-
-        if whitelist_file is not None:
-            try:
-                whitelist_df = pd.read_csv(whitelist_file)
-
-                # Validate whitelist fields
-                if 'email_address' in whitelist_df.columns and 'domain' in whitelist_df.columns:
-                    st.session_state.whitelist_data = whitelist_df
-                    st.success(f"Successfully loaded {len(whitelist_df)} whitelist entries")
-                    st.dataframe(whitelist_df.head())
-                else:
-                    st.error("Whitelist CSV must contain 'email_address' and 'domain' columns")
-
-            except Exception as e:
-                st.error(f"Error processing whitelist file: {str(e)}")
-
-def whitelist_management_page():
-    st.header("⚙️ BAU Whitelist Management")
-
-    # Display current whitelist
-    st.subheader("Current Whitelist Entries")
-
-    if not st.session_state.whitelist_data.empty:
-        # Make the dataframe editable
-        edited_df = st.data_editor(
-            st.session_state.whitelist_data,
-            num_rows="dynamic",
-            use_container_width=True,
-            key="whitelist_editor",
-            column_config={
-                "email_address": "Email Address",
-                "domain": "Domain"
-            }
-        )
-
-        # Update session state with edits
-        st.session_state.whitelist_data = edited_df
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            if st.button("💾 Save Changes"):
-                st.success("Whitelist updated successfully!")
-                st.rerun()
-
-        with col2:
-            # Download whitelist
-            csv_buffer = io.StringIO()
-            edited_df.to_csv(csv_buffer, index=False)
-            st.download_button(
-                label="📥 Download Whitelist",
-                data=csv_buffer.getvalue(),
-                file_name=f"whitelist_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
-            )
-
-        with col3:
-            if st.button("🗑️ Clear All", type="secondary"):
-                st.session_state.whitelist_data = pd.DataFrame(columns=['email_address', 'domain'])
-                st.rerun()
-    else:
-        st.info("No whitelist entries found. Add entries using the editor below or upload a CSV file.")
-
-        # Create new whitelist entry form
-        st.subheader("Add New Entry")
-        new_entry_df = pd.DataFrame(columns=['email_address', 'domain'])
-        new_entry_df = st.data_editor(
-            new_entry_df,
-            num_rows="dynamic",
-            use_container_width=True,
-            key="new_whitelist_editor",
-            column_config={
-                "email_address": "Email Address",
-                "domain": "Domain"
-            }
-        )
-
-        if st.button("➕ Add Entries"):
-            if not new_entry_df.empty:
-                st.session_state.whitelist_data = pd.concat([st.session_state.whitelist_data, new_entry_df], ignore_index=True)
-                st.success(f"Added {len(new_entry_df)} new entries!")
-                st.rerun()
 
 def follow_up_actions_page(email_generator):
     st.header("📧 Follow-up Actions")
@@ -1118,8 +964,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     if st.session_state.risk_scores is None:
         with st.spinner("🔄 Calculating risk scores..."):
             risk_scores = risk_engine.calculate_risk_scores(
-                st.session_state.processed_data,
-                st.session_state.whitelist_data
+                st.session_state.processed_data
             )
             st.session_state.risk_scores = risk_scores
 
