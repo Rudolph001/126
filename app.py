@@ -256,16 +256,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         avg_risk = df['risk_score'].mean()
         st.metric("Avg Risk Score", f"{avg_risk:.1f}")
 
-    # Risk level distribution chart
-    col1, col2 = st.columns(2)
-
-    with col1:
-        risk_dist_fig = visualizer.create_risk_distribution_chart(df)
-        st.plotly_chart(risk_dist_fig, use_container_width=True)
-
-    with col2:
-        timeline_fig = visualizer.create_timeline_chart(df)
-        st.plotly_chart(timeline_fig, use_container_width=True)
+    
 
     # Email Details with Risk Analysis - Suggested Views
     st.subheader("📧 Email Details with Risk Analysis — Suggested Views")
