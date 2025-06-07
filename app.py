@@ -3547,579 +3547,965 @@ def analytics_page(visualizer, anomaly_detector):
 
 
 def app_flow_dashboard_page():
-    st.header("🔄 ExfilEye Application Flow Dashboard")
-    
-    # Custom CSS for better styling
+    # Professional styling with enhanced design
     st.markdown("""
     <style>
+    /* Main page styles */
+    .main-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        padding: 2.5rem 2rem;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .main-title {
+        font-size: 2.8rem;
+        font-weight: 700;
+        margin: 0;
+        background: linear-gradient(45deg, #fff, #e8f4fd);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: none;
+    }
+    
+    .main-subtitle {
+        font-size: 1.2rem;
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+        font-weight: 300;
+    }
+
+    /* Enhanced box styles */
     .flow-box {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
         text-align: center;
-        font-weight: bold;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        font-weight: 600;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
+    
+    .flow-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        transition: left 0.5s;
+    }
+    
+    .flow-box:hover::before {
+        left: 100%;
+    }
+    
+    .flow-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+    }
+
     .process-box {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
         text-align: center;
-        font-weight: bold;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        font-weight: 600;
+        box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
+    
+    .process-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+        transition: left 0.5s;
+    }
+    
+    .process-box:hover::before {
+        left: 100%;
+    }
+    
+    .process-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(240, 147, 251, 0.4);
+    }
+
     .output-box {
         background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
         text-align: center;
-        font-weight: bold;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        font-weight: 600;
+        box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
+    
+    .output-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+        transition: left 0.5s;
+    }
+    
+    .output-box:hover::before {
+        left: 100%;
+    }
+    
+    .output-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(79, 172, 254, 0.4);
+    }
+
     .analysis-box {
         background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
         text-align: center;
-        font-weight: bold;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        font-weight: 600;
+        box-shadow: 0 8px 25px rgba(67, 233, 123, 0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
+    
+    .analysis-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+        transition: left 0.5s;
+    }
+    
+    .analysis-box:hover::before {
+        left: 100%;
+    }
+    
+    .analysis-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(67, 233, 123, 0.4);
+    }
+
     .arrow {
         text-align: center;
-        font-size: 2rem;
-        color: #666;
-        margin: 0.5rem 0;
-    }
-    .section-header {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        text-align: center;
-        font-size: 1.5rem;
-        font-weight: bold;
+        font-size: 2.5rem;
+        color: #4a5568;
         margin: 1rem 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-5px);
+        }
+        60% {
+            transform: translateY(-3px);
+        }
+    }
+
+    .section-header {
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 2rem 0;
+        box-shadow: 0 10px 25px rgba(45, 55, 72, 0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .section-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #4facfe, #43e97b);
+        animation: rainbow 3s linear infinite;
+    }
+    
+    @keyframes rainbow {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    /* Professional card styles */
+    .card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin: 1rem 0;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+
+    .card-header {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    /* Enhanced text styles */
+    .feature-list {
+        list-style: none;
+        padding: 0;
+    }
+    
+    .feature-list li {
+        padding: 0.5rem 0;
+        padding-left: 1.5rem;
+        position: relative;
+    }
+    
+    .feature-list li::before {
+        content: '▶';
+        position: absolute;
+        left: 0;
+        color: #667eea;
+        font-weight: bold;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .main-title {
+            font-size: 2rem;
+        }
+        
+        .flow-box, .process-box, .output-box, .analysis-box {
+            padding: 1rem;
+        }
+        
+        .section-header {
+            font-size: 1.4rem;
+            padding: 1.5rem;
+        }
+    }
+    
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 60px;
+        padding: 0 24px;
+        background-color: #f7fafc;
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        font-weight: 600;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
     }
     </style>
     """, unsafe_allow_html=True)
     
-    # Introduction
+    # Professional header
     st.markdown("""
-    <div class="section-header">
-        📊 ExfilEye: Data Loss Prevention Email Monitor - Application Architecture
+    <div class="main-header">
+        <h1 class="main-title">🔐 ExfilEye Application Architecture</h1>
+        <p class="main-subtitle">Enterprise Data Loss Prevention & Email Security Monitoring System</p>
     </div>
     """, unsafe_allow_html=True)
     
-    st.write("""
-    **ExfilEye** is a comprehensive email security monitoring system designed to detect potential data exfiltration 
-    and insider threats through advanced email analysis. Below is the complete application flow:
-    """)
-    
-    # Main Application Flow
+    # Introduction with professional layout
     st.markdown("""
-    <div class="section-header">
-        🔄 Main Application Flow
+    <div class="card">
+        <h3 class="card-header">🎯 System Overview</h3>
+        <p style="font-size: 1.1rem; line-height: 1.7; color: #4a5568;">
+            <strong>ExfilEye</strong> is an enterprise-grade email security monitoring platform designed to detect 
+            and prevent data exfiltration through advanced machine learning algorithms, behavioral analysis, 
+            and real-time threat intelligence. The system provides comprehensive visibility into email 
+            communications to identify potential insider threats and unauthorized data transfers.
+        </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Create tabs for different views
-    tab1, tab2, tab3, tab4 = st.tabs(["📋 Overall Flow", "⚙️ Processing Engine", "📊 Analytics Engine", "🎯 Security Features"])
+    # Enhanced tabs with professional layout
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🔄 Application Flow", 
+        "⚙️ Processing Engine", 
+        "📊 Analytics Engine", 
+        "🛡️ Security Features",
+        "🏗️ Architecture"
+    ])
     
     with tab1:
-        st.subheader("📋 Complete Application Workflow")
+        st.markdown("""
+        <div class="section-header">
+            📋 Complete Application Workflow
+        </div>
+        """, unsafe_allow_html=True)
         
-        col1, col2, col3 = st.columns([1, 8, 1])
+        col1, col2, col3 = st.columns([1, 10, 1])
         with col2:
             st.markdown("""
             <div class="flow-box">
-                🏁 START: User Accesses ExfilEye Dashboard
+                🚀 <strong>INITIALIZATION</strong><br>
+                <small>User Authentication & Dashboard Access</small>
             </div>
             <div class="arrow">⬇️</div>
+            
             <div class="flow-box">
-                📁 Step 1: Data Upload Page
-                <br><small>Upload email data CSV + optional whitelist</small>
+                📥 <strong>DATA INGESTION</strong><br>
+                <small>CSV Upload with Email Data & Optional BAU Whitelist</small>
             </div>
             <div class="arrow">⬇️</div>
+            
             <div class="process-box">
-                ⚙️ Step 2: Data Processing Engine
-                <br><small>Validate, clean, and enrich email data</small>
+                🔍 <strong>DATA VALIDATION</strong><br>
+                <small>Schema Validation, Field Verification & Data Quality Checks</small>
             </div>
             <div class="arrow">⬇️</div>
+            
             <div class="process-box">
-                🔍 Step 3: Domain Classification
-                <br><small>Classify email domains (business, free, internal, etc.)</small>
+                🧹 <strong>DATA PREPROCESSING</strong><br>
+                <small>Normalization, Parsing & Temporal Analysis</small>
             </div>
             <div class="arrow">⬇️</div>
+            
             <div class="process-box">
-                🎯 Step 4: Keyword Detection
-                <br><small>Identify sensitive content patterns</small>
+                🏢 <strong>DOMAIN CLASSIFICATION</strong><br>
+                <small>ML-Based Domain Categorization & Risk Assessment</small>
             </div>
             <div class="arrow">⬇️</div>
+            
             <div class="analysis-box">
-                🧠 Step 5: Risk Scoring Engine
-                <br><small>Calculate threat scores using ML algorithms</small>
+                🎯 <strong>CONTENT ANALYSIS</strong><br>
+                <small>Keyword Detection & Sensitive Data Identification</small>
             </div>
             <div class="arrow">⬇️</div>
+            
+            <div class="analysis-box">
+                🧠 <strong>RISK CALCULATION</strong><br>
+                <small>Multi-Factor Scoring & Threat Level Assessment</small>
+            </div>
+            <div class="arrow">⬇️</div>
+            
+            <div class="analysis-box">
+                🔬 <strong>ANOMALY DETECTION</strong><br>
+                <small>Behavioral Analysis & Pattern Recognition</small>
+            </div>
+            <div class="arrow">⬇️</div>
+            
             <div class="output-box">
-                📊 Step 6: Security Dashboard
-                <br><small>Display critical, high, medium, low risk emails</small>
+                📊 <strong>SECURITY DASHBOARD</strong><br>
+                <small>Real-Time Risk Visualization & Alert Management</small>
             </div>
             <div class="arrow">⬇️</div>
+            
             <div class="output-box">
-                📈 Step 7: Advanced Analytics
-                <br><small>Anomaly detection, patterns, trends</small>
+                📈 <strong>ADVANCED ANALYTICS</strong><br>
+                <small>Trend Analysis, Predictions & Intelligence Reports</small>
             </div>
             <div class="arrow">⬇️</div>
+            
             <div class="output-box">
-                🌐 Step 8: Network View
-                <br><small>Domain relationships and communication patterns</small>
+                🌐 <strong>NETWORK ANALYSIS</strong><br>
+                <small>Communication Patterns & Relationship Mapping</small>
             </div>
             <div class="arrow">⬇️</div>
+            
             <div class="output-box">
-                📧 Step 9: Follow-up Actions
-                <br><small>Generate security alerts and recommendations</small>
+                📧 <strong>INCIDENT RESPONSE</strong><br>
+                <small>Automated Alerts & Follow-up Actions</small>
             </div>
             <div class="arrow">⬇️</div>
+            
             <div class="flow-box">
-                🏆 END: Security Team Takes Action
+                ✅ <strong>SECURITY TEAM ACTION</strong><br>
+                <small>Investigation, Response & Threat Mitigation</small>
             </div>
             """, unsafe_allow_html=True)
     
     with tab2:
-        st.subheader("⚙️ Data Processing Engine Details")
+        st.markdown("""
+        <div class="section-header">
+            ⚙️ Data Processing Engine Architecture
+        </div>
+        """, unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("""
-            <div class="section-header">📥 Input Processing</div>
-            <div class="process-box">
-                📄 CSV File Validation
-                <br><small>Check required fields</small>
-            </div>
-            <div class="arrow">⬇️</div>
-            <div class="process-box">
-                🧹 Data Cleaning
-                <br><small>Standardize emails, parse timestamps</small>
-            </div>
-            <div class="arrow">⬇️</div>
-            <div class="process-box">
-                📧 Email Parsing
-                <br><small>Extract domains, recipients, attachments</small>
-            </div>
-            <div class="arrow">⬇️</div>
-            <div class="process-box">
-                ⏰ Temporal Analysis
-                <br><small>Business hours, after-hours detection</small>
+            <div class="card">
+                <h4 class="card-header">📥 Input Processing Pipeline</h4>
+                <div class="process-box">
+                    📄 <strong>Schema Validation</strong><br>
+                    <small>Required field verification & data type checking</small>
+                </div>
+                <div class="arrow">⬇️</div>
+                <div class="process-box">
+                    🧹 <strong>Data Sanitization</strong><br>
+                    <small>Email standardization & timestamp parsing</small>
+                </div>
+                <div class="arrow">⬇️</div>
+                <div class="process-box">
+                    📧 <strong>Entity Extraction</strong><br>
+                    <small>Domain parsing, recipient analysis & attachment processing</small>
+                </div>
+                <div class="arrow">⬇️</div>
+                <div class="process-box">
+                    ⏰ <strong>Temporal Enrichment</strong><br>
+                    <small>Business hours detection & activity patterns</small>
+                </div>
             </div>
             """, unsafe_allow_html=True)
         
         with col2:
             st.markdown("""
-            <div class="section-header">🔧 Enhancement Engine</div>
-            <div class="analysis-box">
-                🏢 Domain Classification
-                <br><small>Business, Free, Internal, Public domains</small>
-            </div>
-            <div class="arrow">⬇️</div>
-            <div class="analysis-box">
-                🎯 Keyword Detection
-                <br><small>IP-sensitive content identification</small>
-            </div>
-            <div class="arrow">⬇️</div>
-            <div class="analysis-box">
-                📎 Attachment Analysis
-                <br><small>File types, sizes, risk assessment</small>
-            </div>
-            <div class="arrow">⬇️</div>
-            <div class="analysis-box">
-                👤 Leaver Detection
-                <br><small>Identify departing employees</small>
+            <div class="card">
+                <h4 class="card-header">🔧 Intelligence Enhancement</h4>
+                <div class="analysis-box">
+                    🏢 <strong>Domain Intelligence</strong><br>
+                    <small>Business/Free/Internal classification with industry mapping</small>
+                </div>
+                <div class="arrow">⬇️</div>
+                <div class="analysis-box">
+                    🎯 <strong>Content Intelligence</strong><br>
+                    <small>Sensitive keyword detection & content categorization</small>
+                </div>
+                <div class="arrow">⬇️</div>
+                <div class="analysis-box">
+                    📎 <strong>Attachment Intelligence</strong><br>
+                    <small>File type analysis, size assessment & risk evaluation</small>
+                </div>
+                <div class="arrow">⬇️</div>
+                <div class="analysis-box">
+                    👤 <strong>User Behavior Intelligence</strong><br>
+                    <small>Leaver detection & behavioral profiling</small>
+                </div>
             </div>
             """, unsafe_allow_html=True)
         
-        # Processing Components
+        # Core Components
         st.markdown("""
-        <div class="section-header">🔍 Key Processing Components</div>
+        <div class="section-header">🔍 Core Processing Components</div>
         """, unsafe_allow_html=True)
         
         comp_col1, comp_col2, comp_col3 = st.columns(3)
         
         with comp_col1:
             st.markdown("""
-            **🏗️ DataProcessor**
-            - Field validation
-            - Email parsing
-            - Time analysis
-            - Recipient counting
-            - Domain extraction
+            <div class="card">
+                <h4 class="card-header">🏗️ DataProcessor</h4>
+                <ul class="feature-list">
+                    <li>Field validation & integrity checks</li>
+                    <li>Email parsing & normalization</li>
+                    <li>Temporal analysis & time zones</li>
+                    <li>Recipient counting & validation</li>
+                    <li>Domain extraction & standardization</li>
+                    <li>Data quality assessment</li>
+                </ul>
+            </div>
             """)
         
         with comp_col2:
             st.markdown("""
-            **🏢 DomainClassifier**
-            - Business domains
-            - Free email providers
-            - Educational institutions
-            - Government domains
-            - Unknown classification
+            <div class="card">
+                <h4 class="card-header">🏢 DomainClassifier</h4>
+                <ul class="feature-list">
+                    <li>Enterprise domain identification</li>
+                    <li>Free email provider detection</li>
+                    <li>Educational institution mapping</li>
+                    <li>Government domain classification</li>
+                    <li>Industry sector categorization</li>
+                    <li>Geographic region analysis</li>
+                </ul>
+            </div>
             """)
         
         with comp_col3:
             st.markdown("""
-            **🔍 KeywordDetector**
-            - Sensitive keywords
-            - IP-related terms
-            - Financial data
-            - Legal documents
-            - Confidential content
+            <div class="card">
+                <h4 class="card-header">🔍 KeywordDetector</h4>
+                <ul class="feature-list">
+                    <li>Intellectual property keywords</li>
+                    <li>Financial data patterns</li>
+                    <li>Legal document indicators</li>
+                    <li>Confidential content markers</li>
+                    <li>Regulatory compliance terms</li>
+                    <li>Custom keyword libraries</li>
+                </ul>
+            </div>
             """)
     
     with tab3:
-        st.subheader("📊 Analytics and Risk Assessment Engine")
+        st.markdown("""
+        <div class="section-header">📊 Advanced Analytics & Risk Assessment</div>
+        """, unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("""
-            <div class="section-header">🧠 Risk Scoring System</div>
-            <div class="analysis-box">
-                🚨 Critical Risk (70+ points)
-                <br><small>Leaver + Attachments + Keywords + Free Email</small>
-            </div>
-            <div class="analysis-box">
-                🔴 High Risk (61-69 points)
-                <br><small>Leaver + Attachments activity</small>
-            </div>
-            <div class="analysis-box">
-                🟡 Medium Risk (31-60 points)
-                <br><small>Attachments + Keywords (no leaver)</small>
-            </div>
-            <div class="analysis-box">
-                🟢 Low Risk (0-30 points)
-                <br><small>Normal business communications</small>
+            <div class="card">
+                <h4 class="card-header">🧠 Multi-Layer Risk Scoring</h4>
+                <div class="analysis-box">
+                    🚨 <strong>CRITICAL (90-100 points)</strong><br>
+                    <small>Leaver + Attachments + Keywords + Free Email + After Hours</small>
+                </div>
+                <div class="analysis-box">
+                    🔴 <strong>HIGH (70-89 points)</strong><br>
+                    <small>Leaver Activity + Large Attachments + Sensitive Keywords</small>
+                </div>
+                <div class="analysis-box">
+                    🟡 <strong>MEDIUM (40-69 points)</strong><br>
+                    <small>Attachments + Keywords + Unusual Timing</small>
+                </div>
+                <div class="analysis-box">
+                    🟢 <strong>LOW (0-39 points)</strong><br>
+                    <small>Standard business communications</small>
+                </div>
             </div>
             """, unsafe_allow_html=True)
         
         with col2:
             st.markdown("""
-            <div class="section-header">🔬 Anomaly Detection</div>
-            <div class="process-box">
-                📈 Volume Spikes
-                <br><small>Unusual email frequency patterns</small>
-            </div>
-            <div class="process-box">
-                🌙 Off-Hours Activity
-                <br><small>Communications outside business hours</small>
-            </div>
-            <div class="process-box">
-                📎 Attachment Anomalies
-                <br><small>Unusual file types or sizes</small>
-            </div>
-            <div class="process-box">
-                🌐 New Domain Communications
-                <br><small>First-time external domain contacts</small>
+            <div class="card">
+                <h4 class="card-header">🔬 Machine Learning Analytics</h4>
+                <div class="process-box">
+                    📈 <strong>Volume Anomaly Detection</strong><br>
+                    <small>Statistical analysis of email frequency patterns</small>
+                </div>
+                <div class="process-box">
+                    🌙 <strong>Temporal Anomaly Detection</strong><br>
+                    <small>After-hours & weekend activity analysis</small>
+                </div>
+                <div class="process-box">
+                    📎 <strong>Content Anomaly Detection</strong><br>
+                    <small>Unusual attachment patterns & file types</small>
+                </div>
+                <div class="process-box">
+                    🌐 <strong>Network Anomaly Detection</strong><br>
+                    <small>New domain communications & relationship changes</small>
+                </div>
             </div>
             """, unsafe_allow_html=True)
         
-        # Risk Factors Visualization
+        # Risk Factor Weights
         st.markdown("""
-        <div class="section-header">⚖️ Risk Calculation Factors</div>
+        <div class="section-header">⚖️ Weighted Risk Assessment Matrix</div>
         """, unsafe_allow_html=True)
         
-        risk_col1, risk_col2, risk_col3, risk_col4 = st.columns(4)
+        risk_col1, risk_col2, risk_col3, risk_col4, risk_col5 = st.columns(5)
         
         with risk_col1:
             st.markdown("""
-            **🏃‍♂️ Leaver Activity**
-            - Weight: 70 points
-            - Last working day detected
-            - Highest priority indicator
+            <div class="card" style="text-align: center;">
+                <h4 style="color: #dc3545;">🏃‍♂️ Leaver Activity</h4>
+                <div style="font-size: 2rem; font-weight: bold; color: #dc3545;">70</div>
+                <p><strong>Weight Points</strong></p>
+                <small>Last working day detection</small>
+            </div>
             """)
         
         with risk_col2:
             st.markdown("""
-            **🎯 IP Keywords**
-            - Weight: 25 points
-            - Sensitive content
-            - Confidential information
+            <div class="card" style="text-align: center;">
+                <h4 style="color: #fd7e14;">🎯 IP Keywords</h4>
+                <div style="font-size: 2rem; font-weight: bold; color: #fd7e14;">25</div>
+                <p><strong>Weight Points</strong></p>
+                <small>Sensitive content detection</small>
+            </div>
             """)
         
         with risk_col3:
             st.markdown("""
-            **📧 Free Email Domains**
-            - Weight: 20 points
-            - Gmail, Yahoo, Hotmail
-            - External communications
+            <div class="card" style="text-align: center;">
+                <h4 style="color: #ffc107;">📧 Free Domains</h4>
+                <div style="font-size: 2rem; font-weight: bold; color: #ffc107;">20</div>
+                <p><strong>Weight Points</strong></p>
+                <small>External email providers</small>
+            </div>
             """)
         
         with risk_col4:
             st.markdown("""
-            **📎 Unusual Attachments**
-            - Weight: 15 points
-            - Risky file types
-            - Large file sizes
+            <div class="card" style="text-align: center;">
+                <h4 style="color: #20c997;">📎 Attachments</h4>
+                <div style="font-size: 2rem; font-weight: bold; color: #20c997;">15</div>
+                <p><strong>Weight Points</strong></p>
+                <small>File transfer analysis</small>
+            </div>
+            """)
+        
+        with risk_col5:
+            st.markdown("""
+            <div class="card" style="text-align: center;">
+                <h4 style="color: #6f42c1;">🌙 After Hours</h4>
+                <div style="font-size: 2rem; font-weight: bold; color: #6f42c1;">10</div>
+                <p><strong>Weight Points</strong></p>
+                <small>Unusual timing patterns</small>
+            </div>
             """)
     
     with tab4:
-        st.subheader("🛡️ Security Features & Capabilities")
-        
-        # Security Tool Coverage
         st.markdown("""
-        <div class="section-header">🔧 Security Tool Integration</div>
+        <div class="section-header">🛡️ Enterprise Security Framework</div>
         """, unsafe_allow_html=True)
         
+        # Security Tool Integration
         sec_col1, sec_col2 = st.columns(2)
         
         with sec_col1:
             st.markdown("""
-            <div class="analysis-box">
-                🛡️ Tessian Integration
-                <br><small>Policy-driven email security monitoring</small>
-            </div>
-            <div class="analysis-box">
-                📬 Mimecast Integration
-                <br><small>Email gateway security analysis</small>
-            </div>
-            <div class="analysis-box">
-                📊 Coverage Analysis
-                <br><small>Identify security gaps and blind spots</small>
+            <div class="card">
+                <h4 class="card-header">🔧 Security Tool Integration</h4>
+                <div class="analysis-box">
+                    🛡️ <strong>Tessian Integration</strong><br>
+                    <small>Policy-driven email security & DLP monitoring</small>
+                </div>
+                <div class="analysis-box">
+                    📬 <strong>Mimecast Integration</strong><br>
+                    <small>Email gateway security & threat analysis</small>
+                </div>
+                <div class="analysis-box">
+                    📊 <strong>Coverage Gap Analysis</strong><br>
+                    <small>Security blind spot identification & remediation</small>
+                </div>
+                <div class="analysis-box">
+                    🔍 <strong>SIEM Integration</strong><br>
+                    <small>Security event correlation & incident management</small>
+                </div>
             </div>
             """, unsafe_allow_html=True)
         
         with sec_col2:
             st.markdown("""
-            <div class="output-box">
-                ✅ Full Coverage
-                <br><small>Both Tessian & Mimecast protection</small>
-            </div>
-            <div class="output-box">
-                ⚠️ Partial Coverage
-                <br><small>Only one security tool active</small>
-            </div>
-            <div class="output-box">
-                🚨 No Coverage
-                <br><small>Security blind spots requiring attention</small>
+            <div class="card">
+                <h4 class="card-header">📋 Security Coverage Status</h4>
+                <div class="output-box">
+                    ✅ <strong>Full Protection</strong><br>
+                    <small>Tessian + Mimecast + ExfilEye monitoring</small>
+                </div>
+                <div class="output-box" style="background: linear-gradient(135deg, #ffc107 0%, #ff8800 100%);">
+                    ⚠️ <strong>Partial Coverage</strong><br>
+                    <small>Single security tool deployment</small>
+                </div>
+                <div class="output-box" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                    🚨 <strong>Security Gap</strong><br>
+                    <small>No security tool coverage detected</small>
+                </div>
+                <div class="output-box">
+                    🔄 <strong>Remediation</strong><br>
+                    <small>Automated security enhancement recommendations</small>
+                </div>
             </div>
             """, unsafe_allow_html=True)
         
-        # Advanced Analytics Features
+        # Advanced Security Features
         st.markdown("""
-        <div class="section-header">📈 Advanced Analytics Features</div>
+        <div class="section-header">🚀 Advanced Security Capabilities</div>
         """, unsafe_allow_html=True)
         
         feat_col1, feat_col2, feat_col3 = st.columns(3)
         
         with feat_col1:
             st.markdown("""
-            **🔍 Anomaly Detection**
-            - Machine learning algorithms
-            - Behavioral pattern analysis
-            - Statistical outlier detection
-            - Cluster analysis
+            <div class="card">
+                <h4 class="card-header">🔍 Threat Intelligence</h4>
+                <ul class="feature-list">
+                    <li>Machine learning anomaly detection</li>
+                    <li>Behavioral pattern analysis</li>
+                    <li>Statistical outlier identification</li>
+                    <li>Advanced clustering algorithms</li>
+                    <li>Predictive threat modeling</li>
+                    <li>Real-time risk assessment</li>
+                </ul>
+            </div>
             """)
         
         with feat_col2:
             st.markdown("""
-            **🌐 Network Analysis**
-            - Domain relationship mapping
-            - Communication pattern visualization
-            - External domain tracking
-            - Business unit analysis
+            <div class="card">
+                <h4 class="card-header">🌐 Network Intelligence</h4>
+                <ul class="feature-list">
+                    <li>Communication relationship mapping</li>
+                    <li>Domain reputation analysis</li>
+                    <li>External communication tracking</li>
+                    <li>Business unit segmentation</li>
+                    <li>Geographic communication patterns</li>
+                    <li>Social network analysis</li>
+                </ul>
+            </div>
             """)
         
         with feat_col3:
             st.markdown("""
-            **📊 Business Intelligence**
-            - Word frequency analysis
-            - Department communication patterns
-            - Time-based trend analysis
-            - BAU pattern recognition
+            <div class="card">
+                <h4 class="card-header">📊 Business Intelligence</h4>
+                <ul class="feature-list">
+                    <li>Word frequency & sentiment analysis</li>
+                    <li>Department communication metrics</li>
+                    <li>Temporal trend identification</li>
+                    <li>BAU pattern recognition</li>
+                    <li>Compliance reporting automation</li>
+                    <li>Executive dashboard analytics</li>
+                </ul>
+            </div>
             """)
     
-    # Data Flow Diagram
-    st.markdown("""
-    <div class="section-header">
-        📊 Data Flow Architecture
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Create a flow diagram using columns
-    flow_col1, flow_col2, flow_col3, flow_col4 = st.columns(4)
-    
-    with flow_col1:
+    with tab5:
         st.markdown("""
-        <div class="flow-box">
-            📥 INPUT LAYER
-        </div>
-        <br>
-        • Email CSV Data
-        • Whitelist Files
-        • Configuration Settings
+        <div class="section-header">🏗️ System Architecture & Technical Stack</div>
         """, unsafe_allow_html=True)
-    
-    with flow_col2:
+        
+        # Data Flow Architecture
+        flow_col1, flow_col2, flow_col3, flow_col4 = st.columns(4)
+        
+        with flow_col1:
+            st.markdown("""
+            <div class="card" style="text-align: center;">
+                <div class="flow-box">
+                    📥 <strong>INPUT LAYER</strong>
+                </div>
+                <ul class="feature-list" style="text-align: left; margin-top: 1rem;">
+                    <li>Email CSV data ingestion</li>
+                    <li>BAU whitelist management</li>
+                    <li>Configuration parameters</li>
+                    <li>API integrations</li>
+                    <li>Real-time data streams</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with flow_col2:
+            st.markdown("""
+            <div class="card" style="text-align: center;">
+                <div class="process-box">
+                    ⚙️ <strong>PROCESSING LAYER</strong>
+                </div>
+                <ul class="feature-list" style="text-align: left; margin-top: 1rem;">
+                    <li>Data validation & cleaning</li>
+                    <li>Email parsing & normalization</li>
+                    <li>Domain classification engine</li>
+                    <li>Keyword detection system</li>
+                    <li>Content analysis pipeline</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with flow_col3:
+            st.markdown("""
+            <div class="card" style="text-align: center;">
+                <div class="analysis-box">
+                    🧠 <strong>ANALYTICS LAYER</strong>
+                </div>
+                <ul class="feature-list" style="text-align: left; margin-top: 1rem;">
+                    <li>Multi-factor risk scoring</li>
+                    <li>ML anomaly detection</li>
+                    <li>Behavioral pattern recognition</li>
+                    <li>Threat intelligence engine</li>
+                    <li>Predictive modeling</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with flow_col4:
+            st.markdown("""
+            <div class="card" style="text-align: center;">
+                <div class="output-box">
+                    📊 <strong>PRESENTATION LAYER</strong>
+                </div>
+                <ul class="feature-list" style="text-align: left; margin-top: 1rem;">
+                    <li>Interactive dashboards</li>
+                    <li>Security risk reports</li>
+                    <li>Analytics visualizations</li>
+                    <li>Incident response alerts</li>
+                    <li>Executive summaries</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Technical Components
         st.markdown("""
-        <div class="process-box">
-            ⚙️ PROCESSING LAYER
-        </div>
-        <br>
-        • Data Validation
-        • Email Parsing
-        • Domain Classification
-        • Keyword Detection
+        <div class="section-header">🔧 Technical Component Architecture</div>
         """, unsafe_allow_html=True)
-    
-    with flow_col3:
+        
+        arch_col1, arch_col2 = st.columns(2)
+        
+        with arch_col1:
+            st.markdown("""
+            <div class="card">
+                <h4 class="card-header">🔧 Core Processing Modules</h4>
+                
+                <div style="margin: 1rem 0;">
+                    <h5 style="color: #2d3748;">📦 utils/data_processor.py</h5>
+                    <ul class="feature-list">
+                        <li>Multi-format email data validation</li>
+                        <li>Advanced temporal analysis & parsing</li>
+                        <li>Attachment metadata extraction</li>
+                        <li>Recipient network analysis</li>
+                        <li>Data quality assessment metrics</li>
+                    </ul>
+                </div>
+                
+                <div style="margin: 1rem 0;">
+                    <h5 style="color: #2d3748;">🏢 utils/domain_classifier.py</h5>
+                    <ul class="feature-list">
+                        <li>Enterprise domain identification</li>
+                        <li>Free email provider detection</li>
+                        <li>Educational & government mapping</li>
+                        <li>Industry sector classification</li>
+                        <li>Geographic region analysis</li>
+                    </ul>
+                </div>
+                
+                <div style="margin: 1rem 0;">
+                    <h5 style="color: #2d3748;">🧠 utils/risk_engine.py</h5>
+                    <ul class="feature-list">
+                        <li>Weighted multi-factor scoring</li>
+                        <li>Leaver activity detection (70 pts)</li>
+                        <li>IP keyword analysis (25 pts)</li>
+                        <li>Free email flagging (20 pts)</li>
+                        <li>Dynamic threshold adjustment</li>
+                    </ul>
+                </div>
+            </div>
+            """)
+        
+        with arch_col2:
+            st.markdown("""
+            <div class="card">
+                <h4 class="card-header">📊 Analytics & Intelligence Modules</h4>
+                
+                <div style="margin: 1rem 0;">
+                    <h5 style="color: #2d3748;">🔍 utils/anomaly_detector.py</h5>
+                    <ul class="feature-list">
+                        <li>Unsupervised ML anomaly detection</li>
+                        <li>Behavioral baseline establishment</li>
+                        <li>Statistical outlier identification</li>
+                        <li>Ensemble method integration</li>
+                        <li>Real-time pattern analysis</li>
+                    </ul>
+                </div>
+                
+                <div style="margin: 1rem 0;">
+                    <h5 style="color: #2d3748;">📈 utils/visualization.py</h5>
+                    <ul class="feature-list">
+                        <li>Interactive Plotly dashboards</li>
+                        <li>Network relationship graphs</li>
+                        <li>Risk factor heat maps</li>
+                        <li>Temporal trend analysis</li>
+                        <li>Executive summary charts</li>
+                    </ul>
+                </div>
+                
+                <div style="margin: 1rem 0;">
+                    <h5 style="color: #2d3748;">📧 utils/email_generator.py</h5>
+                    <ul class="feature-list">
+                        <li>Automated security alert generation</li>
+                        <li>Incident response templates</li>
+                        <li>Compliance report automation</li>
+                        <li>Stakeholder notification system</li>
+                        <li>Follow-up action recommendations</li>
+                    </ul>
+                </div>
+            </div>
+            """)
+        
+        # Security Workflow Summary
         st.markdown("""
-        <div class="analysis-box">
-            🧠 ANALYSIS LAYER
-        </div>
-        <br>
-        • Risk Scoring
-        • Anomaly Detection
-        • Pattern Recognition
-        • Threat Assessment
+        <div class="section-header">🛡️ Enterprise Security Workflow</div>
         """, unsafe_allow_html=True)
-    
-    with flow_col4:
+        
         st.markdown("""
-        <div class="output-box">
-            📊 OUTPUT LAYER
+        <div class="card">
+            <p style="font-size: 1.1rem; line-height: 1.8; color: #4a5568;">
+                The ExfilEye platform implements a comprehensive 8-stage security analysis workflow designed 
+                for enterprise environments:
+            </p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;">
+                <div>
+                    <h5 style="color: #2d3748;">🔒 Security-First Design</h5>
+                    <ul class="feature-list">
+                        <li><strong>Data Ingestion:</strong> Secure multi-format email data processing</li>
+                        <li><strong>Content Analysis:</strong> Deep inspection with privacy protection</li>
+                        <li><strong>Domain Intelligence:</strong> Comprehensive reputation analysis</li>
+                        <li><strong>Risk Calculation:</strong> Multi-layered threat assessment</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h5 style="color: #2d3748;">⚡ Real-Time Operations</h5>
+                    <ul class="feature-list">
+                        <li><strong>Threat Detection:</strong> Immediate high-risk identification</li>
+                        <li><strong>Visualization:</strong> Interactive security dashboards</li>
+                        <li><strong>Alert Generation:</strong> Automated incident response</li>
+                        <li><strong>Continuous Monitoring:</strong> 24/7 pattern analysis</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); padding: 1.5rem; border-radius: 10px; margin: 1rem 0;">
+                <h5 style="color: #2e7d32; margin-bottom: 0.5rem;">🎯 Mission-Critical Objective</h5>
+                <p style="margin: 0; color: #2e7d32; font-weight: 500;">
+                    Detect and prevent data exfiltration attempts and insider threats before they impact 
+                    the organization, providing security teams with actionable intelligence and automated 
+                    response capabilities for comprehensive email security monitoring.
+                </p>
+            </div>
         </div>
-        <br>
-        • Security Dashboard
-        • Risk Reports
-        • Analytics Charts
-        • Action Items
         """, unsafe_allow_html=True)
-    
-    # Technical Architecture
-    st.markdown("""
-    <div class="section-header">
-        🏗️ Technical Architecture & Components
-    </div>
-    """, unsafe_allow_html=True)
-    
-    arch_col1, arch_col2 = st.columns(2)
-    
-    with arch_col1:
-        st.markdown("""
-        **🔧 Core Components:**
-        
-        📦 **utils/data_processor.py**
-        - Email data validation and cleaning
-        - Temporal analysis and parsing
-        - Attachment and recipient processing
-        
-        🏢 **utils/domain_classifier.py**
-        - Business domain identification
-        - Free email provider detection
-        - Educational and government classification
-        
-        🧠 **utils/risk_engine.py**
-        - Multi-factor risk scoring algorithm
-        - Leaver activity detection (70 points)
-        - IP keyword analysis (25 points)
-        - Free email domain flagging (20 points)
-        
-        🔍 **utils/anomaly_detector.py**
-        - Machine learning anomaly detection
-        - Behavioral pattern analysis
-        - Statistical outlier identification
-        """)
-    
-    with arch_col2:
-        st.markdown("""
-        **📊 Visualization & Analysis:**
-        
-        📈 **utils/visualization.py**
-        - Interactive charts and graphs
-        - Network relationship diagrams
-        - Risk factor visualizations
-        
-        🎯 **utils/keyword_detector.py**
-        - Sensitive content identification
-        - IP-related keyword matching
-        - Content pattern analysis
-        
-        📧 **utils/email_generator.py**
-        - Security alert generation
-        - Follow-up action recommendations
-        - Incident response templates
-        
-        🔬 **utils/bau_analyzer.py**
-        - Business-as-usual pattern analysis
-        - Word frequency analysis
-        - Department communication trends
-        """)
-    
-    # Security Workflow
-    st.markdown("""
-    <div class="section-header">
-        🛡️ Security Analysis Workflow
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("""
-    The ExfilEye application follows a sophisticated security analysis workflow:
-    
-    1. **📥 Data Ingestion**: Secure upload and validation of email data
-    2. **🔍 Content Analysis**: Deep inspection of email content, attachments, and metadata
-    3. **🏢 Domain Intelligence**: Classification and risk assessment of email domains
-    4. **🧠 Risk Calculation**: Multi-factor scoring using weighted algorithms
-    5. **🚨 Threat Detection**: Real-time identification of high-risk communications
-    6. **📊 Visualization**: Interactive dashboards for security team analysis
-    7. **⚡ Action Generation**: Automated alert generation and response recommendations
-    8. **📈 Continuous Monitoring**: Ongoing pattern analysis and trend detection
-    
-    This comprehensive approach ensures that potential data exfiltration attempts and insider threats 
-    are quickly identified and addressed before they can cause damage to the organization.
-    """)
-    
-    # Interactive Features
-    st.markdown("""
-    <div class="section-header">
-        🎮 Interactive Features
-    </div>
-    """, unsafe_allow_html=True)
-    
-    feature_col1, feature_col2, feature_col3 = st.columns(3)
-    
-    with feature_col1:
-        st.markdown("""
-        **📊 Real-time Dashboards**
-        - Live risk metrics
-        - Dynamic filtering
-        - Interactive charts
-        - Drill-down capabilities
-        """)
-    
-    with feature_col2:
-        st.markdown("""
-        **🔍 Advanced Search**
-        - Multi-criteria filtering
-        - Anomaly exploration
-        - Pattern investigation
-        - Historical analysis
-        """)
-    
-    with feature_col3:
-        st.markdown("""
-        **📈 Predictive Analytics**
-        - Trend forecasting
-        - Risk probability scoring
-        - Behavioral modeling
-        - Threat intelligence
-        """)
 
 
         
