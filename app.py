@@ -95,7 +95,7 @@ def network_view_page(visualizer):
         if 'email_domain' not in df.columns:
             df['email_domain'] = df['sender'].apply(lambda x: str(x).split('@')[-1].lower().strip() if pd.notna(x) and '@' in str(x) else '')
         
-        # Apply domain classification if not already done
+        # Apply domain classification if not already done (this will now include internal detection)
         if 'email_domain_type' not in df.columns:
             df = domain_classifier.classify_domains(df)
         
@@ -263,26 +263,59 @@ def network_view_page(visualizer):
             internal_domains_df = df[df['email_domain_type'] == 'internal']
             if not internal_domains_df.empty:
                 st.write(f"**{len(internal_domains_df):,} emails from internal domains**")
+                st.info("ℹ️ **Internal Domain Definition:** Emails where the sender domain matches at least one recipient domain, indicating internal organizational communication.")
                 
-                # Internal domain analysis
+                # Internal domain analysis with sender-recipient matching details
                 top_internal_domains = internal_domains_df['email_domain'].value_counts().head(10)
                 
                 internal_display = []
                 for rank, (domain, count) in enumerate(top_internal_domains.items(), 1):
                     percentage = (count / len(internal_domains_df) * 100)
                     
+                    # Get unique senders and recipients for this domain
+                    domain_data = internal_domains_df[internal_domains_df['email_domain'] == domain]
+                    unique_senders = domain_data['sender'].nunique()
+                    
+                    # Count recipient instances of this domain
+                    recipient_matches = 0
+                    for _, row in domain_data.iterrows():
+                        recipient_domains = row.get('recipient_domains', [])
+                        if isinstance(recipient_domains, list) and domain in recipient_domains:
+                            recipient_matches += 1
+                    
                     internal_display.append({
                         'Rank': f"#{rank}",
                         'Domain': domain,
                         'Email Count': f"{count:,}",
-                        'Percentage': f"{percentage:.1f}%"
+                        'Percentage': f"{percentage:.1f}%",
+                        'Unique Senders': unique_senders,
+                        'Sender-Recipient Matches': recipient_matches
                     })
                 
                 if internal_display:
                     internal_df = pd.DataFrame(internal_display)
                     st.dataframe(internal_df, use_container_width=True, height=300)
+                    
+                    # Additional insights for internal communications
+                    st.write("**Internal Communication Insights:**")
+                    total_internal_senders = internal_domains_df['sender'].nunique()
+                    avg_emails_per_sender = len(internal_domains_df) / total_internal_senders if total_internal_senders > 0 else 0
+                    
+                    insights_col1, insights_col2 = st.columns(2)
+                    with insights_col1:
+                        st.write(f"• **Total Internal Senders:** {total_internal_senders:,}")
+                        st.write(f"• **Avg Emails per Sender:** {avg_emails_per_sender:.1f}")
+                    
+                    with insights_col2:
+                        # Show top internal communicating domain
+                        if len(top_internal_domains) > 0:
+                            top_domain = top_internal_domains.index[0]
+                            top_count = top_internal_domains.iloc[0]
+                            st.write(f"• **Most Active Domain:** {top_domain}")
+                            st.write(f"• **Internal Emails:** {top_count:,}")
             else:
                 st.info("No internal domains found in the dataset")
+                st.write("**What this means:** No emails were detected where the sender domain matches any recipient domain.")
         
         with domain_tabs[3]:  # Public Domains
             public_domains_df = df[df['email_domain_type'] == 'public']

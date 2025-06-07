@@ -243,8 +243,12 @@ class DomainClassifier:
         # Also maintain sender_domain for backward compatibility
         df_copy['sender_domain'] = df_copy['email_domain']
         
-        # Classify email domains
-        df_copy['email_domain_type'] = df_copy['email_domain'].apply(self._classify_single_domain)
+        # Extract recipient domains if not present
+        if 'recipient_domains' not in df_copy.columns and 'recipients' in df_copy.columns:
+            df_copy['recipient_domains'] = df_copy['recipients'].apply(self._extract_recipient_domains)
+        
+        # Classify email domains with internal domain detection
+        df_copy['email_domain_type'] = df_copy.apply(self._classify_domain_with_internal_check, axis=1)
         df_copy['sender_domain_type'] = df_copy['email_domain_type']  # For compatibility
         
         # Add industry classification for business domains
@@ -277,6 +281,34 @@ class DomainClassifier:
             return domain
         except:
             return ''
+    
+    def _extract_recipient_domains(self, recipients):
+        """Extract unique domains from recipients string"""
+        if pd.isna(recipients) or recipients == '':
+            return []
+        
+        import re
+        domains = []
+        # Find all email addresses in the recipients string
+        emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', str(recipients))
+        for email in emails:
+            domain = self._extract_domain(email)
+            if domain:
+                domains.append(domain)
+        return list(set(domains))  # Remove duplicates
+    
+    def _classify_domain_with_internal_check(self, row):
+        """Classify domain considering sender-recipient domain matching for internal detection"""
+        sender_domain = row.get('email_domain', '')
+        recipient_domains = row.get('recipient_domains', [])
+        
+        # Check if sender domain matches any recipient domain (internal communication)
+        if sender_domain and isinstance(recipient_domains, list):
+            if sender_domain in recipient_domains:
+                return 'internal'
+        
+        # Fall back to standard classification
+        return self._classify_single_domain(sender_domain)
     
     def _classify_single_domain(self, domain):
         """Classify a single domain"""
