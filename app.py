@@ -15,7 +15,7 @@ from utils.keyword_detector import KeywordDetector
 
 # Page configuration
 st.set_page_config(
-    page_title="ExfilEye - Email Security Monitor",
+    page_title="ExfilEye - DLP Email Monitor",
     page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -32,8 +32,7 @@ if 'risk_scores' not in st.session_state:
     st.session_state.risk_scores = None
 
 def main():
-    st.title("🔍 ExfilEye - Email Security Monitor")
-    st.markdown("### AI-Powered Data Exfiltration Risk Detection")
+    st.title("🔍 ExfilEye - DLP Email Monitor")
 
     # Initialize components
     data_processor = DataProcessor()
@@ -419,33 +418,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     </style>
     """, unsafe_allow_html=True)
 
-    # View 1: Emails Without Attachments
-    emails_no_attachments = df[~df['has_attachments_bool']]
-    
-    st.markdown(f"""
-    <div class="analysis-card normal">
-        <div class="analysis-header">
-            <span class="analysis-icon">📄</span>
-            <h3 class="analysis-title">Standard Email Communications</h3>
-            <span class="count-badge">{len(emails_no_attachments)} emails</span>
-        </div>
-        <p style="color: #6c757d; margin-bottom: 1rem;">
-            Email communications without file attachments - typically lower risk profile
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if len(emails_no_attachments) > 0:
-        # Show sample data in a professional way
-        display_cols = ['time', 'sender', 'subject']
-        available_cols = [col for col in display_cols if col in emails_no_attachments.columns]
-        
-        sample_df = emails_no_attachments[available_cols].head(10)
-        st.dataframe(sample_df, use_container_width=True, height=300)
-    else:
-        st.info("✅ No standard email communications found.")
-
-    # View 2: High-Risk Emails
+    # View 1: High-Risk Emails
     high_risk_emails = df[
         (df['has_attachments_bool']) & 
         (
@@ -582,6 +555,32 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         st.dataframe(styled_low_risk, use_container_width=True, height=400)
     else:
         st.info("No low-risk emails with attachments found.")
+
+    # View 5: Standard Email Communications (moved below Low Risk)
+    emails_no_attachments = df[~df['has_attachments_bool']]
+    
+    st.markdown(f"""
+    <div class="analysis-card normal">
+        <div class="analysis-header">
+            <span class="analysis-icon">📄</span>
+            <h3 class="analysis-title">Standard Email Communications</h3>
+            <span class="count-badge">{len(emails_no_attachments)} emails</span>
+        </div>
+        <p style="color: #6c757d; margin-bottom: 1rem;">
+            Email communications without file attachments - typically lower risk profile
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if len(emails_no_attachments) > 0:
+        # Show sample data in a professional way
+        display_cols = ['time', 'sender', 'subject']
+        available_cols = [col for col in display_cols if col in emails_no_attachments.columns]
+        
+        sample_df = emails_no_attachments[available_cols].head(10)
+        st.dataframe(sample_df, use_container_width=True, height=300)
+    else:
+        st.info("✅ No standard email communications found.")
 
     # Risk Factor Analysis section with professional styling
     st.markdown("""
