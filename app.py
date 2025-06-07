@@ -412,32 +412,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     
     domain_df = pd.DataFrame(domain_data)
     
-    # Debug information
-    if not domain_df.empty:
-        st.write(f"**Debug Info:** Found {len(domain_df)} total domains")
-        classification_counts = domain_df['current_classification'].value_counts()
-        st.write("Domain classifications:", classification_counts.to_dict())
-        
-        # Show all domains and their classifications for debugging
-        st.write("**All domains found:**")
-        debug_df = domain_df[['domain', 'current_classification', 'is_free_domain']].head(10)
-        st.dataframe(debug_df)
-        
-        # Test classification of common free domains
-        test_domains = ['gmail.com', 'yahoo.com', 'hotmail.com']
-        st.write("**Test classifications:**")
-        for test_domain in test_domains:
-            classification = domain_classifier._classify_single_domain(test_domain)
-            is_in_free_list = test_domain in domain_classifier.free_email_domains
-            st.write(f"{test_domain}: classified as '{classification}', in free list: {is_in_free_list}")
-        
-        # Show sample free domains if any
-        free_domains = domain_df[domain_df['current_classification'] == 'free']
-        if not free_domains.empty:
-            st.write(f"**Free email domains found:** {len(free_domains)}")
-            st.write("Sample free domains:", free_domains['domain'].head(5).tolist())
-        else:
-            st.write("**No free email domains found in the data**")
+    
     
     if not domain_df.empty:
         # Domain filter options
@@ -567,27 +542,51 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                             key=f"classify_{row['domain']}"
                         )
                         
-                        if st.button(f"Apply Classification", key=f"apply_{row['domain']}"):
-                            # Update domain classification in domain classifier
-                            domain_classifier.classify_new_domain(row['domain'], new_classification)
-                            st.success(f"Updated {row['domain']} classification to {new_classification}")
-                            st.rerun()
+                        col_apply, col_whitelist = st.columns(2)
                         
-                        if st.button(f"Add to Whitelist", key=f"whitelist_{row['domain']}"):
-                            # Check if already in whitelist
-                            if row['domain'] not in st.session_state.whitelist_data['domain'].values:
-                                new_whitelist_entry = pd.DataFrame({
-                                    'email_address': [''],
-                                    'domain': [row['domain']]
-                                })
-                                st.session_state.whitelist_data = pd.concat([
-                                    st.session_state.whitelist_data,
-                                    new_whitelist_entry
-                                ], ignore_index=True)
-                                st.success(f"Added {row['domain']} to whitelist")
+                        with col_apply:
+                            if st.button(f"Apply Classification", key=f"apply_{row['domain']}"):
+                                # Update domain classification in domain classifier
+                                domain_classifier.classify_new_domain(row['domain'], new_classification)
+                                
+                                # Update the current dataframe with new classification
+                                mask = filtered_domain_df['domain'] == row['domain']
+                                filtered_domain_df.loc[mask, 'current_classification'] = new_classification
+                                
+                                # Also update the processed data if needed
+                                if 'sender_domain' in st.session_state.processed_data.columns:
+                                    sender_mask = st.session_state.processed_data['sender_domain'] == row['domain']
+                                    st.session_state.processed_data.loc[sender_mask, 'sender_domain_type'] = new_classification
+                                
+                                if 'email_domain' in st.session_state.processed_data.columns:
+                                    email_mask = st.session_state.processed_data['email_domain'].str.lower() == row['domain'].lower()
+                                    st.session_state.processed_data.loc[email_mask, 'domain_type'] = new_classification
+                                
+                                st.success(f"Updated {row['domain']} classification to {new_classification}")
                                 st.rerun()
-                            else:
-                                st.info(f"{row['domain']} is already in whitelist")
+                        
+                        with col_whitelist:
+                            if st.button(f"Add to Whitelist", key=f"whitelist_{row['domain']}"):
+                                # Check if already in whitelist
+                                existing_domains = st.session_state.whitelist_data['domain'].str.lower().tolist()
+                                if row['domain'].lower() not in existing_domains:
+                                    new_whitelist_entry = pd.DataFrame({
+                                        'email_address': [''],
+                                        'domain': [row['domain']]
+                                    })
+                                    st.session_state.whitelist_data = pd.concat([
+                                        st.session_state.whitelist_data,
+                                        new_whitelist_entry
+                                    ], ignore_index=True)
+                                    
+                                    # Recalculate risk scores since whitelist changed
+                                    if st.session_state.risk_scores is not None:
+                                        st.session_state.risk_scores = None  # Force recalculation
+                                    
+                                    st.success(f"Added {row['domain']} to whitelist. Risk scores will be recalculated.")
+                                    st.rerun()
+                                else:
+                                    st.info(f"{row['domain']} is already in whitelist")
                     
                     # Risk assessment explanation
                     if row['avg_risk_score'] > 0:
@@ -623,16 +622,27 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                 ]['domain'].tolist()
                 
                 if business_domains:
-                    new_whitelist_entries = pd.DataFrame({
-                        'email_address': [''] * len(business_domains),
-                        'domain': business_domains
-                    })
-                    st.session_state.whitelist_data = pd.concat([
-                        st.session_state.whitelist_data,
-                        new_whitelist_entries
-                    ], ignore_index=True)
-                    st.success(f"Added {len(business_domains)} business domains to whitelist")
-                    st.rerun()
+                    # Filter out domains already in whitelist
+                    existing_domains = st.session_state.whitelist_data['domain'].str.lower().tolist()
+                    new_domains = [domain for domain in business_domains if domain.lower() not in existing_domains]
+                    
+                    if new_domains:
+                        new_whitelist_entries = pd.DataFrame({
+                            'email_address': [''] * len(new_domains),
+                            'domain': new_domains
+                        })
+                        st.session_state.whitelist_data = pd.concat([
+                            st.session_state.whitelist_data,
+                            new_whitelist_entries
+                        ], ignore_index=True)
+                        
+                        # Force risk score recalculation
+                        st.session_state.risk_scores = None
+                        
+                        st.success(f"Added {len(new_domains)} business domains to whitelist. Risk scores will be recalculated.")
+                        st.rerun()
+                    else:
+                        st.info("All business domains are already in whitelist")
                 else:
                     st.info("No business domains found to add to whitelist")
         
