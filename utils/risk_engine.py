@@ -12,7 +12,7 @@ class RiskEngine:
             'free_email_domain': 20,
             'new_external_domain': 15,
             'unusual_attachment': 15,
-            'leaver_activity': 30,
+            'leaver_activity': 70,  # Increased to ensure high risk classification
             'ip_keywords': 25,
             'burst_pattern': 15,
             'new_file_type': 10
@@ -62,8 +62,8 @@ class RiskEngine:
         if self._check_unusual_attachments(email_row):
             score += self.risk_weights['unusual_attachment']
         
-        # Leaver activity
-        if email_row.get('is_leaver', False):
+        # Leaver activity - check for last_working_day field
+        if email_row.get('is_leaver', False) or pd.notna(email_row.get('last_working_day')):
             score += self.risk_weights['leaver_activity']
         
         # IP keywords
@@ -289,12 +289,12 @@ class RiskEngine:
                 'description': 'Risky or large attachment detected'
             })
         
-        if email_row.get('is_leaver', False):
+        if email_row.get('is_leaver', False) or pd.notna(email_row.get('last_working_day')):
             breakdown['total_score'] += self.risk_weights['leaver_activity']
             breakdown['factors'].append({
                 'factor': 'Leaver Activity',
                 'score': self.risk_weights['leaver_activity'],
-                'description': 'Email sent within 7 days of last working day'
+                'description': 'Email from employee with last working day recorded - HIGH PRIORITY'
             })
         
         if self._check_ip_keywords(email_row):
