@@ -545,6 +545,15 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Spacing
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # Add explanatory note about security tool coverage
+    st.info("""
+    ℹ️ **Security Tool Coverage Note:** 
+    Tessian operates on policy-driven detection and selectively monitors email events based on configured security policies. 
+    It targets communications containing sensitive information patterns, suspicious attachments, and potential data loss scenarios. 
+    Not all emails will show Tessian coverage as it focuses resources on emails matching specific security criteria and 
+    organizational risk policies, rather than monitoring every email event.
+    """)
+
     # Professional section header
     st.markdown("""
     <div style="background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%); padding: 1.5rem; border-radius: 10px; margin: 2rem 0 1rem 0; border-left: 5px solid #495057;">
@@ -1296,6 +1305,16 @@ def analytics_page(visualizer, anomaly_detector):
     elif analysis_type == "Security Tool Coverage":
         st.subheader("🛡️ Security Tool Coverage Analysis")
         st.write("**Complete Dataset Analysis** - Analysis of Tessian Policy and Mimecast security tool coverage across ALL email events in the dataset")
+        
+        # Add explanatory note about Tessian coverage
+        st.info("""
+        ℹ️ **Important Note About Tessian Coverage:** 
+        Tessian is policy-driven and only monitors specific types of email events based on configured security policies. 
+        It focuses on detecting sensitive information patterns, suspicious attachments, and high-risk communications. 
+        Not all email events will have Tessian coverage as it selectively analyzes emails that match its predefined 
+        security criteria and organizational policies. This targeted approach allows Tessian to focus computational 
+        resources on emails most likely to contain security risks.
+        """)
         
         # Use complete dataset for analysis (no filtering)
         analysis_df = df.copy()
