@@ -1716,12 +1716,11 @@ def analytics_page(visualizer, anomaly_detector):
             )
 
         # Display results in tabs
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        tab1, tab2, tab3, tab4 = st.tabs([
             "Pattern Overview", 
-            "Banking Context", 
-            "Threat Detection", 
+            "Word Frequencies Analysis", 
             "Anomalies", 
-            "Recommendations"
+            "Business Unit Analytics"
         ])
 
         with tab1:
@@ -1783,95 +1782,177 @@ def analytics_page(visualizer, anomaly_detector):
                     st.write(f"- Top Sender Dominance: {dist.get('top_sender_dominance', 0):.1f}%")
 
         with tab2:
-            st.subheader("Banking Sector Context Analysis")
+            st.subheader("📊 Word Frequencies Analysis")
+            st.info("Analysis of all words/phrases found in the word_list_match field across the complete dataset")
 
-            banking_analysis = analysis_results.get('banking_analysis', {})
+            # Extract and analyze word_list_match content
+            word_list_data = []
+            total_matches = 0
+            
+            for idx, row in filtered_df.iterrows():
+                word_match = row.get('word_list_match', '')
+                if pd.notna(word_match) and str(word_match).strip() and str(word_match) != '0':
+                    # Split by common delimiters and clean
+                    words = str(word_match).replace(',', ' ').replace(';', ' ').replace('|', ' ').split()
+                    for word in words:
+                        clean_word = word.strip().lower()
+                        if clean_word and len(clean_word) > 2:  # Filter out very short words
+                            word_list_data.append({
+                                'word': clean_word,
+                                'sender': row.get('sender', 'Unknown'),
+                                'time': row.get('time', ''),
+                                'bunit': row.get('bunit', 'Unknown'),
+                                'department': row.get('department', 'Unknown')
+                            })
+                            total_matches += 1
 
-            if banking_analysis.get('overview'):
-                overview = banking_analysis['overview']
-
-                col1, col2, col3 = st.columns(3)
+            if word_list_data:
+                word_df = pd.DataFrame(word_list_data)
+                
+                # Calculate word frequencies
+                word_frequencies = word_df['word'].value_counts()
+                
+                # Display overview metrics
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.metric("Banking Emails", overview.get('total_banking_emails', 0))
+                    st.metric("Total Word Matches", total_matches)
                 with col2:
-                    st.metric("Banking %", f"{overview.get('percentage_of_low_risk', 0):.1f}%")
+                    st.metric("Unique Words", len(word_frequencies))
                 with col3:
-                    keywords_found = len(overview.get('banking_keywords_found', []))
-                    st.metric("Banking Keywords", keywords_found)
+                    emails_with_matches = len(filtered_df[
+                        (filtered_df['word_list_match'].notna()) & 
+                        (filtered_df['word_list_match'] != '') & 
+                        (filtered_df['word_list_match'].astype(str) != '0')
+                    ])
+                    st.metric("Emails with Matches", emails_with_matches)
+                with col4:
+                    unique_senders_with_matches = word_df['sender'].nunique()
+                    st.metric("Unique Senders", unique_senders_with_matches)
 
-                # Banking keywords found
-                if overview.get('banking_keywords_found'):
-                    st.subheader("Banking Keywords Detected")
-                    keywords = overview['banking_keywords_found']
-                    # Display in columns for better layout
-                    cols = st.columns(3)
-                    for i, keyword in enumerate(keywords):
-                        with cols[i % 3]:
-                            st.write(f"• {keyword}")
+                # Top 20 Word Frequencies Table
+                st.subheader("🔍 Top 20 Word Frequencies")
+                
+                top_words = word_frequencies.head(20)
+                word_freq_display = []
+                
+                for rank, (word, count) in enumerate(top_words.items(), 1):
+                    # Calculate percentage
+                    percentage = (count / total_matches * 100) if total_matches > 0 else 0
+                    
+                    # Get unique senders for this word
+                    word_senders = word_df[word_df['word'] == word]['sender'].nunique()
+                    
+                    # Get business units for this word
+                    word_bunits = word_df[word_df['word'] == word]['bunit'].nunique()
+                    
+                    word_freq_display.append({
+                        'Rank': f"#{rank}",
+                        'Word/Phrase': word.title(),
+                        'Frequency': f"{count:,}",
+                        'Percentage': f"{percentage:.1f}%",
+                        'Unique Senders': word_senders,
+                        'Business Units': word_bunits
+                    })
+                
+                # Create styled dataframe
+                freq_df = pd.DataFrame(word_freq_display)
+                
+                # Style the dataframe with color coding
+                def highlight_frequency(row):
+                    styles = [''] * len(row)
+                    try:
+                        freq = int(str(row['Frequency']).replace(',', ''))
+                        if freq >= 100:
+                            styles[2] = 'background-color: #ffebee; color: #c62828; font-weight: bold'  # High frequency - red
+                        elif freq >= 50:
+                            styles[2] = 'background-color: #fff3e0; color: #ef6c00; font-weight: bold'  # Medium frequency - orange
+                        elif freq >= 20:
+                            styles[2] = 'background-color: #fffde7; color: #f57f17; font-weight: bold'  # Low-medium frequency - yellow
+                    except:
+                        pass
+                    return styles
+                
+                styled_freq_df = freq_df.style.apply(highlight_frequency, axis=1)
+                st.dataframe(styled_freq_df, use_container_width=True, height=600)
+                
+                # Word Distribution Analysis
+                st.subheader("📈 Word Distribution Insights")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**Frequency Distribution:**")
+                    high_freq_words = len(word_frequencies[word_frequencies >= 50])
+                    medium_freq_words = len(word_frequencies[(word_frequencies >= 20) & (word_frequencies < 50)])
+                    low_freq_words = len(word_frequencies[word_frequencies < 20])
+                    
+                    st.write(f"• High Frequency (50+): **{high_freq_words}** words")
+                    st.write(f"• Medium Frequency (20-49): **{medium_freq_words}** words")
+                    st.write(f"• Low Frequency (<20): **{low_freq_words}** words")
+                
+                with col2:
+                    st.write("**Top Word Categories:**")
+                    # Categorize words (simple keyword matching)
+                    categories = {
+                        'Financial': ['financial', 'bank', 'money', 'payment', 'account', 'transaction'],
+                        'Legal': ['legal', 'contract', 'agreement', 'compliance', 'audit'],
+                        'Technical': ['system', 'data', 'network', 'security', 'access'],
+                        'Business': ['business', 'client', 'customer', 'project', 'meeting']
+                    }
+                    
+                    category_counts = {}
+                    for category, keywords in categories.items():
+                        count = 0
+                        for word in word_frequencies.index:
+                            if any(keyword in word.lower() for keyword in keywords):
+                                count += word_frequencies[word]
+                        if count > 0:
+                            category_counts[category] = count
+                    
+                    for category, count in sorted(category_counts.items(), key=lambda x: x[1], reverse=True):
+                        st.write(f"• {category}: **{count}** occurrences")
 
-                # Banking patterns
-                if banking_analysis.get('patterns'):
-                    patterns = banking_analysis['patterns']
-                    st.subheader("Banking Email Patterns")
+                # Detailed word analysis option
+                st.subheader("🔎 Detailed Word Analysis")
+                selected_word = st.selectbox(
+                    "Select a word for detailed analysis:",
+                    options=word_frequencies.head(10).index.tolist(),
+                    help="Choose from the top 10 most frequent words"
+                )
+                
+                if selected_word:
+                    word_details = word_df[word_df['word'] == selected_word]
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Total Occurrences", len(word_details))
+                    with col2:
+                        st.metric("Unique Senders", word_details['sender'].nunique())
+                    with col3:
+                        st.metric("Business Units", word_details['bunit'].nunique())
+                    
+                    # Show breakdown by business unit
+                    st.write(f"**'{selected_word.title()}' by Business Unit:**")
+                    bunit_breakdown = word_details['bunit'].value_counts()
+                    for bunit, count in bunit_breakdown.head(5).items():
+                        percentage = (count / len(word_details) * 100)
+                        st.write(f"• {bunit}: {count} occurrences ({percentage:.1f}%)")
+                    
+                    # Show breakdown by department
+                    st.write(f"**'{selected_word.title()}' by Department:**")
+                    dept_breakdown = word_details['department'].value_counts()
+                    for dept, count in dept_breakdown.head(5).items():
+                        percentage = (count / len(word_details) * 100)
+                        st.write(f"• {dept}: {count} occurrences ({percentage:.1f}%)")
 
-                    if patterns.get('temporal'):
-                        temp = patterns['temporal']
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write(f"**Business Hours Compliance:** {temp.get('business_hours_compliance', 0):.1f}%")
-                            st.write(f"**Peak Banking Hour:** {temp.get('peak_banking_hours', 'N/A')}:00")
-                        with col2:
-                            st.write(f"**Weekend Activity:** {temp.get('weekend_banking_activity', 0)} emails")
-
-                    if patterns.get('senders'):
-                        send = patterns['senders']
-                        st.write(f"**Unique Banking Senders:** {send.get('unique_banking_senders', 0)}")
             else:
-                st.info("No banking-related content detected in low-risk emails")
+                st.info("No word matches found in the word_list_match field for the current dataset")
+                st.write("**Possible reasons:**")
+                st.write("• No emails contain matches in the word_list_match field")
+                st.write("• The word_list_match field is empty or contains only zeros/null values")
+                st.write("• The filtering criteria may have excluded emails with word matches")
 
         with tab3:
-            st.subheader("Threat Detection - Complete Dataset")
-
-            ip_risks_df = analysis_results.get('ip_risks', pd.DataFrame())
-
-            if not ip_risks_df.empty:
-                st.warning(f"Found {len(ip_risks_df)} potentially sensitive emails in complete dataset")
-
-                # Risk score distribution
-                risk_scores = ip_risks_df['risk_score']
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Avg Risk Score", f"{risk_scores.mean():.1f}")
-                with col2:
-                    st.metric("Max Risk Score", f"{risk_scores.max():.0f}")
-                with col3:
-                    st.metric("High Risk (>7)", len(ip_risks_df[ip_risks_df['risk_score'] > 7]))
-
-                # Top risky emails
-                st.subheader("Top Threat Emails")
-                display_cols = ['sender', 'subject', 'risk_score', 'banking_keywords', 'ip_keywords']
-                available_cols = [col for col in display_cols if col in ip_risks_df.columns]
-
-                top_risks = ip_risks_df.nlargest(10, 'risk_score')[available_cols]
-                st.dataframe(top_risks, use_container_width=True)
-
-                # Risk factors analysis
-                st.subheader("Common Threat Indicators")
-                all_factors = []
-                for factors_list in ip_risks_df['risk_factors']:
-                    if isinstance(factors_list, list):
-                        all_factors.extend(factors_list)
-
-                if all_factors:
-                    from collections import Counter
-                    factor_counts = Counter(all_factors)
-
-                    for factor, count in factor_counts.most_common(5):
-                        st.write(f"• {factor}: {count} occurrences")
-            else:
-                st.success("No hidden threats detected in complete dataset")
-
-        with tab4:
             st.subheader("Anomaly Detection - Complete Dataset")
 
             anomalies_df = analysis_results.get('anomalies', pd.DataFrame())
@@ -2089,49 +2170,209 @@ def analytics_page(visualizer, anomaly_detector):
                 - Established communication patterns are being followed
                 """)
 
-        with tab5:
-            st.subheader("Recommendations & Actions")
+        with tab4:
+            st.subheader("🏢 Business Unit Analytics")
+            st.info("Comprehensive analysis of email activity breakdown by business unit and department")
 
-            recommendations = analysis_results.get('recommendations', [])
+            # Business Unit Overview
+            if 'bunit' in filtered_df.columns:
+                bunit_counts = filtered_df['bunit'].value_counts()
+                
+                st.subheader("📊 Business Unit Email Activity")
+                
+                # Overall metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Total Business Units", len(bunit_counts))
+                with col2:
+                    st.metric("Most Active Unit", bunit_counts.index[0] if len(bunit_counts) > 0 else "N/A")
+                with col3:
+                    st.metric("Highest Activity", f"{bunit_counts.iloc[0]:,}" if len(bunit_counts) > 0 else "0")
+                with col4:
+                    avg_activity = bunit_counts.mean() if len(bunit_counts) > 0 else 0
+                    st.metric("Average Activity", f"{avg_activity:.0f}")
 
-            if recommendations:
-                for i, rec in enumerate(recommendations):
-                    with st.expander(f"{rec.get('category', 'General')} - {rec.get('priority', 'Medium')} Priority"):
-                        st.write(f"**Issue:** {rec.get('recommendation', '')}")
-                        st.write(f"**Suggested Action:** {rec.get('action', '')}")
+                # Top Business Units Table
+                st.subheader("🏆 Top 15 Business Units by Email Activity")
+                
+                bunit_analysis = []
+                for rank, (bunit, count) in enumerate(bunit_counts.head(15).items(), 1):
+                    # Calculate percentage of total
+                    percentage = (count / len(filtered_df) * 100) if len(filtered_df) > 0 else 0
+                    
+                    # Get unique senders for this bunit
+                    bunit_senders = filtered_df[filtered_df['bunit'] == bunit]['sender'].nunique()
+                    
+                    # Get unique departments for this bunit
+                    bunit_depts = filtered_df[filtered_df['bunit'] == bunit]['department'].nunique() if 'department' in filtered_df.columns else 0
+                    
+                    # Calculate emails with word matches
+                    bunit_word_matches = 0
+                    if 'word_list_match' in filtered_df.columns:
+                        bunit_data = filtered_df[filtered_df['bunit'] == bunit]
+                        bunit_word_matches = len(bunit_data[
+                            (bunit_data['word_list_match'].notna()) & 
+                            (bunit_data['word_list_match'] != '') & 
+                            (bunit_data['word_list_match'].astype(str) != '0')
+                        ])
+                    
+                    # Calculate risk score average if available
+                    avg_risk = "N/A"
+                    if 'risk_score' in filtered_df.columns:
+                        bunit_risk = filtered_df[filtered_df['bunit'] == bunit]['risk_score'].mean()
+                        avg_risk = f"{bunit_risk:.1f}"
+                    
+                    bunit_analysis.append({
+                        'Rank': f"#{rank}",
+                        'Business Unit': str(bunit)[:40] + ('...' if len(str(bunit)) > 40 else ''),
+                        'Email Count': f"{count:,}",
+                        'Percentage': f"{percentage:.1f}%",
+                        'Unique Senders': bunit_senders,
+                        'Departments': bunit_depts,
+                        'Word Matches': bunit_word_matches,
+                        'Avg Risk': avg_risk
+                    })
+                
+                # Create and style the dataframe
+                bunit_df = pd.DataFrame(bunit_analysis)
+                
+                def highlight_activity(row):
+                    styles = [''] * len(row)
+                    try:
+                        count = int(str(row['Email Count']).replace(',', ''))
+                        if count >= 1000:
+                            styles[2] = 'background-color: #ffebee; color: #c62828; font-weight: bold'  # Very high activity
+                        elif count >= 500:
+                            styles[2] = 'background-color: #fff3e0; color: #ef6c00; font-weight: bold'  # High activity
+                        elif count >= 100:
+                            styles[2] = 'background-color: #fffde7; color: #f57f17; font-weight: bold'  # Medium activity
+                    except:
+                        pass
+                    return styles
+                
+                styled_bunit_df = bunit_df.style.apply(highlight_activity, axis=1)
+                st.dataframe(styled_bunit_df, use_container_width=True, height=500)
+
+                # Department Analysis within Business Units
+                if 'department' in filtered_df.columns:
+                    st.subheader("🏛️ Department Analysis")
+                    
+                    # Select business unit for detailed department analysis
+                    selected_bunit = st.selectbox(
+                        "Select Business Unit for Department Breakdown:",
+                        options=bunit_counts.head(10).index.tolist(),
+                        help="Choose from the top 10 most active business units"
+                    )
+                    
+                    if selected_bunit:
+                        bunit_data = filtered_df[filtered_df['bunit'] == selected_bunit]
+                        dept_counts = bunit_data['department'].value_counts()
+                        
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.write(f"**Top Departments in {selected_bunit}:**")
+                            dept_analysis = []
+                            
+                            for rank, (dept, count) in enumerate(dept_counts.head(10).items(), 1):
+                                percentage = (count / len(bunit_data) * 100)
+                                dept_senders = bunit_data[bunit_data['department'] == dept]['sender'].nunique()
+                                
+                                dept_word_matches = 0
+                                if 'word_list_match' in bunit_data.columns:
+                                    dept_data = bunit_data[bunit_data['department'] == dept]
+                                    dept_word_matches = len(dept_data[
+                                        (dept_data['word_list_match'].notna()) & 
+                                        (dept_data['word_list_match'] != '') & 
+                                        (dept_data['word_list_match'].astype(str) != '0')
+                                    ])
+                                
+                                dept_analysis.append({
+                                    'Rank': f"#{rank}",
+                                    'Department': str(dept)[:30] + ('...' if len(str(dept)) > 30 else ''),
+                                    'Emails': f"{count:,}",
+                                    'Percentage': f"{percentage:.1f}%",
+                                    'Senders': dept_senders,
+                                    'Word Matches': dept_word_matches
+                                })
+                            
+                            dept_df = pd.DataFrame(dept_analysis)
+                            st.dataframe(dept_df, use_container_width=True, height=400)
+                        
+                        with col2:
+                            st.write(f"**{selected_bunit} Overview:**")
+                            st.write(f"• Total Emails: **{len(bunit_data):,}**")
+                            st.write(f"• Departments: **{dept_counts.nunique()}**")
+                            st.write(f"• Unique Senders: **{bunit_data['sender'].nunique()}**")
+                            
+                            if 'word_list_match' in bunit_data.columns:
+                                word_matches = len(bunit_data[
+                                    (bunit_data['word_list_match'].notna()) & 
+                                    (bunit_data['word_list_match'] != '') & 
+                                    (bunit_data['word_list_match'].astype(str) != '0')
+                                ])
+                                st.write(f"• Word Matches: **{word_matches:,}**")
+                            
+                            if 'risk_score' in bunit_data.columns:
+                                avg_risk = bunit_data['risk_score'].mean()
+                                st.write(f"• Average Risk Score: **{avg_risk:.1f}**")
+                            
+                            # Time-based analysis
+                            if 'time' in bunit_data.columns:
+                                bunit_data_time = bunit_data.copy()
+                                bunit_data_time['time'] = pd.to_datetime(bunit_data_time['time'], errors='coerce')
+                                bunit_data_time['hour'] = bunit_data_time['time'].dt.hour
+                                
+                                business_hours = len(bunit_data_time[
+                                    (bunit_data_time['hour'] >= 9) & (bunit_data_time['hour'] <= 17)
+                                ])
+                                business_hours_pct = (business_hours / len(bunit_data_time) * 100) if len(bunit_data_time) > 0 else 0
+                                st.write(f"• Business Hours: **{business_hours_pct:.1f}%**")
+
+                # Cross-Unit Analysis
+                st.subheader("🔄 Cross-Business Unit Analysis")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**Activity Distribution:**")
+                    total_emails = len(filtered_df)
+                    top_5_bunits = bunit_counts.head(5)
+                    top_5_total = top_5_bunits.sum()
+                    
+                    st.write(f"• Top 5 Units: **{(top_5_total/total_emails*100):.1f}%** of total activity")
+                    st.write(f"• Most Active Unit Share: **{(bunit_counts.iloc[0]/total_emails*100):.1f}%**")
+                    
+                    # Calculate concentration
+                    if len(bunit_counts) > 0:
+                        concentration = (bunit_counts.head(3).sum() / total_emails * 100)
+                        st.write(f"• Top 3 Units Concentration: **{concentration:.1f}%**")
+                
+                with col2:
+                    st.write("**Word Match Distribution:**")
+                    if 'word_list_match' in filtered_df.columns:
+                        emails_with_matches = filtered_df[
+                            (filtered_df['word_list_match'].notna()) & 
+                            (filtered_df['word_list_match'] != '') & 
+                            (filtered_df['word_list_match'].astype(str) != '0')
+                        ]
+                        
+                        if len(emails_with_matches) > 0:
+                            bunit_word_matches = emails_with_matches['bunit'].value_counts()
+                            top_word_match_unit = bunit_word_matches.index[0] if len(bunit_word_matches) > 0 else "N/A"
+                            top_word_match_count = bunit_word_matches.iloc[0] if len(bunit_word_matches) > 0 else 0
+                            
+                            st.write(f"• Top Word Match Unit: **{top_word_match_unit}**")
+                            st.write(f"• Word Matches: **{top_word_match_count:,}**")
+                            st.write(f"• Total Units with Matches: **{len(bunit_word_matches)}**")
+                        else:
+                            st.write("• No word matches found in dataset")
+                    else:
+                        st.write("• Word match data not available")
+
             else:
-                st.success("No immediate actions required based on current analysis")
-
-            # Additional suggestions
-            st.subheader("Additional Enhancement Ideas")
-            st.write("""
-            **Consider implementing these features:**
-
-            1. **Machine Learning Classification**
-               - Train models on banking email patterns
-               - Implement content-based risk scoring
-               - Use natural language processing for IP detection
-
-            2. **Advanced Behavioral Analysis**
-               - User baseline profiling for banking employees
-               - Peer group comparison analysis
-               - Seasonal pattern recognition
-
-            3. **Real-time Monitoring**
-               - Live dashboard for banking sector activity
-               - Automated alerts for IP keyword combinations
-               - Integration with compliance systems
-
-            4. **Content Deep Dive**
-               - Attachment content analysis
-               - Email thread reconstruction
-               - Communication pattern mapping
-
-            5. **Compliance Integration**
-               - SOX compliance checking
-               - Basel III regulatory alignment
-               - GDPR data protection compliance
-            """)
+                st.warning("Business Unit (bunit) data not available in the dataset")
+                st.info("Please ensure your email data includes the 'bunit' field for business unit analysis")
 
         # Create and display charts
         charts = bau_analyzer.create_bau_dashboard_charts(analysis_results)
