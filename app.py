@@ -389,6 +389,39 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         else:
             st.info("No medium-risk emails found.")
 
+    # View 4: Low-Risk Emails (Green)
+    st.subheader("🟢 4. Low-Risk Emails")
+    
+    low_risk_emails = df[
+        (df['has_attachments_bool']) & 
+        (df['risk_score'] <= 30) &  # Low risk score
+        (~df.index.isin(high_risk_emails.index)) &  # Exclude high risk
+        (~df.index.isin(medium_risk_emails.index))  # Exclude medium risk
+    ].sort_values(['risk_score', 'time'], ascending=[True, False])
+    
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        st.metric("Count", len(low_risk_emails))
+    
+    with col2:
+        if len(low_risk_emails) > 0:
+            # Display with minimal highlighting
+            display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'attachments']
+            available_cols = [col for col in display_cols if col in low_risk_emails.columns]
+            
+            def highlight_low_risk(row):
+                styles = [''] * len(row)
+                # Light green highlighting for low risk scores
+                if 'risk_score' in row.index:
+                    risk_score_idx = row.index.get_loc('risk_score')
+                    styles[risk_score_idx] = 'background-color: #e8f5e8; color: #2e7d32; font-weight: bold'
+                return styles
+            
+            styled_low_risk = low_risk_emails[available_cols].style.apply(highlight_low_risk, axis=1)
+            st.dataframe(styled_low_risk, use_container_width=True)
+        else:
+            st.info("No low-risk emails with attachments found.")
+
     # Risk breakdown section
     st.subheader("📊 Risk Factor Analysis")
 
