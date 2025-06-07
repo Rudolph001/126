@@ -910,6 +910,100 @@ def analytics_page(visualizer, anomaly_detector):
         with st.spinner("Analyzing low-risk email patterns..."):
             analysis_results = bau_analyzer.analyze_low_risk_patterns(df)
         
+        # Advanced Analytics KPIs - Show email counts used for each analysis
+        st.subheader("📈 Analysis Coverage")
+        
+        # Calculate specific metrics for BAU analysis
+        low_risk_df = df[df.get('risk_level', '') == 'Low']
+        
+        # Banking emails in low risk
+        banking_emails = 0
+        ip_risk_emails = 0
+        anomaly_emails = 0
+        business_hours_emails = 0
+        attachment_emails = 0
+        
+        if not low_risk_df.empty:
+            # Banking email detection
+            banking_keywords = [
+                'financial', 'banking', 'credit', 'loan', 'investment', 'portfolio',
+                'transaction', 'account', 'balance', 'statement', 'audit', 'compliance'
+            ]
+            
+            banking_mask = pd.Series([False] * len(low_risk_df), index=low_risk_df.index)
+            text_columns = ['subject']
+            if 'body' in low_risk_df.columns:
+                text_columns.append('body')
+            
+            for col in text_columns:
+                if col in low_risk_df.columns:
+                    for keyword in banking_keywords:
+                        banking_mask |= low_risk_df[col].str.contains(keyword, case=False, na=False)
+            
+            banking_emails = banking_mask.sum()
+            
+            # Business hours emails
+            if 'time' in low_risk_df.columns:
+                time_df = pd.to_datetime(low_risk_df['time'], errors='coerce')
+                hour = time_df.dt.hour
+                day_of_week = time_df.dt.dayofweek
+                business_hours_emails = len(low_risk_df[
+                    (hour >= 9) & (hour <= 17) & (day_of_week.isin([0, 1, 2, 3, 4]))
+                ])
+            
+            # Emails with attachments
+            if 'attachments' in low_risk_df.columns:
+                attachment_emails = len(low_risk_df[
+                    low_risk_df['attachments'].notna() & 
+                    (low_risk_df['attachments'] != '') & 
+                    (low_risk_df['attachments'].astype(str) != '0')
+                ])
+        
+        # Display KPI metrics for analysis coverage
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            st.metric(
+                label="Low Risk Dataset",
+                value=f"{len(low_risk_df):,}",
+                help="Total low-risk emails analyzed for BAU patterns"
+            )
+        
+        with col2:
+            banking_pct = (banking_emails/len(low_risk_df)*100) if len(low_risk_df) > 0 else 0
+            st.metric(
+                label="Banking Content",
+                value=f"{banking_emails:,}",
+                delta=f"{banking_pct:.1f}% of low risk",
+                help="Low-risk emails containing banking/financial keywords"
+            )
+        
+        with col3:
+            bh_pct = (business_hours_emails/len(low_risk_df)*100) if len(low_risk_df) > 0 else 0
+            st.metric(
+                label="Business Hours",
+                value=f"{business_hours_emails:,}",
+                delta=f"{bh_pct:.1f}% of low risk",
+                help="Low-risk emails sent during business hours (9AM-5PM, Mon-Fri)"
+            )
+        
+        with col4:
+            att_pct = (attachment_emails/len(low_risk_df)*100) if len(low_risk_df) > 0 else 0
+            st.metric(
+                label="With Attachments",
+                value=f"{attachment_emails:,}",
+                delta=f"{att_pct:.1f}% of low risk",
+                help="Low-risk emails containing file attachments"
+            )
+        
+        with col5:
+            unique_senders_lr = low_risk_df['sender'].nunique() if 'sender' in low_risk_df.columns else 0
+            st.metric(
+                label="Unique Senders",
+                value=f"{unique_senders_lr:,}",
+                help="Number of unique senders in low-risk email category"
+            )
+        
         # Display results in tabs
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
             "BAU Overview", 
