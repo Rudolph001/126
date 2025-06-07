@@ -3730,23 +3730,46 @@ def find_the_needle_page(domain_classifier, visualizer):
         
         # Analyze sender domains
         if 'sender_domain' in df.columns:
-            sender_domain_stats = df.groupby(['sender_domain', 'department', 'bunit']).agg({
-                'sender': 'count',
-                'risk_level': lambda x: (x == 'High').sum() if 'risk_level' in df.columns else 0,
-                'ip_keywords_detected': 'sum' if 'ip_keywords_detected' in df.columns else lambda x: 0
-            }).reset_index()
+            # Create aggregation dictionary based on available columns
+            agg_dict = {
+                'sender': 'count'
+            }
             
-            sender_domain_stats.columns = ['Domain', 'Department', 'Business Unit', 'Email Count', 'High Risk Emails', 'IP Keywords']
+            # Add risk level analysis if column exists
+            if 'risk_level' in df.columns:
+                agg_dict['risk_level'] = lambda x: (x == 'High').sum()
             
-            # Flag suspicious patterns
-            suspicious_domains = sender_domain_stats[
-                (sender_domain_stats['High Risk Emails'] > 0) | 
-                (sender_domain_stats['IP Keywords'] > 0)
-            ].sort_values(['High Risk Emails', 'IP Keywords'], ascending=False)
+            # Add IP keywords analysis if column exists
+            if 'ip_keywords_detected' in df.columns:
+                agg_dict['ip_keywords_detected'] = 'sum'
+            
+            sender_domain_stats = df.groupby(['sender_domain', 'department', 'bunit']).agg(agg_dict).reset_index()
+            
+            # Set column names based on what was aggregated
+            new_columns = ['Domain', 'Department', 'Business Unit', 'Email Count']
+            if 'risk_level' in df.columns:
+                new_columns.append('High Risk Emails')
+            if 'ip_keywords_detected' in df.columns:
+                new_columns.append('IP Keywords')
+            
+            sender_domain_stats.columns = new_columns
+            
+            # Flag suspicious patterns based on available columns
+            suspicious_mask = sender_domain_stats['Email Count'] > 0  # Base condition
+            
+            if 'High Risk Emails' in sender_domain_stats.columns:
+                suspicious_mask = suspicious_mask & (sender_domain_stats['High Risk Emails'] > 0)
+            
+            if 'IP Keywords' in sender_domain_stats.columns:
+                suspicious_mask = suspicious_mask | (sender_domain_stats['IP Keywords'] > 0)
+            
+            suspicious_domains = sender_domain_stats[suspicious_mask]
             
             if not suspicious_domains.empty:
                 st.write("**Domains with Suspicious Activity:**")
                 st.dataframe(suspicious_domains, use_container_width=True)
+            else:
+                st.info("No domains with suspicious activity patterns detected.")
         
         # Domain statistics summary
         st.subheader("Domain Statistics Summary")
