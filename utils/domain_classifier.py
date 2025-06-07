@@ -303,14 +303,21 @@ class DomainClassifier:
 
     def _extract_first_recipient_domain(self, recipients):
         """Extract first recipient domain from recipients string"""
-        if pd.isna(recipients) or recipients == '':
+        if pd.isna(recipients) or recipients == '' or str(recipients).strip() == '':
             return ''
 
         import re
+        recipients_str = str(recipients).strip()
+        
+        # Handle common edge cases
+        if recipients_str.lower() in ['none', 'null', 'nan', '0']:
+            return ''
+            
         # Find first email address in the recipients string
-        emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', str(recipients))
+        emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', recipients_str)
         if emails:
-            return self._extract_domain(emails[0])
+            domain = self._extract_domain(emails[0])
+            return domain if domain and domain.strip() != '' else ''
         return ''
 
     def _classify_domain_with_internal_check(self, row):
@@ -324,23 +331,131 @@ class DomainClassifier:
 
         sender_clean = sender_domain.lower().strip()
         
-        # Rule 1: Free email domains are always classified as 'free'
-        if sender_clean in self.free_email_domains:
-            return 'free'
+        # Rule 1: Classify free email domains by specific category
+        free_category = self._classify_free_email_category(sender_clean)
+        if free_category != 'business':
+            return free_category
         
         # Rule 2: Internal communication - only when sender_domain exactly matches recipient_domain
-        # and both are non-free domains
-        if recipient_domain and pd.notna(recipient_domain) and str(recipient_domain).strip() != '':
+        # and both are non-free domains and recipient_domain is actually present
+        if (recipient_domain and 
+            pd.notna(recipient_domain) and 
+            str(recipient_domain).strip() != '' and 
+            str(recipient_domain).strip().lower() != 'none' and
+            str(recipient_domain).strip().lower() != 'null'):
+            
             recipient_clean = str(recipient_domain).lower().strip()
             
-            # Both must be non-free and exactly matching
+            # Both must be non-free, non-empty, and exactly matching
             if (sender_clean == recipient_clean and 
                 sender_clean not in self.free_email_domains and 
-                recipient_clean not in self.free_email_domains):
+                recipient_clean not in self.free_email_domains and
+                len(sender_clean) > 0 and len(recipient_clean) > 0):
                 return 'internal'
         
         # Rule 3: All other non-free domains are classified as 'business'
         # This includes all legitimate business domains that are not free email providers
+        return 'business'
+
+    def _classify_free_email_category(self, domain):
+        """Classify free email domains into specific categories"""
+        if not domain:
+            return 'business'
+            
+        domain = domain.lower().strip()
+        
+        # Major providers
+        major_providers = {
+            'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com',
+            'icloud.com', 'me.com', 'mail.com', 'gmx.com', 'yandex.com',
+            'protonmail.com', 'tutanota.com', 'zoho.com', 'fastmail.com',
+            'live.com', 'msn.com', 'yahoo.co.uk', 'gmail.co.uk'
+        }
+        if domain in major_providers:
+            return 'Major Email Providers'
+            
+        # Microsoft domains
+        microsoft_domains = {
+            'hotmail.co.uk', 'hotmail.fr', 'hotmail.de', 'hotmail.it', 'hotmail.es',
+            'live.co.uk', 'live.fr', 'live.de', 'live.it', 'live.es',
+            'outlook.co.uk', 'outlook.fr', 'outlook.de', 'outlook.it', 'outlook.es',
+            'windowslive.com', 'passport.com'
+        }
+        if domain in microsoft_domains:
+            return 'Microsoft Email Domains'
+            
+        # Yahoo domains
+        yahoo_domains = {
+            'yahoo.co.uk', 'yahoo.fr', 'yahoo.de', 'yahoo.it', 'yahoo.es',
+            'yahoo.ca', 'yahoo.com.au', 'yahoo.co.jp', 'yahoo.com.br',
+            'yahoo.in', 'yahoo.com.mx', 'yahoo.com.ar', 'ymail.com',
+            'rocketmail.com', 'yahoomail.com'
+        }
+        if domain in yahoo_domains:
+            return 'Yahoo Email Domains'
+            
+        # Google domains
+        google_domains = {
+            'googlemail.com', 'gmail.co.uk', 'gmail.com.au', 'gmail.fr',
+            'gmail.de', 'gmail.it', 'gmail.es', 'gmail.ca', 'google.com'
+        }
+        if domain in google_domains:
+            return 'Google Email Domains'
+            
+        # Privacy-focused
+        privacy_domains = {
+            'protonmail.ch', 'pm.me', 'tutanota.de', 'tuta.io',
+            'guerrillamail.com', 'temp-mail.org', 'tempmail.net',
+            'mailinator.com', '10minutemail.com', 'guerrillamail.de',
+            'guerrillamail.net', 'guerrillamail.org', 'guerrillamail.biz'
+        }
+        if domain in privacy_domains:
+            return 'Privacy-Focused Email'
+            
+        # Disposable email services
+        disposable_domains = {
+            'temp-mail.org', 'tempmail.net', 'throwaway.email',
+            'mailnesia.com', 'maildrop.cc', 'getairmail.com',
+            'sharklasers.com', 'guerrillamail.info', 'grr.la',
+            'guerrillamail.biz', 'guerrillamail.com', 'guerrillamail.de',
+            'guerrillamail.net', 'guerrillamail.org', 'spam4.me'
+        }
+        if domain in disposable_domains:
+            return 'Disposable Email Services'
+            
+        # Educational (but free)
+        educational_free = {
+            'student.com', 'alumni.com', 'grad.com'
+        }
+        if domain in educational_free:
+            return 'Educational (but free)'
+            
+        # European providers
+        european_providers = {
+            'gmx.de', 'gmx.at', 'gmx.ch', 'gmx.net', 'gmx.org',
+            'web.de', 't-online.de', 'freenet.de', 'arcor.de',
+            'orange.fr', 'laposte.net', 'sfr.fr', 'free.fr', 'wanadoo.fr',
+            'libero.it', 'virgilio.it', 'tiscali.it', 'alice.it',
+            'terra.es', 'telefonica.net', 'ya.com',
+            'mail.ru', 'yandex.ru', 'rambler.ru', 'inbox.ru'
+        }
+        if domain in european_providers:
+            return 'European Email Providers'
+            
+        # Asian providers
+        asian_providers = {
+            'qq.com', '163.com', '126.com', 'sina.com', 'sohu.com',
+            'naver.com', 'daum.net', 'hanmail.net',
+            'rediffmail.com', 'sify.com', 'indiatimes.com'
+        }
+        if domain in asian_providers:
+            return 'Asian Email Providers'
+            
+        # Check if it's in the general free email domains list
+        if domain in self.free_email_domains:
+            return 'Other Free Email Providers'
+            
+        # Not a free email domain
         return 'business'
 
     def _classify_single_domain(self, domain):
@@ -444,8 +559,8 @@ class DomainClassifier:
         domain = domain.lower().strip()
 
         # Only classify if it's a business domain
-        domain_type = self._classify_single_domain(domain)
-        if domain_type not in ['business', 'internal']:
+        domain_type = self._classify_single_domain_strict(domain)
+        if domain_type not in ['business']:
             return 'not_business'
 
         # Check for banking/financial

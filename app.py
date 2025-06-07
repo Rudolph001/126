@@ -1941,7 +1941,11 @@ def analytics_page(visualizer, anomaly_detector):
                             
                         with col2:
                             st.write("**Risk Assessment:**")
-                            st.write(f"**Risk Score:** {selected_row.get('risk_score', 'N/A'):.1f}/100")
+                            risk_score = selected_row.get('risk_score', 'N/A')
+                            if isinstance(risk_score, (int, float)):
+                                st.write(f"**Risk Score:** {risk_score:.1f}/100")
+                            else:
+                                st.write(f"**Risk Score:** {risk_score}")
                             st.write(f"**Risk Level:** {selected_row.get('risk_level', 'N/A')}")
                             if 'anomaly_score' in selected_row:
                                 st.write(f"**Anomaly Score:** {selected_row['anomaly_score']:.3f}")
