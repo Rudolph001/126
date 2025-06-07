@@ -512,3 +512,25 @@ class DomainClassifier:
             return f"Domain analysis exported to {filepath}"
 
         return analysis_df.to_csv(index=False)
+
+    def _classify_single_domain_strict(self, domain: str) -> str:
+        """Classify a single domain strictly (used by app.py)"""
+        if not domain:
+            return 'unknown'
+        
+        domain = domain.lower().strip()
+        
+        # Check if it's a free email provider
+        if domain in self.all_free_domains:
+            return 'free'
+        
+        # Check for obviously internal domains
+        if self._is_internal_domain(domain):
+            return 'internal'
+        
+        # Everything else is business
+        return 'business'
+
+    def _classify_free_email_category(self, domain: str) -> str:
+        """Get detailed category for free email domains (used by app.py)"""
+        return self._get_detailed_category(domain)
