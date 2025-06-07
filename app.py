@@ -505,7 +505,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (df['word_list_match'].notna()) &   # Must have word_list_match value
         (df['word_list_match'] != '') &     # word_list_match must not be empty
         (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Must be free email domain
-    ].sort_values(['risk_score', 'time'], ascending=[False, False])
+    ]
+    # Sort to show emails with last_working_day values at top
+    high_risk_emails['has_last_working_day_sort'] = high_risk_emails['last_working_day'].notna()
+    high_risk_emails = high_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
     
     st.markdown(f"""
     <div class="analysis-card" style="background: #fff5f5; border: 2px solid #dc3545;">
@@ -557,7 +560,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (df['attachments'] != '') &         # Attachments must not be empty
         (df['attachments'].astype(str) != '0') &  # Attachments must not be '0'
         (~df.index.isin(high_risk_emails.index))  # Exclude already classified as critical
-    ].sort_values(['risk_score', 'time'], ascending=[False, False])
+    ]
+    # Sort to show emails with last_working_day values at top
+    high_security_emails['has_last_working_day_sort'] = high_security_emails['last_working_day'].notna()
+    high_security_emails = high_security_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
     
     st.markdown(f"""
     <div class="analysis-card" style="background: #fff8f0; border: 2px solid #ff8c00;">
@@ -603,7 +609,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False)) &  # Not free email domains
         (~df.index.isin(high_risk_emails.index)) &  # Exclude critical alerts
         (~df.index.isin(high_security_emails.index))  # Exclude high security alerts
-    ].sort_values(['risk_score', 'time'], ascending=[False, False])
+    ]
+    # Sort to show emails with last_working_day values at top
+    medium_risk_emails['has_last_working_day_sort'] = medium_risk_emails['last_working_day'].notna()
+    medium_risk_emails = medium_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
     
     st.markdown(f"""
     <div class="analysis-card" style="background: #fffbf0; border: 2px solid #ffc107;">
@@ -650,7 +659,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (~df.index.isin(high_risk_emails.index)) &  # Exclude critical alerts
         (~df.index.isin(high_security_emails.index)) &  # Exclude high security alerts
         (~df.index.isin(medium_risk_emails.index))  # Exclude medium risk
-    ].sort_values(['risk_score', 'time'], ascending=[True, False])
+    ]
+    # Sort to show emails with last_working_day values at top
+    low_risk_emails['has_last_working_day_sort'] = low_risk_emails['last_working_day'].notna()
+    low_risk_emails = low_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, True, False])
     
     st.markdown(f"""
     <div class="analysis-card" style="background: #f0fff4; border: 2px solid #28a745;">
