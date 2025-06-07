@@ -333,7 +333,7 @@ def network_view_page(visualizer):
             internal_domains_df = df[df['email_domain_type'] == 'internal']
             if not internal_domains_df.empty:
                 st.write(f"**{len(internal_domains_df):,} emails from internal domains**")
-                st.info("ℹ️ **Internal Domain Definition:** Emails where the sender domain matches at least one recipient domain, indicating internal organizational communication.")
+                st.info("ℹ️ **Internal Domain Definition:** Emails where the sender domain matches the recipient domain field, indicating internal organizational communication.")
                 
                 # Internal domain analysis with sender-recipient matching details
                 top_internal_domains = internal_domains_df['email_domain'].value_counts().head(10)
@@ -346,12 +346,18 @@ def network_view_page(visualizer):
                     domain_data = internal_domains_df[internal_domains_df['email_domain'] == domain]
                     unique_senders = domain_data['sender'].nunique()
                     
-                    # Count recipient instances of this domain
+                    # Count recipient instances of this domain using recipient_domain field
                     recipient_matches = 0
                     for _, row in domain_data.iterrows():
-                        recipient_domains = row.get('recipient_domains', [])
-                        if isinstance(recipient_domains, list) and domain in recipient_domains:
+                        # Primary check: Use recipient_domain field
+                        recipient_domain = row.get('recipient_domain', '')
+                        if recipient_domain and domain == recipient_domain.lower().strip():
                             recipient_matches += 1
+                        else:
+                            # Fallback: Check recipient_domains list
+                            recipient_domains = row.get('recipient_domains', [])
+                            if isinstance(recipient_domains, list) and domain in recipient_domains:
+                                recipient_matches += 1
                     
                     internal_display.append({
                         'Rank': f"#{rank}",
@@ -385,7 +391,7 @@ def network_view_page(visualizer):
                             st.write(f"• **Internal Emails:** {top_count:,}")
             else:
                 st.info("No internal domains found in the dataset")
-                st.write("**What this means:** No emails were detected where the sender domain matches any recipient domain.")
+                st.write("**What this means:** No emails were detected where the sender domain matches the recipient domain field value.")
         
         with domain_tabs[3]:  # Public Domains
             public_domains_df = df[df['email_domain_type'] == 'public']
@@ -495,9 +501,29 @@ def network_view_page(visualizer):
     from utils.domain_classifier import DomainClassifier
     domain_classifier = DomainClassifier()
     
-    # Extract recipient domains if not already present
-    if 'recipient_domains' not in df.columns:
-        # Extract from recipients field
+    # Prepare recipient domains for analysis - prioritize recipient_domain field
+    if 'recipient_domain' in df.columns:
+        # Use recipient_domain field as primary source
+        def get_recipient_domains_from_field(row):
+            recipient_domain = row.get('recipient_domain', '')
+            if pd.notna(recipient_domain) and recipient_domain.strip():
+                return [recipient_domain.strip().lower()]
+            
+            # Fallback to extracting from recipients field
+            recipients_str = row.get('recipients', '')
+            if pd.isna(recipients_str):
+                return []
+            domains = []
+            import re
+            emails = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', str(recipients_str))
+            for email in emails:
+                domain = email.split('@')[-1].lower()
+                domains.append(domain)
+            return list(set(domains))  # Remove duplicates
+        
+        df['recipient_domains'] = df.apply(get_recipient_domains_from_field, axis=1)
+    elif 'recipient_domains' not in df.columns:
+        # Extract from recipients field as fallback
         def extract_domains_from_recipients(recipients_str):
             if pd.isna(recipients_str):
                 return []

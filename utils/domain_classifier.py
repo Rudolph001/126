@@ -313,14 +313,23 @@ class DomainClassifier:
     def _classify_domain_with_internal_check(self, row):
         """Classify domain considering sender-recipient domain matching for internal detection"""
         sender_domain = row.get('email_domain', '')
+        recipient_domain = row.get('recipient_domain', '')  # Use the new recipient_domain field
         recipient_domains = row.get('recipient_domains', [])
 
         # First check if it's a known free email domain - these are NEVER internal
         if sender_domain and sender_domain.lower().strip() in self.free_email_domains:
             return 'free'
         
-        # Only classify as internal if sender domain ACTUALLY matches recipient domain
-        # AND it's not a free email domain
+        # Primary check: Use recipient_domain field for internal detection
+        if sender_domain and recipient_domain:
+            sender_clean = sender_domain.lower().strip()
+            recipient_clean = recipient_domain.lower().strip()
+            
+            # If sender domain matches recipient_domain field, classify as internal
+            if sender_clean == recipient_clean and sender_clean not in self.free_email_domains:
+                return 'internal'
+        
+        # Fallback: Check recipient_domains list for internal classification
         if sender_domain and isinstance(recipient_domains, list) and len(recipient_domains) > 0:
             # Check for exact domain match (case-insensitive)
             sender_clean = sender_domain.lower().strip()
@@ -386,8 +395,16 @@ class DomainClassifier:
     def _check_internal_communication(self, row):
         """Check if email represents internal communication based on sender-recipient domain matching"""
         sender_domain = row.get('email_domain', '')
+        recipient_domain = row.get('recipient_domain', '')  # Use the new recipient_domain field
         recipient_domains = row.get('recipient_domains', [])
 
+        # Primary check: Use recipient_domain field
+        if sender_domain and recipient_domain:
+            sender_clean = sender_domain.lower().strip()
+            recipient_clean = recipient_domain.lower().strip()
+            return sender_clean == recipient_clean
+
+        # Fallback: Use recipient_domains list
         if not sender_domain or not isinstance(recipient_domains, list):
             return False
 
@@ -399,9 +416,23 @@ class DomainClassifier:
     def _analyze_sender_recipient_match(self, row):
         """Analyze sender-recipient domain matching details"""
         sender_domain = row.get('email_domain', '')
+        recipient_domain = row.get('recipient_domain', '')  # Use the new recipient_domain field
         recipient_domains = row.get('recipient_domains', [])
 
-        if not sender_domain or not isinstance(recipient_domains, list):
+        if not sender_domain:
+            return 'no_sender_domain'
+
+        # Primary check: Use recipient_domain field
+        if recipient_domain:
+            sender_clean = sender_domain.lower().strip()
+            recipient_clean = recipient_domain.lower().strip()
+            if sender_clean == recipient_clean:
+                return f'internal_match_{sender_domain}'
+            else:
+                return f'external_to_{recipient_domain}'
+
+        # Fallback: Use recipient_domains list
+        if not isinstance(recipient_domains, list):
             return 'no_match_data'
 
         # Check for exact domain match (case-insensitive)
