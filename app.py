@@ -667,13 +667,13 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     with col2:
         # Calculate critical alerts based on new criteria
         critical_alerts = len(df[
-            (df['last_working_day'].notna()) &
+            (df['resignation_date'].notna()) &
             (df['attachments'].notna()) &
             (df['attachments'] != '') &
             (df['attachments'].astype(str) != '0') &
-            (df['word_list_match'].notna()) &
-            (df['word_list_match'] != '') &
-            (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
+              (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &
+            (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
         critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
@@ -687,20 +687,20 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     with col3:
         # Calculate high security alerts based on new criteria
         high_security_alerts = len(df[
-            (df['last_working_day'].notna()) &
+            (df['resignation_date'].notna()) &
             (df['attachments'].notna()) &
             (df['attachments'] != '') &
             (df['attachments'].astype(str) != '0')
         ])
         # Exclude critical alerts to avoid double counting
         critical_emails_mask = (
-            (df['last_working_day'].notna()) &
+            (df['resignation_date'].notna()) &
             (df['attachments'].notna()) &
             (df['attachments'] != '') &
             (df['attachments'].astype(str) != '0') &
-            (df['word_list_match'].notna()) &
-            (df['word_list_match'] != '') &
-            (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
+              (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &
+            (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         )
         high_security_alerts = high_security_alerts - critical_alerts
         high_security_pct = (high_security_alerts/total_emails*100) if total_emails > 0 else 0
@@ -716,10 +716,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         # Calculate medium risk based on new criteria
         medium_risk_count = len(df[
             (df['has_attachments_bool']) &  # Has attachments
-            (df['word_list_match'].notna()) &  # Has word_list_match value
-            (df['word_list_match'] != '') &    # word_list_match is not empty
-            (~df['has_last_working_day']) &    # No last working day
-            (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Not free email domains
+            (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
+              (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &  # Has wordlist matches
+            (df['resignation_date'].isna()) &    # No resignation date
+            (~df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Not free email domains
         ])
         medium_risk_pct = (medium_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
@@ -733,17 +733,17 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     with col5:
         # Calculate low risk based on new criteria - all emails not in critical, high, or medium
         critical_alerts = len(df[
-            (df['last_working_day'].notna()) &
+            (df['resignation_date'].notna()) &
             (df['attachments'].notna()) &
             (df['attachments'] != '') &
             (df['attachments'].astype(str) != '0') &
-            (df['word_list_match'].notna()) &
-            (df['word_list_match'] != '') &
-            (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
+              (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &
+            (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
 
         high_security_alerts = len(df[
-            (df['last_working_day'].notna()) &
+            (df['resignation_date'].notna()) &
             (df['attachments'].notna()) &
             (df['attachments'] != '') &
             (df['attachments'].astype(str) != '0')
@@ -751,10 +751,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
         medium_risk_count = len(df[
             (df['has_attachments_bool']) &
-            (df['word_list_match'].notna()) &
-            (df['word_list_match'] != '') &
-            (~df['has_last_working_day']) &
-            (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
+              (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &
+            (df['resignation_date'].isna()) &
+            (~df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
 
         low_risk_count = total_emails - critical_alerts - high_security_alerts - medium_risk_count
@@ -854,10 +854,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
          (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != ''))) &  # Must have wordlist matches
         (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Must be free email domain
     ]
-    # Sort to show emails with last_working_day values at top
+    # Sort to show emails with resignation_date values at top
     high_risk_emails = high_risk_emails.copy()
-    high_risk_emails['has_last_working_day_sort'] = high_risk_emails['last_working_day'].notna()
-    high_risk_emails = high_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
+    high_risk_emails['has_resignation_date_sort'] = high_risk_emails['resignation_date'].notna()
+    high_risk_emails = high_risk_emails.sort_values(['has_resignation_date_sort', 'risk_score', '_time'], ascending=[False, False, False])
 
     st.markdown(f"""
     <div class="analysis-card" style="background: #fff5f5; border: 2px solid #dc3545;">
@@ -877,7 +877,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     if len(high_risk_emails) > 0:
         # Display with highlighting - include domain to show free email detection and security coverage
-        display_cols = ['time', 'sender', 'recipients', 'domain', 'subject', 'risk_score', 'security_coverage', 'resignation_date', 'wordlist_subject', 'wordlist_attachment', 'attachments']
+        display_cols = ['_time', 'sender', 'recipients', 'domain', 'subject', 'risk_score', 'security_coverage', 'resignation_date', 'wordlist_subject', 'wordlist_attachment', 'attachments']
         available_cols = [col for col in display_cols if col in high_risk_emails.columns]
 
         def highlight_high_risk(row):
@@ -926,10 +926,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (df['attachments'].astype(str) != '0') &  # Attachments must not be '0'
         (~df.index.isin(high_risk_emails.index))  # Exclude already classified as critical
     ]
-    # Sort to show emails with last_working_day values at top
+    # Sort to show emails with resignation_date values at top
     high_security_emails = high_security_emails.copy()
-    high_security_emails['has_last_working_day_sort'] = high_security_emails['last_working_day'].notna()
-    high_security_emails = high_security_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
+    high_security_emails['has_resignation_date_sort'] = high_security_emails['resignation_date'].notna()
+    high_security_emails = high_security_emails.sort_values(['has_resignation_date_sort', 'risk_score', '_time'], ascending=[False, False, False])
 
     st.markdown(f"""
     <div class="analysis-card" style="background: #fff8f0; border: 2px solid #ff8c00;">
@@ -948,15 +948,15 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     if len(high_security_emails) > 0:
         # Display with highlighting
-        display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'security_coverage', 'last_working_day', 'word_list_match', 'attachments']
+        display_cols = ['_time', 'sender', 'recipients', 'domain', 'subject', 'risk_score', 'security_coverage', 'resignation_date', 'word_list_match', 'attachments']
         available_cols = [col for col in display_cols if col in high_security_emails.columns]
 
         def highlight_high_security(row):
             styles = [''] * len(row)
-            # Highlight last_working_day (key indicator)
-            if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
-                last_working_idx = row.index.get_loc('last_working_day')
-                styles[last_working_idx] = 'background-color: #fed7d7; color: #c53030; font-weight: bold'
+            # Highlight resignation_date (key indicator)
+            if 'resignation_date' in row.index and pd.notna(row['resignation_date']):
+                resignation_idx = row.index.get_loc('resignation_date')
+                styles[resignation_idx] = 'background-color: #fed7d7; color: #c53030; font-weight: bold'
             # Highlight attachments (data exfiltration vector)
             if 'attachments' in row.index and pd.notna(row['attachments']) and str(row['attachments']).strip():
                 attachments_idx = row.index.get_loc('attachments')
@@ -988,10 +988,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (~df.index.isin(high_risk_emails.index)) &  # Exclude critical alerts
         (~df.index.isin(high_security_emails.index))  # Exclude high security alerts
     ]
-    # Sort to show emails with last_working_day values at top
+    # Sort to show emails with resignation_date values at top
     medium_risk_emails = medium_risk_emails.copy()
-    medium_risk_emails['has_last_working_day_sort'] = medium_risk_emails['last_working_day'].notna()
-    medium_risk_emails = medium_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, False, False])
+    medium_risk_emails['has_resignation_date_sort'] = medium_risk_emails['resignation_date'].notna()
+    medium_risk_emails = medium_risk_emails.sort_values(['has_resignation_date_sort', 'risk_score', '_time'], ascending=[False, False, False])
 
     st.markdown(f"""
     <div class="analysis-card" style="background: #fffbf0; border: 2px solid #ffc107;">
@@ -1010,15 +1010,15 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     if len(medium_risk_emails) > 0:
         # Display with highlighting
-        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'security_coverage', 'last_working_day', 'word_list_match', 'attachments']
+        display_cols = ['_time', 'sender', 'recipients', 'subject', 'risk_score', 'security_coverage', 'resignation_date', 'word_list_match', 'attachments']
         available_cols = [col for col in display_cols if col in medium_risk_emails.columns]
 
         def highlight_medium_risk(row):
             styles = [''] * len(row)
-            # Highlight last_working_day if present (red)
-            if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
-                last_working_idx = row.index.get_loc('last_working_day')
-                styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+            # Highlight resignation_date if present (red)
+            if 'resignation_date' in row.index and pd.notna(row['resignation_date']):
+                resignation_idx = row.index.get_loc('resignation_date')
+                styles[resignation_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
             # Highlight word_list_match if medium score (yellow)
             if 'word_list_match' in row.index:
                 word_match_idx = row.index.get_loc('word_list_match')
@@ -1051,10 +1051,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (~df.index.isin(high_security_emails.index)) &  # Exclude high security alerts
         (~df.index.isin(medium_risk_emails.index))  # Exclude medium risk
     ]
-    # Sort to show emails with last_working_day values at top
+    # Sort to show emails with resignation_date values at top
     low_risk_emails = low_risk_emails.copy()
-    low_risk_emails['has_last_working_day_sort'] = low_risk_emails['last_working_day'].notna()
-    low_risk_emails = low_risk_emails.sort_values(['has_last_working_day_sort', 'risk_score', 'time'], ascending=[False, True, False])
+    low_risk_emails['has_resignation_date_sort'] = low_risk_emails['resignation_date'].notna()
+    low_risk_emails = low_risk_emails.sort_values(['has_resignation_date_sort', 'risk_score', '_time'], ascending=[False, True, False])
 
     st.markdown(f"""
     <div class="analysis-card" style="background: #f0fff4; border: 2px solid #28a745;">
@@ -1071,7 +1071,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     if len(low_risk_emails) > 0:
         # Display with minimal highlighting
-        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'security_coverage', 'attachments', 'last_working_day', 'word_list_match']
+        display_cols = ['_time', 'sender', 'recipients', 'subject', 'risk_score', 'security_coverage', 'attachments', 'resignation_date', 'word_list_match']
         available_cols = [col for col in display_cols if col in low_risk_emails.columns]
 
         def highlight_low_risk(row):
@@ -1080,10 +1080,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             if 'risk_score' in row.index:
                 risk_score_idx = row.index.get_loc('risk_score')
                 styles[risk_score_idx] = 'background-color: #e8f5e8; color: #2e7d32; font-weight: bold'
-            # Highlight last_working_day in red if present
-            if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
-                last_working_idx = row.index.get_loc('last_working_day')
-                styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+            # Highlight resignation_date in red if present
+            if 'resignation_date' in row.index and pd.notna(row['resignation_date']):
+                resignation_idx = row.index.get_loc('resignation_date')
+                styles[resignation_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
             # Highlight security coverage based on status
             if 'security_coverage' in row.index:
                 coverage_idx = row.index.get_loc('security_coverage')
