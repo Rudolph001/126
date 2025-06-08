@@ -92,6 +92,9 @@ class DataProcessor:
             processed_df['recipient_domains'] = processed_df['recipients'].apply(self._extract_domains)
             processed_df['recipient_domain'] = processed_df['recipient_domains'].apply(lambda x: x[0] if x else '')
         
+        # Ensure primary recipient domain is available for classification
+        processed_df['primary_recipient_domain'] = processed_df['domain']
+        
         # Extract sender domain
         processed_df['sender_domain'] = processed_df['sender'].apply(lambda x: x.split('@')[-1] if '@' in str(x) else '')
         

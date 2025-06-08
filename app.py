@@ -219,7 +219,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             (df['leaver'].astype(str) != '-') &
             (df['wordlist_attachment'].astype(str) != '-') &
             (df['attachments'].astype(str) != '-') &
-            (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            (df['recipient_domain_type'] == 'free')
         ])
         critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
@@ -243,7 +243,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             (df['leaver'].astype(str) != '-') &
             (df['wordlist_attachment'].astype(str) != '-') &
             (df['attachments'].astype(str) != '-') &
-            (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            (df['recipient_domain_type'] == 'free')
         )
         high_security_alerts = high_security_alerts - critical_alerts
         high_security_pct = (high_security_alerts/total_emails*100) if total_emails > 0 else 0
@@ -262,7 +262,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
               (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &
             (df['resignation_date'].isna()) &
-            (~df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            (df['recipient_domain_type'] != 'free')
         ])
         medium_risk_pct = (medium_risk_count/total_emails*100) if total_emails > 0 else 0
         st.markdown(f"""
@@ -279,7 +279,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             (df['leaver'].astype(str) != '-') &
             (df['wordlist_attachment'].astype(str) != '-') &
             (df['attachments'].astype(str) != '-') &
-            (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            (df['recipient_domain_type'] == 'free')
         ])
 
         high_security_alerts = len(df[
@@ -294,7 +294,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
               (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &
             (df['resignation_date'].isna()) &
-            (~df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
+            (df['recipient_domain_type'] != 'free')
         ])
 
         low_risk_count = total_emails - critical_alerts - high_security_alerts - medium_risk_count
@@ -371,7 +371,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (df['leaver'].astype(str) != '-') &  # Leaver field must NOT equal "-"
         (df['wordlist_attachment'].astype(str) != '-') &  # Wordlist attachment must NOT equal "-"
         (df['attachments'].astype(str) != '-') &  # Attachments must NOT equal "-"
-        (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Must be free email domain
+        (df['recipient_domain_type'] == 'free')  # Must be free email domain
     ]
     # Sort to show emails with resignation_date values at top
     high_risk_emails = high_risk_emails.copy()
@@ -481,7 +481,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
          (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &  # Has wordlist matches
         (df['resignation_date'].isna()) &    # No resignation date
-        (~df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False)) &  # Not free email domains
+        (df['recipient_domain_type'] != 'free') &  # Not free email domains
         (~df.index.isin(high_risk_emails.index)) &  # Exclude critical alerts
         (~df.index.isin(high_security_emails.index))  # Exclude high security alerts
     ]
