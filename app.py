@@ -216,12 +216,9 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     with col2:
         # Calculate critical alerts based on new criteria
         critical_alerts = len(df[
-            (df['resignation_date'].notna()) &
-            (df['attachments'].notna()) &
-            (df['attachments'] != '') &
-            (df['attachments'].astype(str) != '0') &
-            (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
-              (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &
+            (df['leaver'].astype(str) != '-') &
+            (df['wordlist_attachment'].astype(str) != '-') &
+            (df['attachments'].astype(str) != '-') &
             (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
         critical_pct = (critical_alerts/total_emails*100) if total_emails > 0 else 0
@@ -243,12 +240,9 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
         ])
         # Exclude critical alerts to avoid double counting
         critical_emails_mask = (
-            (df['resignation_date'].notna()) &
-            (df['attachments'].notna()) &
-            (df['attachments'] != '') &
-            (df['attachments'].astype(str) != '0') &
-            (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
-              (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &
+            (df['leaver'].astype(str) != '-') &
+            (df['wordlist_attachment'].astype(str) != '-') &
+            (df['attachments'].astype(str) != '-') &
             (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         )
         high_security_alerts = high_security_alerts - critical_alerts
@@ -282,12 +276,9 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     with col5:
         # Calculate low risk based on new criteria - all emails not in critical, high, or medium
         critical_alerts = len(df[
-            (df['resignation_date'].notna()) &
-            (df['attachments'].notna()) &
-            (df['attachments'] != '') &
-            (df['attachments'].astype(str) != '0') &
-            (((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
-              (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != '')))) &
+            (df['leaver'].astype(str) != '-') &
+            (df['wordlist_attachment'].astype(str) != '-') &
+            (df['attachments'].astype(str) != '-') &
             (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))
         ])
 
@@ -377,12 +368,9 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     # View 1: Critical Security Alerts - Must have all four conditions
     high_risk_emails = df[
-        (df['resignation_date'].notna()) &  # Must have resignation_date value
-        (df['attachments'].notna()) &       # Must have attachments value
-        (df['attachments'] != '') &         # Attachments must not be empty
-        (df['attachments'].astype(str) != '0') &  # Attachments must not be '0'
-        ((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
-         (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != ''))) &  # Must have wordlist matches
+        (df['leaver'].astype(str) != '-') &  # Leaver field must NOT equal "-"
+        (df['wordlist_attachment'].astype(str) != '-') &  # Wordlist attachment must NOT equal "-"
+        (df['attachments'].astype(str) != '-') &  # Attachments must NOT equal "-"
         (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Must be free email domain
     ]
     # Sort to show emails with resignation_date values at top
@@ -398,30 +386,28 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             <span class="count-badge" style="background: #f8d7da; color: #721c24;">{len(high_risk_emails)} emails</span>
         </div>
         <p style="color: #6c757d; margin-bottom: 1rem;">
-            Emails that meet high-risk criteria, including:<br>
+            Emails that meet critical risk criteria, including:<br>
+            • Departing employees (leaver field populated)<br>
+            • Sensitive keywords in attachments<br>
             • Messages with file attachments<br>
-            • Keywords matches indicating sensitive content<br>
-            • Emails sent by departing employees to free/public email domains
+            • Sent to free/public email domains (Gmail, Yahoo, etc.)
         </p>
     </div>
     """, unsafe_allow_html=True)
 
     if len(high_risk_emails) > 0:
         # Display with highlighting - include domain to show free email detection
-        display_cols = ['_time', 'sender', 'recipients', 'domain', 'subject', 'risk_score', 'resignation_date', 'wordlist_subject', 'wordlist_attachment', 'attachments']
+        display_cols = ['_time', 'sender', 'recipients', 'domain', 'subject', 'risk_score', 'leaver', 'wordlist_attachment', 'attachments']
         available_cols = [col for col in display_cols if col in high_risk_emails.columns]
 
         def highlight_high_risk(row):
             styles = [''] * len(row)
-            # Highlight resignation_date (critical indicator)
-            if 'resignation_date' in row.index and pd.notna(row['resignation_date']):
-                resignation_idx = row.index.get_loc('resignation_date')
-                styles[resignation_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
-            # Highlight wordlist fields (sensitive content indicator)
-            if 'wordlist_subject' in row.index and pd.notna(row['wordlist_subject']) and str(row['wordlist_subject']).strip():
-                word_match_idx = row.index.get_loc('wordlist_subject')
-                styles[word_match_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
-            if 'wordlist_attachment' in row.index and pd.notna(row['wordlist_attachment']) and str(row['wordlist_attachment']).strip():
+            # Highlight leaver field (critical indicator)
+            if 'leaver' in row.index and str(row['leaver']) != '-':
+                leaver_idx = row.index.get_loc('leaver')
+                styles[leaver_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+            # Highlight wordlist_attachment field (sensitive content indicator)
+            if 'wordlist_attachment' in row.index and str(row['wordlist_attachment']) != '-':
                 word_match_idx = row.index.get_loc('wordlist_attachment')
                 styles[word_match_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
             # Highlight domain (free email indicator)
@@ -429,7 +415,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                 domain_idx = row.index.get_loc('domain')
                 styles[domain_idx] = 'background-color: #fff3cd; color: #856404; font-weight: bold'
             # Highlight attachments (data exfiltration vector)
-            if 'attachments' in row.index and pd.notna(row['attachments']) and str(row['attachments']).strip():
+            if 'attachments' in row.index and str(row['attachments']) != '-':
                 attachments_idx = row.index.get_loc('attachments')
                 styles[attachments_idx] = 'background-color: #f8d7da; color: #721c24; font-weight: bold'
             return styles
