@@ -44,6 +44,10 @@ class DataProcessor:
         processed_df['email_domain'] = processed_df['domain']
         processed_df['businessPillar'] = processed_df['business_pillar']
         
+        # Create combined wordlist field for analysis
+        processed_df['combined_wordlist'] = processed_df['wordlist_subject'].fillna('') + ' ' + processed_df['wordlist_attachment'].fillna('')
+        processed_df['combined_wordlist'] = processed_df['combined_wordlist'].str.strip()
+        
         # Clean and standardize email addresses
         processed_df['sender'] = processed_df['sender'].str.lower().str.strip()
         processed_df['recipients'] = processed_df['recipients'].str.lower().str.strip()
