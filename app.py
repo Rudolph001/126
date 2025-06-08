@@ -97,20 +97,21 @@ def security_coverage_page():
     
     # Security Tool Coverage Analysis
     def get_security_coverage(row):
-        """Determine security coverage based on Tessian and Mimecast columns"""
-        tessian = str(row.get('tessian', '')).strip().lower() if pd.notna(row.get('tessian', '')) else ''
-        mimecast = str(row.get('mimecast', '')).strip().lower() if pd.notna(row.get('mimecast', '')) else ''
+        """Determine security coverage based on new field names"""
+        tessian_shown = str(row.get('tessian_message_shown', '')).strip().lower() if pd.notna(row.get('tessian_message_shown', '')) else ''
+        breach_prevented = str(row.get('breach_prevented', '')).strip().lower() if pd.notna(row.get('breach_prevented', '')) else ''
+        policy_name = str(row.get('policy_name', '')).strip().lower() if pd.notna(row.get('policy_name', '')) else ''
         
-        has_tessian = tessian not in ['', '0', 'false', 'none', 'null']
-        has_mimecast = mimecast not in ['', '0', 'false', 'none', 'null']
+        has_tessian = tessian_shown not in ['', '0', 'false', 'none', 'null', 'no']
+        has_policy = policy_name not in ['', '0', 'false', 'none', 'null']
+        has_breach_prevention = breach_prevented not in ['', '0', 'false', 'none', 'null', 'no']
         
-        if has_tessian and has_mimecast:
+        coverage_indicators = sum([has_tessian, has_policy, has_breach_prevention])
+        
+        if coverage_indicators >= 2:
             return "Full Coverage"
-        elif has_tessian or has_mimecast:
-            if has_tessian:
-                return "Missing Mimecast"
-            else:
-                return "Missing Tessian"
+        elif coverage_indicators == 1:
+            return "Partial Coverage"
         else:
             return "No Coverage"
     
@@ -359,7 +360,7 @@ def data_upload_page(data_processor, domain_classifier, keyword_detector):
         uploaded_file = st.file_uploader(
             "Upload Email Data (CSV)",
             type=['csv'],
-            help="Required fields: time, sender, sender_domain, recipients, recipient_domain, email_domain, word_list_match, recipient_status, subject, attachments, act, delivered, deliveryErrors, direction, eventtype, aggreatedid, tessian, tessian_response, mimecast, tessian_outcome, tessian_policy, last_working_day, bunit, department, businessPillar"
+            help="Required fields: _time, policy_name, sender, transmitter, recipients, subject, wordlist_subject, attachments, wordlist_attachment, justification, is_sensitive, bunit, department, business_pillar, domain, breach_prevented, user_response, tessian_message_shown, leaver, resignation_date"
         )
 
         if uploaded_file is not None:
@@ -369,11 +370,10 @@ def data_upload_page(data_processor, domain_classifier, keyword_detector):
 
                 # Check required fields
                 required_fields = [
-                    'time', 'sender', 'sender_domain', 'recipients', 'recipient_domain', 'email_domain', 'word_list_match',
-                    'recipient_status', 'subject', 'attachments', 'act', 'delivered',
-                    'deliveryErrors', 'direction', 'eventtype', 'aggreatedid', 'tessian',
-                    'tessian_response', 'mimecast', 'tessian_outcome', 'tessian_policy',
-                    'last_working_day', 'bunit', 'department', 'businessPillar'
+                    '_time', 'policy_name', 'sender', 'transmitter', 'recipients', 'subject', 'wordlist_subject',
+                    'attachments', 'wordlist_attachment', 'justification', 'is_sensitive', 'bunit', 'department',
+                    'business_pillar', 'domain', 'breach_prevented', 'user_response', 'tessian_message_shown',
+                    'leaver', 'resignation_date'
                 ]
 
                 missing_fields = [field for field in required_fields if field not in df.columns]
@@ -846,13 +846,13 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     # View 1: Critical Security Alerts - Must have all four conditions
     high_risk_emails = df[
-        (df['last_working_day'].notna()) &  # Must have last_working_day value
+        (df['resignation_date'].notna()) &  # Must have resignation_date value
         (df['attachments'].notna()) &       # Must have attachments value
         (df['attachments'] != '') &         # Attachments must not be empty
         (df['attachments'].astype(str) != '0') &  # Attachments must not be '0'
-        (df['word_list_match'].notna()) &   # Must have word_list_match value
-        (df['word_list_match'] != '') &     # word_list_match must not be empty
-        (df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Must be free email domain
+        ((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
+         (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != ''))) &  # Must have wordlist matches
+        (df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False))  # Must be free email domain
     ]
     # Sort to show emails with last_working_day values at top
     high_risk_emails = high_risk_emails.copy()
@@ -876,23 +876,26 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     """, unsafe_allow_html=True)
 
     if len(high_risk_emails) > 0:
-        # Display with highlighting - include email_domain to show free email detection and security coverage
-        display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'security_coverage', 'last_working_day', 'word_list_match', 'attachments']
+        # Display with highlighting - include domain to show free email detection and security coverage
+        display_cols = ['time', 'sender', 'recipients', 'domain', 'subject', 'risk_score', 'security_coverage', 'resignation_date', 'wordlist_subject', 'wordlist_attachment', 'attachments']
         available_cols = [col for col in display_cols if col in high_risk_emails.columns]
 
         def highlight_high_risk(row):
             styles = [''] * len(row)
-            # Highlight last_working_day (critical indicator)
-            if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
-                last_working_idx = row.index.get_loc('last_working_day')
-                styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
-            # Highlight word_list_match (sensitive content indicator)
-            if 'word_list_match' in row.index and pd.notna(row['word_list_match']) and str(row['word_list_match']).strip():
-                word_match_idx = row.index.get_loc('word_list_match')
+            # Highlight resignation_date (critical indicator)
+            if 'resignation_date' in row.index and pd.notna(row['resignation_date']):
+                resignation_idx = row.index.get_loc('resignation_date')
+                styles[resignation_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+            # Highlight wordlist fields (sensitive content indicator)
+            if 'wordlist_subject' in row.index and pd.notna(row['wordlist_subject']) and str(row['wordlist_subject']).strip():
+                word_match_idx = row.index.get_loc('wordlist_subject')
                 styles[word_match_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
-            # Highlight email_domain (free email indicator)
-            if 'email_domain' in row.index:
-                domain_idx = row.index.get_loc('email_domain')
+            if 'wordlist_attachment' in row.index and pd.notna(row['wordlist_attachment']) and str(row['wordlist_attachment']).strip():
+                word_match_idx = row.index.get_loc('wordlist_attachment')
+                styles[word_match_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
+            # Highlight domain (free email indicator)
+            if 'domain' in row.index:
+                domain_idx = row.index.get_loc('domain')
                 styles[domain_idx] = 'background-color: #fff3cd; color: #856404; font-weight: bold'
             # Highlight attachments (data exfiltration vector)
             if 'attachments' in row.index and pd.notna(row['attachments']) and str(row['attachments']).strip():
@@ -915,9 +918,9 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     else:
         st.success("✅ No critical security threats detected.")
 
-    # View 2: High Security Alerts - Require both last_working_day and attachments
+    # View 2: High Security Alerts - Require both resignation_date and attachments
     high_security_emails = df[
-        (df['last_working_day'].notna()) &  # Must have last_working_day value
+        (df['resignation_date'].notna()) &  # Must have resignation_date value
         (df['attachments'].notna()) &       # Must have attachments value
         (df['attachments'] != '') &         # Attachments must not be empty
         (df['attachments'].astype(str) != '0') &  # Attachments must not be '0'
@@ -978,10 +981,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # View 3: Medium-Risk Emails
     medium_risk_emails = df[
         (df['has_attachments_bool']) &  # Has attachments
-        (df['word_list_match'].notna()) &  # Has word_list_match value
-        (df['word_list_match'] != '') &    # word_list_match is not empty
-        (~df['has_last_working_day']) &    # No last working day
-        (~df['email_domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False)) &  # Not free email domains
+        ((df['wordlist_subject'].notna() & (df['wordlist_subject'] != '')) | 
+         (df['wordlist_attachment'].notna() & (df['wordlist_attachment'] != ''))) &  # Has wordlist matches
+        (df['resignation_date'].isna()) &    # No resignation date
+        (~df['domain'].str.contains('gmail|yahoo|hotmail|outlook|aol|icloud|protonmail|tutanota', case=False, na=False)) &  # Not free email domains
         (~df.index.isin(high_risk_emails.index)) &  # Exclude critical alerts
         (~df.index.isin(high_security_emails.index))  # Exclude high security alerts
     ]
@@ -2427,15 +2430,26 @@ def app_workflow_overview_page():
     
     st.markdown("""
     **Required CSV Columns:**
+    - `_time`: Timestamp of email
+    - `policy_name`: Security policy that triggered
     - `sender`: Email sender address
-    - `recipient`: Email recipient address(es)
+    - `transmitter`: Email transmitter
+    - `recipients`: Email recipient address(es)
     - `subject`: Email subject line
-    - `time`: Timestamp of email
+    - `wordlist_subject`: Keywords found in subject
     - `attachments`: File attachments (if any)
-    - `leaver`: Indicates if sender is leaving (Y/N)
+    - `wordlist_attachment`: Keywords found in attachments
+    - `justification`: User justification for sending
+    - `is_sensitive`: Whether email contains sensitive data
     - `bunit`: Business unit of sender
     - `department`: Department of sender
-    - `word_list_match`: Matched sensitive keywords
+    - `business_pillar`: Business pillar classification
+    - `domain`: Recipient domain
+    - `breach_prevented`: Whether a breach was prevented
+    - `user_response`: User's response to security prompt
+    - `tessian_message_shown`: Whether Tessian message was shown
+    - `leaver`: Indicates if sender is leaving (Y/N)
+    - `resignation_date`: Date of resignation
     
     **Optional Whitelist File:**
     - Single column with header containing trusted domains
