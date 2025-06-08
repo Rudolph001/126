@@ -67,11 +67,18 @@ def main():
 def security_coverage_page():
     st.header("📧 Email Monitoring Sources")
     
+    # Add whitelist filtering note
+    st.info("""
+    ℹ️ **Email Monitoring Sources Information Note:** 
+    This monitoring coverage analysis excludes all emails where recipient domains match whitelisted domains.
+    """)
+    
     if st.session_state.processed_data is None:
         st.warning("Please upload email data first in the Data Upload page.")
         return
     
-    df = st.session_state.processed_data.copy()
+    # Filter out whitelisted domains from security coverage analysis
+    df = filter_non_whitelisted_data(st.session_state.processed_data.copy(), st.session_state.whitelist_data)
     
     # Add explanatory note about email monitoring sources
     st.info("""
@@ -1095,12 +1102,19 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
 def analytics_page(visualizer, anomaly_detector, domain_classifier):
     st.header("📈 Advanced Analytics")
+    
+    # Add whitelist filtering note
+    st.info("""
+    ℹ️ **Analytics Information Note:** 
+    This analytics dashboard excludes all emails where recipient domains match whitelisted domains.
+    """)
 
     if st.session_state.processed_data is None:
         st.warning("Please upload email data first in the Data Upload page.")
         return
 
-    df = st.session_state.processed_data.copy()
+    # Filter out whitelisted domains from analytics
+    df = filter_non_whitelisted_data(st.session_state.processed_data.copy(), st.session_state.whitelist_data)
 
     if st.session_state.risk_scores is not None:
         df['risk_score'] = st.session_state.risk_scores
@@ -2413,11 +2427,18 @@ def find_the_needle_page(domain_classifier, visualizer):
     """Advanced analytics dashboard for department/business unit patterns and suspicious domain identification"""
     st.header("🔍 Find the Needle - Advanced Business Intelligence")
     
+    # Add whitelist filtering note
+    st.info("""
+    ℹ️ **Find the Needle Information Note:** 
+    This advanced analytics dashboard excludes all emails where recipient domains match whitelisted domains.
+    """)
+    
     if st.session_state.processed_data is None:
         st.warning("Please upload email data first in the Data Upload page.")
         return
     
-    df = st.session_state.processed_data.copy()
+    # Filter out whitelisted domains from advanced analytics
+    df = filter_non_whitelisted_data(st.session_state.processed_data.copy(), st.session_state.whitelist_data)
     
     # Check for required fields
     required_fields = ['department', 'bunit']
@@ -3456,6 +3477,199 @@ def find_the_needle_page(domain_classifier, visualizer):
                     mime="text/csv"
                 )
 
+
+def whitelist_analytics_page(visualizer, domain_classifier):
+    """Comprehensive whitelist analytics dashboard"""
+    st.header("⚪ Whitelist Analytics Dashboard")
+    
+    if st.session_state.processed_data is None:
+        st.warning("Please upload email data first in the Data Upload page.")
+        return
+    
+    if st.session_state.whitelist_data.empty:
+        st.warning("No whitelist data found. Please upload whitelist data in the Data Upload page.")
+        return
+    
+    df = st.session_state.processed_data.copy()
+    whitelist_df = st.session_state.whitelist_data.copy()
+    
+    # Add general note about whitelist filtering
+    st.info("""
+    📋 **Whitelist Analytics Information**
+    
+    This dashboard analyzes whitelist coverage and shows communications that were excluded from other dashboards.
+    All other dashboards in the application exclude emails where recipient domains match whitelisted domains.
+    """)
+    
+    # Section 1: Whitelist Overview
+    st.subheader("📊 Whitelist Overview")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total Whitelisted Domains", len(whitelist_df['domain'].unique()))
+    
+    with col2:
+        st.metric("Total Whitelisted Emails", len(whitelist_df['email_address'].unique()))
+    
+    # Identify whitelisted emails
+    def is_whitelisted_email(row):
+        recipient_domains = str(row.get('recipient_domain', '')).lower()
+        whitelist_domains = set(whitelist_df['domain'].str.lower().dropna())
+        
+        if pd.isna(recipient_domains) or recipient_domains == '':
+            return False
+        
+        for domain in whitelist_domains:
+            if domain in recipient_domains:
+                return True
+        return False
+    
+    df['is_whitelisted'] = df.apply(is_whitelisted_email, axis=1)
+    whitelisted_emails = df[df['is_whitelisted']].copy()
+    non_whitelisted_emails = df[~df['is_whitelisted']].copy()
+    
+    with col3:
+        st.metric("Whitelisted Communications", len(whitelisted_emails))
+    
+    with col4:
+        st.metric("Non-Whitelisted Communications", len(non_whitelisted_emails))
+    
+    # Section 2: Whitelisted Communications Analysis
+    st.subheader("📈 Whitelisted Communications Analysis")
+    
+    if not whitelisted_emails.empty:
+        # Time series analysis
+        if 'time' in whitelisted_emails.columns:
+            try:
+                whitelisted_emails['time'] = pd.to_datetime(whitelisted_emails['time'])
+                daily_counts = whitelisted_emails.groupby(whitelisted_emails['time'].dt.date).size()
+                
+                st.write("**Daily Whitelisted Email Volume:**")
+                st.line_chart(daily_counts)
+            except:
+                st.info("Time analysis not available due to date format issues.")
+        
+        # Domain distribution
+        if 'recipient_domain' in whitelisted_emails.columns:
+            domain_counts = whitelisted_emails['recipient_domain'].value_counts().head(10)
+            st.write("**Top 10 Whitelisted Domains by Volume:**")
+            st.bar_chart(domain_counts)
+        
+        # Department analysis
+        if 'department' in whitelisted_emails.columns:
+            dept_counts = whitelisted_emails['department'].value_counts().head(10)
+            st.write("**Whitelisted Communications by Department:**")
+            st.bar_chart(dept_counts)
+        
+        # Business unit analysis
+        if 'bunit' in whitelisted_emails.columns:
+            bunit_counts = whitelisted_emails['bunit'].value_counts().head(10)
+            st.write("**Whitelisted Communications by Business Unit:**")
+            st.bar_chart(bunit_counts)
+    
+    else:
+        st.info("No whitelisted communications found in the dataset.")
+    
+    # Section 3: Whitelist Coverage Analysis
+    st.subheader("🎯 Whitelist Coverage Analysis")
+    
+    coverage_metrics = pd.DataFrame({
+        'Metric': ['Total Emails', 'Whitelisted Emails', 'Non-Whitelisted Emails', 'Coverage Percentage'],
+        'Value': [
+            len(df),
+            len(whitelisted_emails),
+            len(non_whitelisted_emails),
+            f"{(len(whitelisted_emails) / len(df) * 100):.1f}%" if len(df) > 0 else "0%"
+        ]
+    })
+    
+    st.dataframe(coverage_metrics, use_container_width=True)
+    
+    # Section 4: Detailed Whitelisted Communications
+    st.subheader("📋 Detailed Whitelisted Communications")
+    
+    if not whitelisted_emails.empty:
+        # Filter controls
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if 'department' in whitelisted_emails.columns:
+                departments = ['All'] + list(whitelisted_emails['department'].dropna().unique())
+                selected_dept = st.selectbox("Filter by Department:", departments)
+            else:
+                selected_dept = 'All'
+        
+        with col2:
+            if 'bunit' in whitelisted_emails.columns:
+                bunits = ['All'] + list(whitelisted_emails['bunit'].dropna().unique())
+                selected_bunit = st.selectbox("Filter by Business Unit:", bunits)
+            else:
+                selected_bunit = 'All'
+        
+        with col3:
+            if 'recipient_domain' in whitelisted_emails.columns:
+                domains = ['All'] + list(whitelisted_emails['recipient_domain'].dropna().unique())
+                selected_domain = st.selectbox("Filter by Domain:", domains)
+            else:
+                selected_domain = 'All'
+        
+        # Apply filters
+        filtered_df = whitelisted_emails.copy()
+        
+        if selected_dept != 'All' and 'department' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['department'] == selected_dept]
+        
+        if selected_bunit != 'All' and 'bunit' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['bunit'] == selected_bunit]
+        
+        if selected_domain != 'All' and 'recipient_domain' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['recipient_domain'] == selected_domain]
+        
+        if not filtered_df.empty:
+            # Display relevant columns
+            display_columns = ['time', 'sender', 'recipient_domain', 'subject', 'department', 'bunit']
+            available_columns = [col for col in display_columns if col in filtered_df.columns]
+            
+            st.dataframe(filtered_df[available_columns], use_container_width=True, height=400)
+            
+            # Export functionality
+            csv_data = filtered_df.to_csv(index=False)
+            st.download_button(
+                label="Download Whitelisted Communications",
+                data=csv_data,
+                file_name=f"whitelisted_communications_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No communications match the selected filters.")
+    
+    # Section 5: Whitelist Management Insights
+    st.subheader("💡 Whitelist Management Insights")
+    
+    # Unused whitelist entries
+    used_domains = set()
+    if not whitelisted_emails.empty and 'recipient_domain' in whitelisted_emails.columns:
+        used_domains = set(whitelisted_emails['recipient_domain'].dropna().str.lower())
+    
+    whitelist_domains_lower = set(whitelist_df['domain'].str.lower().dropna())
+    unused_domains = whitelist_domains_lower - used_domains
+    
+    if unused_domains:
+        st.write(f"**Unused Whitelist Domains ({len(unused_domains)}):**")
+        unused_df = pd.DataFrame({
+            'Domain': list(unused_domains),
+            'Status': ['Not used in current dataset'] * len(unused_domains)
+        })
+        st.dataframe(unused_df, use_container_width=True)
+    else:
+        st.success("All whitelisted domains are being used in the current dataset.")
+    
+    # Domain frequency analysis
+    if not whitelisted_emails.empty and 'recipient_domain' in whitelisted_emails.columns:
+        domain_usage = whitelisted_emails['recipient_domain'].value_counts()
+        st.write("**Whitelist Domain Usage Frequency:**")
+        st.bar_chart(domain_usage.head(15))
 
 if __name__ == "__main__":
     main()
