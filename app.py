@@ -46,7 +46,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🔍 Find the Needle", "📧 Email Monitoring Sources", "🔄 App Workflow Overview"]
+        ["📁 Data Upload", "📊 Dashboard", "📈 Analytics", "🔍 Find the Needle", "📧 Email Monitoring Sources", "🔄 App Workflow Overview", "⚪ Whitelist Analytics"]
     )
 
     if page == "📁 Data Upload":
@@ -61,6 +61,8 @@ def main():
         security_coverage_page()
     elif page == "🔄 App Workflow Overview":
         app_workflow_overview_page()
+    elif page == "⚪ Whitelist Analytics":
+        whitelist_analytics_page(visualizer, domain_classifier)
 
 def security_coverage_page():
     st.header("📧 Email Monitoring Sources")
@@ -488,6 +490,30 @@ def whitelist_management_page():
 
 
 
+def filter_non_whitelisted_data(df, whitelist_df):
+    """Filter out emails where recipient domains match whitelist domains"""
+    if whitelist_df.empty or 'domain' not in whitelist_df.columns:
+        return df
+    
+    # Get whitelist domains
+    whitelist_domains = set(whitelist_df['domain'].str.lower().dropna())
+    
+    # Filter function to check if any recipient domain is whitelisted
+    def is_whitelisted_email(row):
+        recipient_domains = str(row.get('recipient_domain', '')).lower()
+        if pd.isna(recipient_domains) or recipient_domains == '':
+            return False
+        
+        # Check if any domain in the recipient list is whitelisted
+        for domain in whitelist_domains:
+            if domain in recipient_domains:
+                return True
+        return False
+    
+    # Filter out whitelisted emails
+    filtered_df = df[~df.apply(is_whitelisted_email, axis=1)].copy()
+    return filtered_df
+
 def dashboard_page(risk_engine, anomaly_detector, visualizer):
     # Professional header with custom styling
     st.markdown("""
@@ -501,9 +527,10 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     </div>
     """, unsafe_allow_html=True)
 
-    # Add explanatory note about security tool coverage
+    # Add explanatory note about security tool coverage and whitelist filtering
     st.info("""
-    ℹ️ **Security Tool Coverage Note:** 
+    ℹ️ **Dashboard Information Note:** 
+    This dashboard excludes all emails where recipient domains match whitelisted domains. 
     Tessian operates on policy-driven detection and selectively monitors email events based on configured security policies. 
     It targets communications containing sensitive information patterns, suspicious attachments, and potential data loss scenarios. 
     Not all emails will show Tessian coverage as it focuses resources on emails matching specific security criteria and 
@@ -532,9 +559,13 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             )
             st.session_state.risk_scores = risk_scores
 
-    df = st.session_state.processed_data.copy()
-    risk_scores = st.session_state.risk_scores
-
+    # Filter out whitelisted domains from dashboard
+    df = filter_non_whitelisted_data(st.session_state.processed_data.copy(), st.session_state.whitelist_data)
+    
+    # Recalculate risk scores for filtered data
+    with st.spinner("🔄 Calculating risk scores for filtered data..."):
+        risk_scores = risk_engine.calculate_risk_scores(df, st.session_state.whitelist_data)
+    
     # Add risk scores to dataframe
     df['risk_score'] = risk_scores
     df['risk_level'] = df['risk_score'].apply(lambda x: 
