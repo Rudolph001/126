@@ -46,7 +46,7 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select Page",
-        ["📁 Data Upload", "⚠️ Threat Detection", "📊 Risk Analytics", "🎯 Business Intelligence", "🛡️ Security Coverage", "ℹ️ How It Works", "⚪ Whitelist Analytics"]
+        ["📁 Data Upload", "⚠️ Threat Detection", "📊 Risk Analytics", "🎯 Business Intelligence", "🛡️ Security Coverage", "⚪ Whitelist Analytics", "ℹ️ How It Works"]
     )
 
     if page == "📁 Data Upload":
@@ -2289,138 +2289,157 @@ def analytics_page(visualizer, anomaly_detector, domain_classifier):
 
 
 def app_workflow_overview_page():
-    st.header("🔄 ExfilEye Application Workflow")
+    st.header("ℹ️ How ExfilEye Works")
     
     st.markdown("""
-    **ExfilEye** is an enterprise email security monitoring platform that detects data exfiltration 
-    and insider threats through advanced analytics and behavioral analysis.
+    **ExfilEye** analyzes email data to identify potential security risks and data exfiltration attempts 
+    through risk scoring and pattern analysis.
     """)
     
-    # High-Level Workflow
-    st.subheader("📋 High-Level Workflow (8 Stages)")
+    # Current Dashboard Overview
+    st.subheader("📋 Available Dashboards")
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("""
-        **🔵 Data Processing (Stages 1-4)**
+        **📁 Data Upload**
+        - Upload CSV email data files
+        - Upload optional whitelist files
+        - Preview and validate data structure
         
-        1. **📥 Data Ingestion**
-           - Upload CSV email data + optional BAU whitelist
-           - Validate required fields and data integrity
+        **⚠️ Threat Detection**
+        - View emails categorized by risk level
+        - See risk scores and factors
+        - Filter by Critical/High/Medium/Low risk
+        - Color-coded risk highlighting
         
-        2. **🧹 Data Processing** 
-           - Parse emails, normalize timestamps, extract domains
-           - Calculate behavioral metrics (after-hours, volume patterns)
-        
-        3. **🏢 Domain Classification**
-           - Categorize domains (Internal/Business/Free/Government)
-           - Industry classification and risk assessment
-        
-        4. **🎯 Content Analysis**
-           - Detect IP keywords and sensitive content
-           - Analyze attachments and file types
+        **📊 Risk Analytics**
+        - Statistical analysis of email patterns
+        - Anomaly detection results
+        - Domain classification breakdown
+        - Behavioral pattern insights
         """)
     
     with col2:
         st.markdown("""
-        **🔴 Security Analysis (Stages 5-8)**
+        **🎯 Business Intelligence**
+        - Department and business unit analysis
+        - Suspicious domain identification
+        - Communication pattern analysis
+        - Severity assessment by unit
         
-        5. **🧠 Risk Scoring**
-           - Multi-factor weighted scoring (Leaver: 70pts, IP Keywords: 25pts, Free Domains: 20pts)
-           - Classify as Critical/High/Medium/Low risk
+        **🛡️ Security Coverage**
+        - Email security tool status
+        - Coverage by Tessian and Mimecast
+        - Protection gap analysis
         
-        6. **🔬 Anomaly Detection**
-           - ML-based behavioral pattern analysis
-           - Statistical outlier identification
-        
-        7. **📊 Security Dashboard**
-           - Real-time threat visualization
-           - Risk-categorized email views with security coverage analysis
-        
-        8. **📧 Incident Response**
-           - Automated alert generation
-           - Follow-up action recommendations
+        **⚪ Whitelist Analytics**
+        - Whitelist coverage analysis
+        - Usage tracking and trends
+        - Unused whitelist entries
+        - Department-level breakdown
         """)
     
-    # Key Security Features
-    st.subheader("🛡️ Key Security Features")
+    # Risk Scoring System
+    st.subheader("⚖️ Risk Scoring System")
     
-    col1, col2, col3 = st.columns(3)
+    st.markdown("""
+    **How Risk Scores Are Calculated:**
     
-    with col1:
-        st.markdown("""
-        **Critical Risk Detection**
-        - Leaver + Attachments + Keywords + Free Domains
-        - Immediate investigation required
-        - Automated high-priority alerts
-        """)
+    | Risk Factor | Points | Description |
+    |-------------|--------|-------------|
+    | **Leaver Activity** | 70 | Employee's last working day |
+    | **IP Keywords** | 25 | Sensitive content detected |
+    | **Free Email Domains** | 20 | Gmail, Yahoo, personal emails |
+    | **Attachments** | 15 | File transfers detected |
+    | **After Hours** | 10 | Outside normal business hours |
+    | **High Recipients** | 10 | Multiple external recipients |
+    | **New Domains** | 5 | First contact with domain |
+    """)
     
-    with col2:
-        st.markdown("""
-        **Security Tool Integration**
-        - Tessian/Mimecast coverage analysis
-        - Security gap identification
-        - Protection status monitoring
-        """)
-    
-    with col3:
-        st.markdown("""
-        **Business Intelligence**
-        - Department/Business Unit analytics
-        - Domain intelligence and classification
-        - Word frequency and pattern analysis
-        """)
-    
-    # Risk Assessment Matrix
-    st.subheader("⚖️ Risk Assessment Matrix")
+    # Risk Level Categories
+    st.subheader("🚨 Risk Level Categories")
     
     risk_col1, risk_col2, risk_col3, risk_col4 = st.columns(4)
     
     with risk_col1:
-        st.metric("🏃‍♂️ Leaver Activity", "70 pts", "Last working day detection")
+        st.markdown("""
+        **🔴 Critical (80+)**
+        - Immediate attention required
+        - Multiple high-risk factors
+        - Potential data exfiltration
+        """)
     
     with risk_col2:
-        st.metric("🎯 IP Keywords", "25 pts", "Sensitive content detection")
+        st.markdown("""
+        **🟠 High (40-79)**
+        - Requires investigation
+        - Significant risk factors
+        - Monitor closely
+        """)
     
     with risk_col3:
-        st.metric("📧 Free Domains", "20 pts", "External email providers")
+        st.markdown("""
+        **🟡 Medium (20-39)**
+        - Moderate concern
+        - Some risk indicators
+        - Review recommended
+        """)
     
     with risk_col4:
-        st.metric("📎 Attachments", "15 pts", "File transfer analysis")
+        st.markdown("""
+        **🟢 Low (0-19)**
+        - Normal activity
+        - Minimal risk factors
+        - Routine monitoring
+        """)
     
-    # Dashboard Navigation
-    st.subheader("🧭 Dashboard Components")
+    # Whitelist Functionality
+    st.subheader("⚪ Whitelist Integration")
     
     st.markdown("""
-    | Page | Purpose | Key Features |
-    |------|---------|--------------|
-    | **📁 Data Upload** | CSV ingestion & validation | File upload, whitelist management, data preview |
-    | **📊 Security Dashboard** | Real-time threat monitoring | Critical/High/Medium/Low risk views, KPI cards |
-    | **📈 Advanced Analytics** | ML analysis & patterns | Anomaly detection, word frequencies, business intelligence |
-    | **📧 Email Monitoring Sources** | Security coverage analysis | Tessian/Mimecast status, protection gaps |
-    | **🔍 Find the Needle** | Domain intelligence | New domain detection, business unit patterns |
+    **How Whitelist Filtering Works:**
+    
+    - Upload a whitelist file containing trusted recipient domains
+    - All dashboards automatically exclude emails sent to whitelisted domains
+    - Whitelist Analytics shows coverage and usage statistics
+    - Filtering notifications appear on all relevant dashboards
+    - Helps focus on genuinely suspicious external communications
     """)
     
     # Quick Start Guide
-    st.subheader("🚀 Quick Start Guide")
+    st.subheader("🚀 Getting Started")
     
     st.markdown("""
-    **Step-by-Step Security Analysis:**
+    **Step-by-Step Process:**
     
-    1. **Upload Data** → Navigate to Data Upload → Upload CSV → Verify validation
-    2. **Initial Assessment** → Security Dashboard → Review KPI cards → Examine risk sections  
-    3. **Deep Analysis** → Advanced Analytics → Review anomalies → Analyze patterns
-    4. **Domain Intelligence** → Find the Needle → Review domain classifications
-    5. **Security Coverage** → Email Monitoring Sources → Assess protection gaps
-    6. **Incident Response** → Generate alerts → Export reports → Coordinate response
+    1. **📁 Upload Data** → Upload your email CSV file and optional whitelist
+    2. **⚠️ Review Threats** → Check Critical and High risk emails first
+    3. **📊 Analyze Patterns** → Use Risk Analytics for deeper insights
+    4. **🎯 Business View** → Review department-specific risks
+    5. **🛡️ Check Coverage** → Verify security tool protection
+    6. **⚪ Monitor Whitelist** → Track trusted communications
     """)
     
-    # Mission Statement
-    st.info("""
-    **🎯 Mission:** Detect and prevent data exfiltration attempts and insider threats before they impact 
-    the organization, providing security teams with actionable intelligence and automated response 
-    capabilities for comprehensive email security monitoring.
+    # Data Requirements
+    st.subheader("📋 Data Requirements")
+    
+    st.markdown("""
+    **Required CSV Columns:**
+    - `sender`: Email sender address
+    - `recipient`: Email recipient address(es)
+    - `subject`: Email subject line
+    - `time`: Timestamp of email
+    - `attachments`: File attachments (if any)
+    - `leaver`: Indicates if sender is leaving (Y/N)
+    - `bunit`: Business unit of sender
+    - `department`: Department of sender
+    - `word_list_match`: Matched sensitive keywords
+    
+    **Optional Whitelist File:**
+    - Single column with header containing trusted domains
+    - Used to filter out known safe communications
     """)
 
 def find_the_needle_page(domain_classifier, visualizer):
