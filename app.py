@@ -440,13 +440,18 @@ def data_upload_page(data_processor, domain_classifier, keyword_detector):
                     st.error(f"Missing required fields: {', '.join(missing_fields)}")
                 else:
                     # Process the data
-                    processed_df = data_processor.process_email_data(df)
+                    try:
+                        processed_df = data_processor.process_email_data(df)
 
-                    # Apply domain classification
-                    processed_df = domain_classifier.classify_domains(processed_df)
+                        # Apply domain classification
+                        processed_df = domain_classifier.classify_domains(processed_df)
 
-                    # Apply keyword detection
-                    processed_df = keyword_detector.detect_keywords(processed_df)
+                        # Apply keyword detection
+                        processed_df = keyword_detector.detect_keywords(processed_df)
+                    except Exception as processing_error:
+                        st.error(f"Error processing data: {str(processing_error)}")
+                        st.info("This error may be due to data format issues. Please check that text fields don't contain NaN values.")
+                        return
 
                     # Store in session state
                     st.session_state.email_data = df

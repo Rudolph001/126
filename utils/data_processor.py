@@ -35,13 +35,20 @@ class DataProcessor:
         # Convert last_working_day to datetime
         processed_df['last_working_day'] = pd.to_datetime(processed_df['last_working_day'], errors='coerce')
         
-        # Clean and standardize email addresses - handle NaN values
-        processed_df['sender'] = processed_df['sender'].astype(str).str.lower().str.strip()
-        processed_df['recipients'] = processed_df['recipients'].astype(str).str.lower().str.strip()
+        # Clean and standardize email addresses - handle NaN values properly
+        processed_df['sender'] = processed_df['sender'].fillna('').astype(str).str.lower().str.strip()
+        processed_df['recipients'] = processed_df['recipients'].fillna('').astype(str).str.lower().str.strip()
         
         # Replace 'nan' strings with empty strings
         processed_df['sender'] = processed_df['sender'].replace('nan', '')
         processed_df['recipients'] = processed_df['recipients'].replace('nan', '')
+        
+        # Clean other text fields that might have float NaN values
+        text_fields = ['subject', 'word_list_match', 'sender_domain', 'recipient_domain', 'email_domain']
+        for field in text_fields:
+            if field in processed_df.columns:
+                processed_df[field] = processed_df[field].fillna('').astype(str).str.strip()
+                processed_df[field] = processed_df[field].replace('nan', '')
         
         # Extract hour from timestamp for after-hours analysis
         processed_df['hour'] = processed_df['time'].dt.hour
@@ -80,9 +87,13 @@ class DataProcessor:
             # Also create a single recipient_domain field from the first domain for classification
             processed_df['recipient_domain'] = processed_df['recipient_domains'].apply(lambda x: x[0] if x else '')
         
-        # Fill missing values
-        processed_df['subject'] = processed_df['subject'].fillna('')
-        processed_df['word_list_match'] = processed_df['word_list_match'].fillna('')
+        # Fill missing values and ensure string type
+        processed_df['subject'] = processed_df['subject'].fillna('').astype(str)
+        processed_df['word_list_match'] = processed_df['word_list_match'].fillna('').astype(str)
+        
+        # Ensure other important fields are properly typed
+        processed_df['attachments'] = processed_df['attachments'].fillna('').astype(str)
+        processed_df['attachments'] = processed_df['attachments'].replace('nan', '')
         
         return processed_df
     
