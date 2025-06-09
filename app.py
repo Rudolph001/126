@@ -3995,8 +3995,8 @@ def find_the_needle_page(domain_classifier, visualizer):
                 st.write(f"**{len(new_domains)} new sender domains detected in recent activity:**")
                 new_domain_df = df[df['sender_domain'].isin(new_domains)].groupby('sender_domain').agg({
                     'sender': 'count',
-                    'department': lambda x: ', '.join(x.unique()),
-                    'bunit': lambda x: ', '.join(x.unique())
+                    'department': lambda x: ', '.join([str(val) for val in x.unique() if pd.notna(val)]),
+                    'bunit': lambda x: ', '.join([str(val) for val in x.unique() if pd.notna(val)])
                 }).reset_index()
                 
                 new_domain_df.columns = ['New Domain', 'Email Count', 'Departments', 'Business Units']
