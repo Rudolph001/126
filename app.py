@@ -91,11 +91,14 @@ def main():
     st.sidebar.subheader("Core Functions")
     main_pages = ["📁 Data Upload", "📋 Daily Checks", "📈 Analytics", "⚪ Whitelist Domains Check"]
     
+    st.sidebar.subheader("Follow-up Management")
+    followup_pages = ["📧 Follow-up Email Center"]
+    
     st.sidebar.subheader("System Information")
     system_pages = ["📊 Extra Info", "📧 Email Monitoring Sources", "🔄 App Workflow Overview"]
     
     # Combine all pages for radio selection
-    all_pages = main_pages + system_pages
+    all_pages = main_pages + followup_pages + system_pages
     page = st.sidebar.radio("Select Page", all_pages)
 
     if page == "📁 Data Upload":
@@ -1029,7 +1032,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     if len(medium_risk_emails) > 0:
         # Display with highlighting
-        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'security_coverage', 'last_working_day', 'word_list_match', 'attachments']
+        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
         available_cols = [col for col in display_cols if col in medium_risk_emails.columns]
 
         def highlight_medium_risk(row):
@@ -1047,16 +1050,6 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
                         score = df.loc[original_idx, 'word_match_score']
                         if score == 2:
                             styles[word_match_idx] = 'background-color: #ffff99; color: #000000; font-weight: bold'
-            # Highlight security coverage based on status
-            if 'security_coverage' in row.index:
-                coverage_idx = row.index.get_loc('security_coverage')
-                coverage_value = str(row['security_coverage'])
-                if coverage_value == 'Both':
-                    styles[coverage_idx] = 'background-color: #d4edda; color: #155724; font-weight: bold'  # Green for full coverage
-                elif coverage_value == 'No Coverage':
-                    styles[coverage_idx] = 'background-color: #f8d7da; color: #721c24; font-weight: bold'  # Red for no coverage
-                else:  # Missing Tessian or Missing Mimecast
-                    styles[coverage_idx] = 'background-color: #fff3cd; color: #856404; font-weight: bold'  # Yellow for partial coverage
             return styles
 
         styled_medium_risk = medium_risk_emails[available_cols].style.apply(highlight_medium_risk, axis=1)
@@ -1090,7 +1083,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     if len(low_risk_emails) > 0:
         # Display with minimal highlighting
-        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'security_coverage', 'attachments', 'last_working_day', 'word_list_match']
+        display_cols = ['time', 'sender', 'recipients', 'subject', 'risk_score', 'attachments', 'last_working_day', 'word_list_match']
         available_cols = [col for col in display_cols if col in low_risk_emails.columns]
 
         def highlight_low_risk(row):
@@ -1103,16 +1096,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             if 'last_working_day' in row.index and pd.notna(row['last_working_day']):
                 last_working_idx = row.index.get_loc('last_working_day')
                 styles[last_working_idx] = 'background-color: #ffcccc; color: #000000; font-weight: bold'
-            # Highlight security coverage based on status
-            if 'security_coverage' in row.index:
-                coverage_idx = row.index.get_loc('security_coverage')
-                coverage_value = str(row['security_coverage'])
-                if coverage_value == 'Both':
-                    styles[coverage_idx] = 'background-color: #d4edda; color: #155724; font-weight: bold'  # Green for full coverage
-                elif coverage_value == 'No Coverage':
-                    styles[coverage_idx] = 'background-color: #f8d7da; color: #721c24; font-weight: bold'  # Red for no coverage
-                else:  # Missing Tessian or Missing Mimecast
-                    styles[coverage_idx] = 'background-color: #fff3cd; color: #856404; font-weight: bold'  # Yellow for partial coverage
+
             return styles
 
         styled_low_risk = low_risk_emails[available_cols].style.apply(highlight_low_risk, axis=1)
