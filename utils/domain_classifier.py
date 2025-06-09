@@ -142,12 +142,8 @@ class DomainClassifier:
         # Step 1: Extract basic domain information
         df_copy = self._extract_domain_fields(df_copy)
 
-        # Step 2: Classify sender domains - ensure single value return
-        classifications = []
-        for _, row in df_copy.iterrows():
-            classification = self._classify_sender_domain(row)
-            classifications.append(classification)
-        df_copy['email_domain_type'] = classifications
+        # Step 2: Classify sender domains
+        df_copy['email_domain_type'] = df_copy.apply(self._classify_sender_domain, axis=1)
 
         # Step 3: Add detailed categorization
         df_copy['email_domain_category'] = df_copy['sender_domain'].apply(self._get_detailed_category)
@@ -237,18 +233,13 @@ class DomainClassifier:
 
     def _classify_sender_domain(self, row) -> str:
         """Classify sender domain with enhanced internal detection"""
-        # Handle both Series and dict-like row objects
-        if hasattr(row, 'get'):
-            sender_domain = row.get('sender_domain', '')
-            recipient_domain = row.get('recipient_domain', '')
-        else:
-            sender_domain = getattr(row, 'sender_domain', '') if hasattr(row, 'sender_domain') else ''
-            recipient_domain = getattr(row, 'recipient_domain', '') if hasattr(row, 'recipient_domain') else ''
+        sender_domain = row.get('sender_domain', '')
+        recipient_domain = row.get('recipient_domain', '')
 
         if not sender_domain:
             return 'unknown'
 
-        sender_clean = str(sender_domain).lower().strip()
+        sender_clean = sender_domain.lower().strip()
 
         # Check for internal communication first - if sender and recipient domains match
         if self._is_internal_communication(sender_domain, recipient_domain):

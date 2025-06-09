@@ -8,10 +8,11 @@ class DataProcessor:
     
     def __init__(self):
         self.required_fields = [
-            '_time', 'policy_name', 'sender', 'transmitter', 'recipients', 'subject', 'wordlist_subject',
-            'attachments', 'wordlist_attachment', 'justification', 'is_sensitive', 'bunit', 'department',
-            'business_pillar', 'domain', 'breach_prevented', 'user_response', 'tessian_message_shown',
-            'leaver', 'resignation_date'
+            'time', 'sender', 'sender_domain', 'recipients', 'recipient_domain', 'email_domain', 'word_list_match',
+            'recipient_status', 'subject', 'attachments', 'act', 'delivered',
+            'deliveryErrors', 'direction', 'eventtype', 'aggreatedid', 'tessian',
+            'tessian_response', 'mimecast', 'tessian_outcome', 'tessian_policy',
+            'last_working_day', 'bunit', 'department', 'businessPillar'
         ]
     
     def validate_data(self, df):
@@ -28,25 +29,11 @@ class DataProcessor:
         # Make a copy to avoid modifying original
         processed_df = df.copy()
         
-        # Rename _time to time for internal consistency
-        if '_time' in processed_df.columns:
-            processed_df['time'] = processed_df['_time']
-        
         # Convert time column to datetime
         processed_df['time'] = pd.to_datetime(processed_df['time'], errors='coerce')
         
-        # Convert resignation_date to datetime
-        processed_df['resignation_date'] = pd.to_datetime(processed_df['resignation_date'], errors='coerce')
-        
-        # Map old field names to new ones for backward compatibility
-        processed_df['last_working_day'] = processed_df['resignation_date']
-        processed_df['word_list_match'] = processed_df['wordlist_subject'].fillna('') + ' ' + processed_df['wordlist_attachment'].fillna('')
-        processed_df['email_domain'] = processed_df['domain']
-        processed_df['businessPillar'] = processed_df['business_pillar']
-        
-        # Create combined wordlist field for analysis
-        processed_df['combined_wordlist'] = processed_df['wordlist_subject'].fillna('') + ' ' + processed_df['wordlist_attachment'].fillna('')
-        processed_df['combined_wordlist'] = processed_df['combined_wordlist'].str.strip()
+        # Convert last_working_day to datetime
+        processed_df['last_working_day'] = pd.to_datetime(processed_df['last_working_day'], errors='coerce')
         
         # Clean and standardize email addresses
         processed_df['sender'] = processed_df['sender'].str.lower().str.strip()
@@ -63,16 +50,13 @@ class DataProcessor:
             (processed_df['day_of_week'] >= 5)  # Saturday or Sunday
         )
         
-        # Calculate days from resignation date
+        # Calculate days from last working day
         processed_df['days_from_last_working'] = (
-            processed_df['time'] - processed_df['resignation_date']
+            processed_df['time'] - processed_df['last_working_day']
         ).dt.days
         
-        # Flag leavers based on leaver field and resignation date proximity
-        processed_df['is_leaver'] = (
-            (processed_df['leaver'].astype(str).str.lower().isin(['y', 'yes', 'true', '1'])) |
-            (processed_df['days_from_last_working'].between(-7, 7))
-        )
+        # Flag leavers (±7 days from last working day)
+        processed_df['is_leaver'] = processed_df['days_from_last_working'].between(-7, 7)
         
         # Process attachments information
         processed_df['has_attachments'] = processed_df['attachments'].notna() & (processed_df['attachments'] != '')
@@ -83,20 +67,14 @@ class DataProcessor:
         # Count recipients
         processed_df['recipient_count'] = processed_df['recipients'].apply(self._count_recipients)
         
-        # Extract recipient domains from domain field or recipients
-        if 'domain' in processed_df.columns:
-            # Convert single domain to list format for consistency
-            processed_df['recipient_domains'] = processed_df['domain'].apply(lambda x: [x] if pd.notna(x) and x != '' else [])
-            processed_df['recipient_domain'] = processed_df['domain']
+        # Extract recipient domains - use recipient_domain field if available, otherwise extract from recipients
+        if 'recipient_domain' in processed_df.columns:
+            # Convert single recipient_domain to list format for consistency with existing code
+            processed_df['recipient_domains'] = processed_df['recipient_domain'].apply(lambda x: [x] if pd.notna(x) and x != '' else [])
         else:
             processed_df['recipient_domains'] = processed_df['recipients'].apply(self._extract_domains)
+            # Also create a single recipient_domain field from the first domain for classification
             processed_df['recipient_domain'] = processed_df['recipient_domains'].apply(lambda x: x[0] if x else '')
-        
-        # Ensure primary recipient domain is available for classification
-        processed_df['primary_recipient_domain'] = processed_df['domain']
-        
-        # Extract sender domain
-        processed_df['sender_domain'] = processed_df['sender'].apply(lambda x: x.split('@')[-1] if '@' in str(x) else '')
         
         # Fill missing values
         processed_df['subject'] = processed_df['subject'].fillna('')
