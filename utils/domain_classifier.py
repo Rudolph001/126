@@ -226,7 +226,7 @@ class DomainClassifier:
         """Validate domain format"""
         if not domain or len(domain) < 3:
             return False
-
+        
         # Check for valid domain pattern
         domain_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$'
         return bool(re.match(domain_pattern, domain))
@@ -282,7 +282,7 @@ class DomainClassifier:
         """Check if domain is a legitimate business domain"""
         if not domain or domain in self.all_free_domains:
             return False
-
+        
         # Check if domain has business characteristics
         business_indicators = [
             len(domain.split('.')) >= 2,  # Has proper structure
@@ -290,25 +290,25 @@ class DomainClassifier:
             not re.search(r'temp|test|demo|staging|dev', domain),  # Not temporary
             self._is_valid_domain_format(domain)  # Valid format
         ]
-
+        
         return all(business_indicators)
 
     def _is_same_organization(self, domain1: str, domain2: str) -> bool:
         """Check if two domains belong to the same organization"""
         if not domain1 or not domain2:
             return False
-
+            
         # Extract root domains (remove subdomains)
         root1 = self._get_root_domain(domain1)
         root2 = self._get_root_domain(domain2)
-
+        
         return root1 == root2 and root1 not in self.all_free_domains
 
     def _get_root_domain(self, domain: str) -> str:
         """Extract root domain from subdomain"""
         if not domain:
             return ''
-
+            
         parts = domain.split('.')
         if len(parts) >= 2:
             # Return last two parts (domain.tld)
@@ -336,13 +336,12 @@ class DomainClassifier:
 
         return False
 
-    def _get_detailed_category(self, domain: str):
-        """Get detailed category for a domain"""
-        if not domain or pd.isna(domain):
+    def _get_detailed_category(self, domain: str) -> str:
+        """Get detailed category for free email domains"""
+        if not domain:
             return 'unknown'
 
-        # Ensure domain is a string
-        domain = str(domain).lower().strip()
+        domain = domain.lower().strip()
 
         if domain in self.major_free_providers:
             return 'Major Email Providers'
@@ -392,7 +391,7 @@ class DomainClassifier:
                         score += 2  # Medium priority
                     else:
                         score += 1  # Low priority
-
+            
             if score > 0:
                 industry_scores[industry] = score
 
@@ -636,17 +635,17 @@ class DomainClassifier:
         """Classify a single domain strictly (used by app.py)"""
         if not domain:
             return 'unknown'
-
+        
         domain = domain.lower().strip()
-
+        
         # Check if it's a free email provider
         if domain in self.all_free_domains:
             return 'free'
-
+        
         # Check for obviously internal domains
         if self._is_internal_domain(domain):
             return 'internal'
-
+        
         # Everything else is business
         return 'business'
 
@@ -665,23 +664,23 @@ class DomainClassifier:
             'industry_breakdown': {},
             'risk_summary': {}
         }
-
+        
         # First pass: collect all sender domains and their recipient domains
         sender_recipient_mapping = {}
         for _, row in df.iterrows():
             sender_domain = self._extract_domain(str(row.get('sender', '')))
             recipient_domains = self._extract_all_recipient_domains(str(row.get('recipients', '')))
-
+            
             if sender_domain:
                 if sender_domain not in sender_recipient_mapping:
                     sender_recipient_mapping[sender_domain] = set()
                 sender_recipient_mapping[sender_domain].update(recipient_domains)
-
+        
         # Extract and classify sender domains with internal detection
         for _, row in df.iterrows():
             sender_domain = self._extract_domain(str(row.get('sender', '')))
             recipient_domains = self._extract_all_recipient_domains(str(row.get('recipients', '')))
-
+            
             if sender_domain:
                 if sender_domain not in results['sender_domains']:
                     # Check if this sender domain communicates internally
@@ -689,9 +688,9 @@ class DomainClassifier:
                         self._is_internal_communication(sender_domain, rec_domain) 
                         for rec_domain in sender_recipient_mapping.get(sender_domain, [])
                     )
-
+                    
                     classification = 'internal' if is_internal_sender else self._classify_single_domain_strict(sender_domain)
-
+                    
                     results['sender_domains'][sender_domain] = {
                         'count': 0,
                         'classification': classification,
@@ -702,19 +701,19 @@ class DomainClassifier:
                     }
                 results['sender_domains'][sender_domain]['count'] += 1
                 results['sender_domains'][sender_domain]['emails'].append(row.get('subject', 'No Subject'))
-
+        
         # Extract and classify recipient domains with internal detection
         for _, row in df.iterrows():
             recipient_domains = self._extract_all_recipient_domains(str(row.get('recipients', '')))
             sender_domain = self._extract_domain(str(row.get('sender', '')))
-
+            
             for recipient_domain in recipient_domains:
                 if recipient_domain not in results['recipient_domains']:
                     # Check if recipient domain is same as any sender domain (internal communication)
                     is_internal_recipient = self._is_internal_communication(sender_domain, recipient_domain)
-
+                    
                     classification = 'internal' if is_internal_recipient else self._classify_single_domain_strict(recipient_domain)
-
+                    
                     results['recipient_domains'][recipient_domain] = {
                         'count': 0,
                         'classification': classification,
@@ -725,7 +724,7 @@ class DomainClassifier:
                     }
                 results['recipient_domains'][recipient_domain]['count'] += 1
                 results['recipient_domains'][recipient_domain]['senders'].add(sender_domain)
-
+                
                 # Check for internal/external communication
                 if self._is_internal_communication(sender_domain, recipient_domain):
                     results['internal_communications'].append({
@@ -742,11 +741,11 @@ class DomainClassifier:
                         'timestamp': row.get('time', ''),
                         'risk_level': self._assess_external_risk(sender_domain, recipient_domain)
                     })
-
+        
         # Convert sets to lists for JSON serialization
         for domain_info in results['recipient_domains'].values():
             domain_info['senders'] = list(domain_info['senders'])
-
+        
         # Generate industry breakdown
         all_domains = list(results['sender_domains'].keys()) + list(results['recipient_domains'].keys())
         for domain in set(all_domains):
@@ -754,7 +753,7 @@ class DomainClassifier:
             if industry not in results['industry_breakdown']:
                 results['industry_breakdown'][industry] = 0
             results['industry_breakdown'][industry] += 1
-
+        
         # Generate risk summary
         results['risk_summary'] = {
             'total_external_communications': len(results['external_communications']),
@@ -764,26 +763,26 @@ class DomainClassifier:
             'business_domains': sum(1 for d in results['sender_domains'].values() if d['is_business']),
             'free_email_usage': sum(1 for d in results['sender_domains'].values() if d['classification'] == 'free')
         }
-
+        
         return results
 
     def _assess_external_risk(self, sender_domain: str, recipient_domain: str) -> str:
-        """Assess risk level for external communications        """
+        """Assess risk level for external communications"""
         risk_factors = 0
-
+        
         # Free email domain risk
         if recipient_domain in self.all_free_domains:
             risk_factors += 2
-
+        
         # Suspicious domain patterns
         if self._is_suspicious_domain(recipient_domain):
             risk_factors += 3
-
+        
         # Business to personal communication
         if (self._is_business_domain(sender_domain) and 
             recipient_domain in self.all_free_domains):
             risk_factors += 1
-
+        
         # Assign risk level
         if risk_factors >= 4:
             return 'high'
@@ -791,90 +790,3 @@ class DomainClassifier:
             return 'medium'
         else:
             return 'low'
-
-    def _extract_domain_from_email(self, email: str) -> str:
-        """Extract domain from email address, handling potential errors"""
-        if pd.isna(email) or not isinstance(email, str):
-            return ''
-
-        try:
-            # Extract domain from email
-            if '@' in str(email):
-                domain = str(email).split('@')[1].lower().strip()
-            else:
-                domain = str(email).lower().strip()
-            return domain
-        except:
-            return ''
-
-    def _safe_domain_lower_strip(self, domain:str) -> str:
-        """Safely convert domain to lowercase and strip whitespace"""
-        if pd.isna(domain) or not isinstance(domain, str):
-            return ''
-        return domain.lower().strip()
-
-    def _safe_list_append(self, lst: List, item: any) -> None:
-        """Append item to list if not None or NaN"""
-        if pd.notna(item) and item:
-            lst.append(item)
-
-    def _safe_extract_domain(self, email: str) -> str:
-        """Safely extract domain from email string, handling missing values and types"""
-        if not email or pd.isna(email):
-            return ''
-
-        try:
-            email_str = str(email)
-            if '@' in email_str:
-                return email_str.split('@')[-1].lower().strip()
-            return ''
-        except:
-            return ''
-
-    def _safe_extract_all_recipient_domains(self, recipients: str) -> List[str]:
-        """Safely extract all recipient domains, handling missing values"""
-        if pd.isna(recipients) or not isinstance(recipients, str):
-            return []
-
-        try:
-            email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-            emails = re.findall(email_pattern, recipients)
-            domains = []
-            for email in emails:
-                domain = self._safe_extract_domain(email)
-                if domain and domain not in domains:
-                    domains.append(domain)
-            return domains
-        except:
-            return []
-
-    def _safe_is_internal_communication(self, sender_domain: str, recipient_domain: str) -> bool:
-        """Safely check if communication is internal, handling missing values"""
-        if not sender_domain or not recipient_domain:
-            return False
-
-        sender_clean = self._safe_domain_lower_strip(sender_domain)
-        recipient_clean = self._safe_domain_lower_strip(recipient_domain)
-
-        if not sender_clean or not recipient_clean:
-            return False
-
-        return sender_clean == recipient_clean
-
-    def _safe_get_detailed_category(self, domain: str) -> str:
-        """Safely get detailed category for a domain, handling missing values"""
-        if not domain:
-            return 'Unknown'
-
-        try:
-            domain = str(domain).lower().strip()
-        except:
-            return 'Unknown'
-
-        if domain in self.major_free_providers:
-            return 'Major Email Providers'
-        elif domain in self.microsoft_domains:
-            return 'Microsoft Email Services'
-        # ... (rest of the logic remains the same)
-        else:
-            return 'Business Domain'
