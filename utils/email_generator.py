@@ -355,3 +355,32 @@ IT Security Team"""
                 validation_result['warnings'].append(f"Unknown placeholder: [{placeholder}]")
         
         return validation_result
+    
+    def create_outlook_mailto_link(self, email_data):
+        """Create a mailto link for opening email in Outlook"""
+        import urllib.parse
+        
+        to_email = email_data.get('to', '')
+        subject = email_data.get('subject', '')
+        body = email_data.get('body', '')
+        
+        # URL encode the components
+        encoded_to = urllib.parse.quote(to_email)
+        encoded_subject = urllib.parse.quote(subject)
+        encoded_body = urllib.parse.quote(body)
+        
+        # Create mailto link
+        mailto_link = f"mailto:{encoded_to}?subject={encoded_subject}&body={encoded_body}"
+        
+        return mailto_link
+    
+    def prepare_outlook_emails(self, emails_list):
+        """Prepare multiple emails for Outlook integration"""
+        outlook_emails = []
+        
+        for email_data in emails_list:
+            outlook_email = email_data.copy()
+            outlook_email['outlook_link'] = self.create_outlook_mailto_link(email_data)
+            outlook_emails.append(outlook_email)
+        
+        return outlook_emails
