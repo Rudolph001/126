@@ -177,30 +177,56 @@ def main():
     # Enhanced title
     st.sidebar.markdown('<div class="sidebar-title">🔍 ExfilEye Navigation</div>', unsafe_allow_html=True)
     
-    # Core Functions section
+    # Navigation sections with proper grouping
     st.sidebar.markdown('<div class="section-header">🎯 Core Functions</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<div class="nav-description">Essential email security monitoring tools</div>', unsafe_allow_html=True)
-    main_pages = ["📁 Data Upload", "📋 Daily Checks", "📈 Analytics", "⚪ Whitelist Domains Check"]
     
-    # Follow-up Management section
+    # Core function options with indentation
+    core_options = [
+        "    📁 Data Upload",
+        "    📋 Daily Checks"
+    ]
+    
+    st.sidebar.markdown('<div class="section-header">📈 Additional Features</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="nav-description">Advanced analytics and management tools</div>', unsafe_allow_html=True)
+    
+    # Additional feature options with indentation
+    additional_options = [
+        "    📈 Analytics",
+        "    ⚪ Whitelist Domains Check"
+    ]
+    
     st.sidebar.markdown('<div class="section-header">📧 Follow-up Management</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<div class="nav-description">Generate and manage security follow-up communications</div>', unsafe_allow_html=True)
-    followup_pages = ["📧 Follow-up Email Center"]
     
-    # System Information section
+    # Follow-up options with indentation
+    followup_options = [
+        "    📧 Follow-up Email Center"
+    ]
+    
     st.sidebar.markdown('<div class="section-header">ℹ️ System Information</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<div class="nav-description">Detailed analysis and system overview</div>', unsafe_allow_html=True)
-    system_pages = ["📊 Extra Info", "📧 Email Monitoring Sources", "🔄 App Workflow Overview"]
     
-    # Combine all pages for radio selection with better spacing
-    all_pages = main_pages + followup_pages + system_pages
+    # System info options with indentation
+    system_options = [
+        "    📊 Extra Info",
+        "    📧 Email Monitoring Sources", 
+        "    🔄 App Workflow Overview"
+    ]
     
+    # Combine all options with section headers
+    all_options = core_options + additional_options + followup_options + system_options
+    
+    # Single radio button selection
     st.sidebar.markdown("<br>", unsafe_allow_html=True)
-    page = st.sidebar.radio(
-        "Select Page", 
-        all_pages,
+    selected_option = st.sidebar.radio(
+        "Navigate to:",
+        all_options,
         label_visibility="collapsed"
     )
+    
+    # Map the selected option to page name (remove indentation)
+    page = selected_option.strip()
 
     if page == "📁 Data Upload":
         data_upload_page(data_processor, domain_classifier, keyword_detector)
