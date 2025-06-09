@@ -155,7 +155,7 @@ def main():
             st.metric("Analyzed", f"{len(df_filtered):,}", label_visibility="visible")
         
         # Risk indicator if available
-        if hasattr(st.session_state, 'risk_scores') and st.session_state.risk_scores:
+        if hasattr(st.session_state, 'risk_scores') and st.session_state.risk_scores is not None and len(st.session_state.risk_scores) > 0:
             high_risk_count = sum(1 for score in st.session_state.risk_scores if score >= 61)
             if high_risk_count > 0:
                 st.sidebar.markdown(f"""
