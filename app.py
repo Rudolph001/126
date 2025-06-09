@@ -177,56 +177,48 @@ def main():
     # Enhanced title
     st.sidebar.markdown('<div class="sidebar-title">🔍 ExfilEye Navigation</div>', unsafe_allow_html=True)
     
-    # Navigation sections with proper grouping
+    # Initialize default page if not set
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = "📁 Data Upload"
+    
+    # Core Functions section
     st.sidebar.markdown('<div class="section-header">🎯 Core Functions</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<div class="nav-description">Essential email security monitoring tools</div>', unsafe_allow_html=True)
     
-    # Core function options with indentation
-    core_options = [
-        "    📁 Data Upload",
-        "    📋 Daily Checks"
-    ]
+    if st.sidebar.button("📁 Data Upload", use_container_width=True, key="data_upload_btn"):
+        st.session_state.current_page = "📁 Data Upload"
+    if st.sidebar.button("📋 Daily Checks", use_container_width=True, key="daily_checks_btn"):
+        st.session_state.current_page = "📋 Daily Checks"
     
+    # Additional Features section
     st.sidebar.markdown('<div class="section-header">📈 Additional Features</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<div class="nav-description">Advanced analytics and management tools</div>', unsafe_allow_html=True)
     
-    # Additional feature options with indentation
-    additional_options = [
-        "    📈 Analytics",
-        "    ⚪ Whitelist Domains Check"
-    ]
+    if st.sidebar.button("📈 Analytics", use_container_width=True, key="analytics_btn"):
+        st.session_state.current_page = "📈 Analytics"
+    if st.sidebar.button("⚪ Whitelist Domains Check", use_container_width=True, key="whitelist_btn"):
+        st.session_state.current_page = "⚪ Whitelist Domains Check"
     
+    # Follow-up Management section
     st.sidebar.markdown('<div class="section-header">📧 Follow-up Management</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<div class="nav-description">Generate and manage security follow-up communications</div>', unsafe_allow_html=True)
     
-    # Follow-up options with indentation
-    followup_options = [
-        "    📧 Follow-up Email Center"
-    ]
+    if st.sidebar.button("📧 Follow-up Email Center", use_container_width=True, key="followup_btn"):
+        st.session_state.current_page = "📧 Follow-up Email Center"
     
+    # System Information section
     st.sidebar.markdown('<div class="section-header">ℹ️ System Information</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<div class="nav-description">Detailed analysis and system overview</div>', unsafe_allow_html=True)
     
-    # System info options with indentation
-    system_options = [
-        "    📊 Extra Info",
-        "    📧 Email Monitoring Sources", 
-        "    🔄 App Workflow Overview"
-    ]
+    if st.sidebar.button("📊 Extra Info", use_container_width=True, key="extra_info_btn"):
+        st.session_state.current_page = "📊 Extra Info"
+    if st.sidebar.button("📧 Email Monitoring Sources", use_container_width=True, key="monitoring_btn"):
+        st.session_state.current_page = "📧 Email Monitoring Sources"
+    if st.sidebar.button("🔄 App Workflow Overview", use_container_width=True, key="workflow_btn"):
+        st.session_state.current_page = "🔄 App Workflow Overview"
     
-    # Combine all options with section headers
-    all_options = core_options + additional_options + followup_options + system_options
-    
-    # Single radio button selection
-    st.sidebar.markdown("<br>", unsafe_allow_html=True)
-    selected_option = st.sidebar.radio(
-        "Navigate to:",
-        all_options,
-        label_visibility="collapsed"
-    )
-    
-    # Map the selected option to page name (remove indentation)
-    page = selected_option.strip()
+    # Get the current page
+    page = st.session_state.current_page
 
     if page == "📁 Data Upload":
         data_upload_page(data_processor, domain_classifier, keyword_detector)
