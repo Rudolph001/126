@@ -4194,13 +4194,13 @@ def followup_email_center_page():
                     status_text.text(f"Generating email {i+1} of {len(st.session_state.selected_events)}")
                     
                     # Get appropriate template
-                    template = email_generator.get_template(email_type)
+                    subject_template, body_template = email_generator.get_template(email_type)
                     
                     # Generate email
                     generated_email = email_generator.generate_email(
                         event,
-                        template.get('subject', 'Security Follow-up Required'),
-                        template.get('body', 'Please review the flagged email activity.')
+                        subject_template,
+                        body_template
                     )
                     
                     # Add metadata
