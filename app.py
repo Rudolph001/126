@@ -3496,14 +3496,14 @@ def find_the_needle_page(domain_classifier, visualizer):
             st.write("**Detected Anomalies:**")
             anomalies_df = pd.DataFrame(anomalies_detected)
             
-            # Color code by severity
+            # Color code by severity with proper text contrast
             def highlight_severity(row):
                 if row['Severity'] == 'High':
-                    return ['background-color: #ffcdd2'] * len(row)
+                    return ['background-color: #ffebee; color: #c62828; font-weight: bold'] * len(row)
                 elif row['Severity'] == 'Medium':
-                    return ['background-color: #fff3e0'] * len(row)
+                    return ['background-color: #fff3e0; color: #ef6c00; font-weight: bold'] * len(row)
                 else:
-                    return ['background-color: #e8f5e8'] * len(row)
+                    return ['background-color: #e8f5e8; color: #2e7d32; font-weight: bold'] * len(row)
             
             st.dataframe(anomalies_df.style.apply(highlight_severity, axis=1), use_container_width=True)
             
