@@ -178,39 +178,51 @@ class DomainClassifier:
 
         return df
 
-    def _extract_domain(self, email: str) -> str:
+    def _extract_domain(self, email) -> str:
         """Extract domain from email address"""
-        if pd.isna(email) or '@' not in str(email):
+        if pd.isna(email):
+            return ''
+        
+        email_str = str(email).strip()
+        if not email_str or email_str == 'nan' or '@' not in email_str:
             return ''
 
         try:
-            domain = str(email).split('@')[-1].lower().strip()
+            domain = email_str.split('@')[-1].lower().strip()
             # Remove any trailing spaces or special characters
             domain = re.sub(r'[^\w\.-]', '', domain)
             return domain
         except:
             return ''
 
-    def _extract_first_recipient_domain(self, recipients: str) -> str:
+    def _extract_first_recipient_domain(self, recipients) -> str:
         """Extract first recipient domain"""
-        if pd.isna(recipients) or str(recipients).strip() == '':
+        if pd.isna(recipients):
+            return ''
+        
+        recipients_str = str(recipients).strip()
+        if not recipients_str or recipients_str == 'nan':
             return ''
 
         email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        emails = re.findall(email_pattern, str(recipients))
+        emails = re.findall(email_pattern, recipients_str)
 
         if emails:
             return self._extract_domain(emails[0])
         return ''
 
-    def _extract_all_recipient_domains(self, recipients: str) -> List[str]:
+    def _extract_all_recipient_domains(self, recipients) -> List[str]:
         """Extract all unique recipient domains with enhanced parsing"""
-        if pd.isna(recipients) or str(recipients).strip() == '':
+        if pd.isna(recipients):
+            return []
+        
+        recipients_str = str(recipients).strip()
+        if not recipients_str or recipients_str == 'nan':
             return []
 
         # Enhanced email pattern to handle various formats
         email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        emails = re.findall(email_pattern, str(recipients))
+        emails = re.findall(email_pattern, recipients_str)
 
         domains = []
         for email in emails:

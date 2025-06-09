@@ -35,9 +35,13 @@ class DataProcessor:
         # Convert last_working_day to datetime
         processed_df['last_working_day'] = pd.to_datetime(processed_df['last_working_day'], errors='coerce')
         
-        # Clean and standardize email addresses
-        processed_df['sender'] = processed_df['sender'].str.lower().str.strip()
-        processed_df['recipients'] = processed_df['recipients'].str.lower().str.strip()
+        # Clean and standardize email addresses - handle NaN values
+        processed_df['sender'] = processed_df['sender'].astype(str).str.lower().str.strip()
+        processed_df['recipients'] = processed_df['recipients'].astype(str).str.lower().str.strip()
+        
+        # Replace 'nan' strings with empty strings
+        processed_df['sender'] = processed_df['sender'].replace('nan', '')
+        processed_df['recipients'] = processed_df['recipients'].replace('nan', '')
         
         # Extract hour from timestamp for after-hours analysis
         processed_df['hour'] = processed_df['time'].dt.hour
@@ -93,21 +97,29 @@ class DataProcessor:
     
     def _count_recipients(self, recipients):
         """Count number of recipients in email"""
-        if pd.isna(recipients) or recipients == '':
+        if pd.isna(recipients):
+            return 0
+        
+        recipients_str = str(recipients).strip()
+        if not recipients_str or recipients_str == 'nan':
             return 0
         
         # Split by common separators
-        recipients_list = re.split(r'[;,\s]+', str(recipients))
+        recipients_list = re.split(r'[;,\s]+', recipients_str)
         return len([r for r in recipients_list if r.strip() and '@' in r])
     
     def _extract_domains(self, recipients):
         """Extract unique domains from recipients"""
-        if pd.isna(recipients) or recipients == '':
+        if pd.isna(recipients):
+            return []
+        
+        recipients_str = str(recipients).strip()
+        if not recipients_str or recipients_str == 'nan':
             return []
         
         # Extract domains from email addresses
         email_pattern = r'[\w\.-]+@([\w\.-]+)'
-        domains = re.findall(email_pattern, str(recipients))
+        domains = re.findall(email_pattern, recipients_str)
         return list(set(domains))
     
     def calculate_email_volume_baseline(self, df, sender_col='sender', time_col='time'):
