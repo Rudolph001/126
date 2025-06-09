@@ -4187,11 +4187,13 @@ def followup_email_center_page():
             st.subheader("Available Events")
             
             # Create a selection table with key information
-            display_columns = ['sender', 'time', 'subject']
+            display_columns = ['sender', 'time', 'subject', 'recipients', 'email_domain']
             if 'risk_level' in filtered_df.columns:
                 display_columns.append('risk_level')
             if 'department' in filtered_df.columns:
                 display_columns.append('department')
+            if 'attachments' in filtered_df.columns:
+                display_columns.append('attachments')
             if 'ip_keywords_detected' in filtered_df.columns:
                 display_columns.append('ip_keywords_detected')
             
