@@ -85,22 +85,122 @@ def main():
     visualizer = Visualizer()
     keyword_detector = KeywordDetector()
 
-    # Sidebar navigation
-    st.sidebar.title("Navigation")
+    # Enhanced Sidebar navigation with custom styling
+    st.sidebar.markdown("""
+    <style>
+    .sidebar-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f4e79;
+        text-align: center;
+        padding: 1rem 0;
+        border-bottom: 2px solid #e8f4fd;
+        margin-bottom: 1.5rem;
+    }
+    .section-header {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2c5aa0;
+        margin: 1.5rem 0 0.5rem 0;
+        padding: 0.5rem;
+        background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 8px;
+        border-left: 4px solid #2c5aa0;
+    }
+    .nav-description {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-style: italic;
+        margin-bottom: 1rem;
+        padding: 0 0.5rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
-    # Main sections
-    st.sidebar.subheader("Core Functions")
+
+
+    # Enhanced navigation footer
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("""
+    <div style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1rem;
+        border-radius: 10px;
+        margin-top: 2rem;
+        text-align: center;
+        color: white;
+    ">
+        <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">
+            🔐 ExfilEye DLP Monitor
+        </div>
+        <div style="font-size: 0.75rem; opacity: 0.9;">
+            Real-time Email Security Intelligence
+        </div>
+        <div style="font-size: 0.7rem; opacity: 0.7; margin-top: 0.5rem;">
+            v2.0 | Enterprise Edition
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Quick stats in sidebar if data is available
+    if st.session_state.processed_data is not None:
+        st.sidebar.markdown("### 📊 Quick Stats")
+        original_df = st.session_state.processed_data.copy()
+        df_filtered = filter_whitelisted_emails(original_df, st.session_state.whitelist_data)
+        
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            st.metric("Total Emails", f"{len(original_df):,}", label_visibility="visible")
+        with col2:
+            st.metric("Analyzed", f"{len(df_filtered):,}", label_visibility="visible")
+        
+        # Risk indicator if available
+        if hasattr(st.session_state, 'risk_scores') and st.session_state.risk_scores:
+            high_risk_count = sum(1 for score in st.session_state.risk_scores if score >= 61)
+            if high_risk_count > 0:
+                st.sidebar.markdown(f"""
+                <div style="
+                    background-color: #ffebee;
+                    border: 1px solid #f8bbd9;
+                    border-radius: 6px;
+                    padding: 0.5rem;
+                    margin: 0.5rem 0;
+                    text-align: center;
+                ">
+                    <div style="color: #c62828; font-weight: 600; font-size: 0.85rem;">
+                        🚨 {high_risk_count} High Risk Alerts
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+
+    # Enhanced title
+    st.sidebar.markdown('<div class="sidebar-title">🔍 ExfilEye Navigation</div>', unsafe_allow_html=True)
+    
+    # Core Functions section
+    st.sidebar.markdown('<div class="section-header">🎯 Core Functions</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="nav-description">Essential email security monitoring tools</div>', unsafe_allow_html=True)
     main_pages = ["📁 Data Upload", "📋 Daily Checks", "📈 Analytics", "⚪ Whitelist Domains Check"]
     
-    st.sidebar.subheader("Follow-up Management")
+    # Follow-up Management section
+    st.sidebar.markdown('<div class="section-header">📧 Follow-up Management</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="nav-description">Generate and manage security follow-up communications</div>', unsafe_allow_html=True)
     followup_pages = ["📧 Follow-up Email Center"]
     
-    st.sidebar.subheader("System Information")
+    # System Information section
+    st.sidebar.markdown('<div class="section-header">ℹ️ System Information</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="nav-description">Detailed analysis and system overview</div>', unsafe_allow_html=True)
     system_pages = ["📊 Extra Info", "📧 Email Monitoring Sources", "🔄 App Workflow Overview"]
     
-    # Combine all pages for radio selection
+    # Combine all pages for radio selection with better spacing
     all_pages = main_pages + followup_pages + system_pages
-    page = st.sidebar.radio("Select Page", all_pages)
+    
+    st.sidebar.markdown("<br>", unsafe_allow_html=True)
+    page = st.sidebar.radio(
+        "Select Page", 
+        all_pages,
+        label_visibility="collapsed"
+    )
 
     if page == "📁 Data Upload":
         data_upload_page(data_processor, domain_classifier, keyword_detector)
