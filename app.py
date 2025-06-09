@@ -918,8 +918,8 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
     """, unsafe_allow_html=True)
 
     if len(high_risk_emails) > 0:
-        # Display with highlighting - include email_domain to show free email detection and security coverage
-        display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'security_coverage', 'last_working_day', 'word_list_match', 'attachments']
+        # Display with highlighting - include email_domain to show free email detection
+        display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
         available_cols = [col for col in display_cols if col in high_risk_emails.columns]
 
         def highlight_high_risk(row):
@@ -940,16 +940,6 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             if 'attachments' in row.index and pd.notna(row['attachments']) and str(row['attachments']).strip():
                 attachments_idx = row.index.get_loc('attachments')
                 styles[attachments_idx] = 'background-color: #f8d7da; color: #721c24; font-weight: bold'
-            # Highlight security coverage based on status
-            if 'security_coverage' in row.index:
-                coverage_idx = row.index.get_loc('security_coverage')
-                coverage_value = str(row['security_coverage'])
-                if coverage_value == 'Both':
-                    styles[coverage_idx] = 'background-color: #d4edda; color: #155724; font-weight: bold'  # Green for full coverage
-                elif coverage_value == 'No Coverage':
-                    styles[coverage_idx] = 'background-color: #f8d7da; color: #721c24; font-weight: bold'  # Red for no coverage
-                else:  # Missing Tessian or Missing Mimecast
-                    styles[coverage_idx] = 'background-color: #fff3cd; color: #856404; font-weight: bold'  # Yellow for partial coverage
             return styles
 
         styled_high_risk = high_risk_emails[available_cols].style.apply(highlight_high_risk, axis=1)
@@ -987,7 +977,7 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
 
     if len(high_security_emails) > 0:
         # Display with highlighting
-        display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'security_coverage', 'last_working_day', 'word_list_match', 'attachments']
+        display_cols = ['time', 'sender', 'recipients', 'email_domain', 'subject', 'risk_score', 'last_working_day', 'word_list_match', 'attachments']
         available_cols = [col for col in display_cols if col in high_security_emails.columns]
 
         def highlight_high_security(row):
@@ -1000,16 +990,6 @@ def dashboard_page(risk_engine, anomaly_detector, visualizer):
             if 'attachments' in row.index and pd.notna(row['attachments']) and str(row['attachments']).strip():
                 attachments_idx = row.index.get_loc('attachments')
                 styles[attachments_idx] = 'background-color: #fed7d7; color: #c53030; font-weight: bold'
-            # Highlight security coverage based on status
-            if 'security_coverage' in row.index:
-                coverage_idx = row.index.get_loc('security_coverage')
-                coverage_value = str(row['security_coverage'])
-                if coverage_value == 'Both':
-                    styles[coverage_idx] = 'background-color: #d4edda; color: #155724; font-weight: bold'  # Green for full coverage
-                elif coverage_value == 'No Coverage':
-                    styles[coverage_idx] = 'background-color: #f8d7da; color: #721c24; font-weight: bold'  # Red for no coverage
-                else:  # Missing Tessian or Missing Mimecast
-                    styles[coverage_idx] = 'background-color: #fff3cd; color: #856404; font-weight: bold'  # Yellow for partial coverage
             return styles
 
         styled_high_security = high_security_emails[available_cols].style.apply(highlight_high_security, axis=1)
