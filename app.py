@@ -5,6 +5,7 @@ import os
 from datetime import datetime, timedelta
 import io
 import warnings
+import time
 warnings.filterwarnings('ignore')
 pd.options.mode.chained_assignment = None
 
@@ -115,6 +116,8 @@ def main():
         app_workflow_overview_page()
     elif page == "⚪ Whitelist Domains Check":
         whitelist_dashboard_page()
+    elif page == "📧 Follow-up Email Center":
+        followup_email_center_page()
 
 def security_coverage_page():
     st.header("📧 Email Monitoring Sources")
@@ -4004,6 +4007,334 @@ def find_the_needle_page(domain_classifier, visualizer):
                     file_name=f"policy_recommendations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv"
                 )
+
+
+def followup_email_center_page():
+    """Dashboard for managing follow-up emails for security events"""
+    st.header("📧 Follow-up Email Center")
+    
+    if st.session_state.processed_data is None:
+        st.warning("Please upload email data first in the Data Upload page.")
+        return
+    
+    # Initialize session state for selected events if not exists
+    if 'selected_events' not in st.session_state:
+        st.session_state.selected_events = []
+    
+    if 'generated_emails' not in st.session_state:
+        st.session_state.generated_emails = []
+    
+    # Filter out whitelisted emails
+    original_df = st.session_state.processed_data.copy()
+    df = filter_whitelisted_emails(original_df, st.session_state.whitelist_data)
+    
+    if df.empty:
+        st.warning("All emails are whitelisted. No events available for follow-up.")
+        return
+    
+    # Create tabs for different sections
+    tab1, tab2, tab3 = st.tabs(["🎯 Select Events", "📝 Generate Emails", "📋 Manage Follow-ups"])
+    
+    with tab1:
+        st.subheader("Select Events for Follow-up")
+        
+        # Filter events by risk level and other criteria
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            risk_filter = st.multiselect(
+                "Filter by Risk Level",
+                options=['High', 'Medium', 'Low'],
+                default=['High', 'Medium'],
+                key="risk_filter"
+            )
+        
+        with col2:
+            dept_filter = st.multiselect(
+                "Filter by Department",
+                options=df['department'].unique() if 'department' in df.columns else [],
+                key="dept_filter"
+            )
+        
+        with col3:
+            anomaly_filter = st.checkbox(
+                "Show only anomalous emails",
+                value=False,
+                key="anomaly_filter"
+            )
+        
+        # Apply filters
+        filtered_df = df.copy()
+        
+        if 'risk_level' in df.columns and risk_filter:
+            filtered_df = filtered_df[filtered_df['risk_level'].isin(risk_filter)]
+        
+        if 'department' in df.columns and dept_filter:
+            filtered_df = filtered_df[filtered_df['department'].isin(dept_filter)]
+        
+        if anomaly_filter and 'anomaly_score' in df.columns:
+            filtered_df = filtered_df[filtered_df['anomaly_score'] > 0]
+        
+        st.info(f"Found {len(filtered_df)} events matching your criteria")
+        
+        # Display events for selection
+        if not filtered_df.empty:
+            st.subheader("Available Events")
+            
+            # Create a selection table with key information
+            display_columns = ['sender', 'time', 'subject']
+            if 'risk_level' in filtered_df.columns:
+                display_columns.append('risk_level')
+            if 'department' in filtered_df.columns:
+                display_columns.append('department')
+            if 'ip_keywords_detected' in filtered_df.columns:
+                display_columns.append('ip_keywords_detected')
+            
+            # Ensure all display columns exist
+            available_columns = [col for col in display_columns if col in filtered_df.columns]
+            
+            if available_columns:
+                # Add selection checkboxes
+                selection_df = filtered_df[available_columns].copy()
+                selection_df.insert(0, 'Select', False)
+                
+                # Create editable dataframe for selection
+                edited_df = st.data_editor(
+                    selection_df,
+                    disabled=[col for col in selection_df.columns if col != 'Select'],
+                    hide_index=True,
+                    use_container_width=True,
+                    key="event_selector"
+                )
+                
+                # Update selected events
+                if st.button("Add Selected Events to Follow-up Queue", type="primary"):
+                    selected_mask = edited_df['Select']
+                    new_selections = filtered_df[selected_mask].copy()
+                    
+                    if not new_selections.empty:
+                        # Add unique identifier for tracking
+                        new_selections['selection_id'] = [f"evt_{int(datetime.now().timestamp())}_{i}" for i in range(len(new_selections))]
+                        new_selections['selected_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        # Add to session state
+                        if not st.session_state.selected_events:
+                            st.session_state.selected_events = new_selections.to_dict('records')
+                        else:
+                            existing_df = pd.DataFrame(st.session_state.selected_events)
+                            combined_df = pd.concat([existing_df, new_selections], ignore_index=True)
+                            st.session_state.selected_events = combined_df.to_dict('records')
+                        
+                        st.success(f"Added {len(new_selections)} events to follow-up queue")
+                        st.rerun()
+    
+    with tab2:
+        st.subheader("Generate Follow-up Emails")
+        
+        if not st.session_state.selected_events:
+            st.info("No events selected for follow-up. Please select events in the 'Select Events' tab.")
+        else:
+            st.success(f"Ready to generate emails for {len(st.session_state.selected_events)} selected events")
+            
+            # Email template selection
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                email_type = st.selectbox(
+                    "Email Template Type",
+                    options=['Security Inquiry', 'Policy Reminder', 'Training Notification', 'Risk Assessment'],
+                    key="email_template_type"
+                )
+            
+            with col2:
+                urgency_level = st.selectbox(
+                    "Urgency Level",
+                    options=['Low', 'Medium', 'High', 'Critical'],
+                    key="urgency_level"
+                )
+            
+            # Custom email settings
+            st.subheader("Email Customization")
+            
+            custom_subject = st.text_input(
+                "Custom Subject Line (optional)",
+                placeholder="Leave empty to use template default",
+                key="custom_subject"
+            )
+            
+            custom_message = st.text_area(
+                "Additional Message (optional)",
+                placeholder="Add any specific context or instructions",
+                key="custom_message"
+            )
+            
+            # Preview selected events
+            if st.expander("Preview Selected Events", expanded=False):
+                events_df = pd.DataFrame(st.session_state.selected_events)
+                preview_columns = ['sender', 'subject', 'selected_at']
+                if 'risk_level' in events_df.columns:
+                    preview_columns.append('risk_level')
+                
+                available_preview_cols = [col for col in preview_columns if col in events_df.columns]
+                st.dataframe(events_df[available_preview_cols], use_container_width=True)
+            
+            # Generate emails
+            if st.button("Generate Follow-up Emails", type="primary"):
+                from utils.email_generator import EmailGenerator
+                
+                email_generator = EmailGenerator()
+                
+                # Generate emails for each selected event
+                generated_emails = []
+                
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                for i, event in enumerate(st.session_state.selected_events):
+                    status_text.text(f"Generating email {i+1} of {len(st.session_state.selected_events)}")
+                    
+                    # Get appropriate template
+                    template = email_generator.get_template(email_type)
+                    
+                    # Generate email
+                    generated_email = email_generator.generate_email(
+                        event,
+                        template.get('subject', 'Security Follow-up Required'),
+                        template.get('body', 'Please review the flagged email activity.')
+                    )
+                    
+                    # Add metadata
+                    generated_email.update({
+                        'event_id': event.get('selection_id', f"evt_{i}"),
+                        'template_type': email_type,
+                        'urgency_level': urgency_level,
+                        'custom_subject': custom_subject,
+                        'custom_message': custom_message,
+                        'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'status': 'Draft'
+                    })
+                    
+                    generated_emails.append(generated_email)
+                    progress_bar.progress((i + 1) / len(st.session_state.selected_events))
+                
+                # Store generated emails
+                st.session_state.generated_emails.extend(generated_emails)
+                
+                status_text.text("Email generation completed!")
+                st.success(f"Successfully generated {len(generated_emails)} follow-up emails")
+                
+                # Show preview of first email
+                if generated_emails:
+                    st.subheader("Email Preview")
+                    with st.expander("Preview First Generated Email", expanded=True):
+                        first_email = generated_emails[0]
+                        st.write(f"**To:** {first_email.get('recipient_email', 'N/A')}")
+                        st.write(f"**Subject:** {first_email.get('subject', 'N/A')}")
+                        st.write("**Body:**")
+                        st.text_area("", value=first_email.get('body', 'N/A'), height=200, disabled=True)
+    
+    with tab3:
+        st.subheader("Manage Follow-up Activities")
+        
+        # Display summary metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Selected Events", len(st.session_state.selected_events))
+        
+        with col2:
+            draft_count = len([e for e in st.session_state.generated_emails if e.get('status') == 'Draft'])
+            st.metric("Draft Emails", draft_count)
+        
+        with col3:
+            sent_count = len([e for e in st.session_state.generated_emails if e.get('status') == 'Sent'])
+            st.metric("Sent Emails", sent_count)
+        
+        with col4:
+            response_count = len([e for e in st.session_state.generated_emails if e.get('status') == 'Responded'])
+            st.metric("Responses Received", response_count)
+        
+        # Manage selected events
+        if st.session_state.selected_events:
+            st.subheader("Selected Events Queue")
+            
+            events_df = pd.DataFrame(st.session_state.selected_events)
+            
+            # Create management interface
+            if st.button("Clear All Selected Events", type="secondary"):
+                st.session_state.selected_events = []
+                st.success("Cleared all selected events")
+                st.rerun()
+            
+            # Show events table
+            if not events_df.empty:
+                display_cols = ['sender', 'subject', 'selected_at']
+                if 'risk_level' in events_df.columns:
+                    display_cols.append('risk_level')
+                if 'department' in events_df.columns:
+                    display_cols.append('department')
+                
+                available_display_cols = [col for col in display_cols if col in events_df.columns]
+                st.dataframe(events_df[available_display_cols], use_container_width=True)
+        
+        # Manage generated emails
+        if st.session_state.generated_emails:
+            st.subheader("Generated Emails Management")
+            
+            emails_df = pd.DataFrame(st.session_state.generated_emails)
+            
+            # Email status management
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("Mark All as Sent", type="secondary"):
+                    for email in st.session_state.generated_emails:
+                        email['status'] = 'Sent'
+                        email['sent_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    st.success("Marked all emails as sent")
+                    st.rerun()
+            
+            with col2:
+                if st.button("Clear All Generated Emails", type="secondary"):
+                    st.session_state.generated_emails = []
+                    st.success("Cleared all generated emails")
+                    st.rerun()
+            
+            # Show emails table
+            email_display_cols = ['recipient_email', 'subject', 'template_type', 'status', 'generated_at']
+            available_email_cols = [col for col in email_display_cols if col in emails_df.columns]
+            
+            if available_email_cols:
+                st.dataframe(emails_df[available_email_cols], use_container_width=True)
+            
+            # Export functionality
+            st.subheader("Export Options")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("Export Selected Events", type="secondary"):
+                    if st.session_state.selected_events:
+                        events_export_df = pd.DataFrame(st.session_state.selected_events)
+                        csv = events_export_df.to_csv(index=False)
+                        st.download_button(
+                            label="Download Events CSV",
+                            data=csv,
+                            file_name=f"selected_events_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv"
+                        )
+            
+            with col2:
+                if st.button("Export Generated Emails", type="secondary"):
+                    if st.session_state.generated_emails:
+                        emails_export_df = pd.DataFrame(st.session_state.generated_emails)
+                        csv = emails_export_df.to_csv(index=False)
+                        st.download_button(
+                            label="Download Emails CSV",
+                            data=csv,
+                            file_name=f"generated_emails_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv"
+                        )
 
 
 if __name__ == "__main__":
