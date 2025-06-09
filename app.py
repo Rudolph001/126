@@ -4183,6 +4183,15 @@ def followup_email_center_page():
                 available_preview_cols = [col for col in preview_columns if col in events_df.columns]
                 st.dataframe(events_df[available_preview_cols], use_container_width=True)
             
+            # Output method selection
+            st.subheader("Output Method")
+            output_method = st.radio(
+                "Choose how to handle generated emails:",
+                options=["Open in Outlook", "Export as CSV", "Send via SMTP"],
+                index=0,
+                help="Select your preferred method for handling the generated follow-up emails"
+            )
+            
             # Generate emails
             if st.button("Generate Follow-up Emails", type="primary"):
                 from utils.email_generator import EmailGenerator
@@ -4222,18 +4231,82 @@ def followup_email_center_page():
                     generated_emails.append(generated_email)
                     progress_bar.progress((i + 1) / len(st.session_state.selected_events))
                 
-                # Store generated emails
-                st.session_state.generated_emails.extend(generated_emails)
+                # Handle different output methods
+                if output_method == "Open in Outlook":
+                    # Prepare emails for Outlook integration
+                    outlook_emails = email_generator.prepare_outlook_emails(generated_emails)
+                    st.session_state.generated_emails.extend(outlook_emails)
+                    
+                    status_text.text("Email generation completed!")
+                    st.success(f"Successfully generated {len(generated_emails)} follow-up emails for Outlook")
+                    
+                    # Show Outlook integration options
+                    st.subheader("📧 Open Emails in Outlook")
+                    st.info("Click the buttons below to open each email directly in your Outlook application. All fields will be pre-filled - you just need to review and send.")
+                    
+                    for i, email in enumerate(outlook_emails):
+                        with st.expander(f"Email {i+1}: {email.get('to', 'Unknown')} - {email.get('subject', 'No Subject')[:50]}..."):
+                            col1, col2 = st.columns([3, 1])
+                            
+                            with col1:
+                                st.write(f"**To:** {email.get('to', 'N/A')}")
+                                st.write(f"**Subject:** {email.get('subject', 'N/A')}")
+                                st.write("**Body Preview:**")
+                                body_preview = email.get('body', 'N/A')[:200] + '...' if len(email.get('body', '')) > 200 else email.get('body', 'N/A')
+                                st.text(body_preview)
+                            
+                            with col2:
+                                # Create the Outlook mailto button
+                                outlook_link = email.get('outlook_link', '')
+                                if outlook_link:
+                                    st.markdown(f"""
+                                    <a href="{outlook_link}" target="_blank">
+                                        <button style="
+                                            background-color: #0078d4;
+                                            color: white;
+                                            border: none;
+                                            padding: 10px 15px;
+                                            border-radius: 5px;
+                                            cursor: pointer;
+                                            width: 100%;
+                                            margin-bottom: 10px;
+                                        ">📧 Open in Outlook</button>
+                                    </a>
+                                    """, unsafe_allow_html=True)
                 
-                status_text.text("Email generation completed!")
-                st.success(f"Successfully generated {len(generated_emails)} follow-up emails")
+                elif output_method == "Export as CSV":
+                    # Export as CSV
+                    st.session_state.generated_emails.extend(generated_emails)
+                    
+                    status_text.text("Email generation completed!")
+                    st.success(f"Successfully generated {len(generated_emails)} follow-up emails")
+                    
+                    # Create CSV export
+                    emails_df = email_generator.export_emails_to_csv(generated_emails)
+                    csv_data = emails_df.to_csv(index=False)
+                    
+                    st.download_button(
+                        label="📥 Download Generated Emails CSV",
+                        data=csv_data,
+                        file_name=f"followup_emails_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        type="primary"
+                    )
+                
+                elif output_method == "Send via SMTP":
+                    # Store generated emails
+                    st.session_state.generated_emails.extend(generated_emails)
+                    
+                    status_text.text("Email generation completed!")
+                    st.success(f"Successfully generated {len(generated_emails)} follow-up emails")
+                    st.warning("SMTP sending functionality would need to be configured with your email server settings.")
                 
                 # Show preview of first email
                 if generated_emails:
                     st.subheader("Email Preview")
                     with st.expander("Preview First Generated Email", expanded=True):
                         first_email = generated_emails[0]
-                        st.write(f"**To:** {first_email.get('recipient_email', 'N/A')}")
+                        st.write(f"**To:** {first_email.get('to', 'N/A')}")
                         st.write(f"**Subject:** {first_email.get('subject', 'N/A')}")
                         st.write("**Body:**")
                         st.text_area("", value=first_email.get('body', 'N/A'), height=200, disabled=True)
@@ -4288,6 +4361,45 @@ def followup_email_center_page():
             
             emails_df = pd.DataFrame(st.session_state.generated_emails)
             
+            # Check if there are Outlook emails
+            outlook_emails = [email for email in st.session_state.generated_emails if 'outlook_link' in email]
+            
+            if outlook_emails:
+                st.subheader("📧 Outlook Integration")
+                st.info(f"You have {len(outlook_emails)} emails ready for Outlook. Click the buttons below to open them in your Outlook application.")
+                
+                # Group Outlook emails for easy access
+                for i, email in enumerate(outlook_emails[:5]):  # Show first 5
+                    col1, col2, col3 = st.columns([2, 2, 1])
+                    
+                    with col1:
+                        st.write(f"**{i+1}.** {email.get('to', 'Unknown')}")
+                    
+                    with col2:
+                        subject = email.get('subject', 'No Subject')
+                        st.write(f"{subject[:40]}..." if len(subject) > 40 else subject)
+                    
+                    with col3:
+                        outlook_link = email.get('outlook_link', '')
+                        if outlook_link:
+                            st.markdown(f"""
+                            <a href="{outlook_link}" target="_blank">
+                                <button style="
+                                    background-color: #0078d4;
+                                    color: white;
+                                    border: none;
+                                    padding: 5px 10px;
+                                    border-radius: 3px;
+                                    cursor: pointer;
+                                    width: 100%;
+                                    font-size: 12px;
+                                ">📧 Open</button>
+                            </a>
+                            """, unsafe_allow_html=True)
+                
+                if len(outlook_emails) > 5:
+                    st.info(f"Showing first 5 emails. {len(outlook_emails) - 5} more emails available in the detailed view below.")
+            
             # Email status management
             col1, col2 = st.columns(2)
             
@@ -4306,7 +4418,10 @@ def followup_email_center_page():
                     st.rerun()
             
             # Show emails table
-            email_display_cols = ['recipient_email', 'subject', 'template_type', 'status', 'generated_at']
+            email_display_cols = ['to', 'subject', 'template_type', 'status', 'generated_at']
+            if 'recipient_email' in emails_df.columns:
+                email_display_cols[0] = 'recipient_email'
+            
             available_email_cols = [col for col in email_display_cols if col in emails_df.columns]
             
             if available_email_cols:
